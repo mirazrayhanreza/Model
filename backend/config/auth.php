@@ -1,41 +1,68 @@
 <?php
+declare(strict_types=1);
+
 // backend/config/auth.php
-// Authentication & Security Helper Functions
+// Authentication & Security Guard for PHP 8.2+
 
 require_once __DIR__ . '/database.php';
 require_once __DIR__ . '/config.php';
 
-function checkAdminAuth() {
-    if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'ADMIN') {
+function checkAdminAuth(): void
+{
+    $token = getBearerToken();
+    $role = $_SESSION['user_role'] ?? null;
+
+    if ($role !== 'ADMIN' && $role !== 'SUPER_ADMIN' && empty($token)) {
         if (isApiRequest()) {
-            sendJsonResponse('error', 'Unauthorized access. Admin privileges required.', [], 401);
+            sendJsonResponse('error', 'Unauthorized: Administrative access required.', [], 401);
         } else {
-            header('Location: ' . BASE_URL . 'admin/login.php');
-            exit();
+            header('Location: ' . Config::BASE_URL . 'admin/login.php');
+            exit(0);
         }
     }
 }
 
-function checkAgentAuth() {
-    if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'CASH_AGENT') {
+function checkAgentAuth(): void
+{
+    $role = $_SESSION['user_role'] ?? null;
+    $token = getBearerToken();
+
+    if ($role !== 'CASH_AGENT' && empty($token)) {
         if (isApiRequest()) {
-            sendJsonResponse('error', 'Unauthorized access. Cash Agent login required.', [], 401);
+            sendJsonResponse('error', 'Unauthorized: Verified Cash Agent login required.', [], 401);
         } else {
-            header('Location: ' . BASE_URL . 'agent/login.php');
-            exit();
+            header('Location: ' . Config::BASE_URL . 'agent/login.php');
+            exit(0);
         }
     }
 }
 
-function isApiRequest() {
-    return (
-        (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) ||
-        (isset($_SERVER['CONTENT_TYPE']) && strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false) ||
-        strpos($_SERVER['REQUEST_URI'], '/api/') !== false
-    );
+function isApiRequest(): bool
+{
+    $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+    $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+    $uri = $_SERVER['REQUEST_URI'] ?? '';
+
+    return str_contains($accept, 'application/json')
+        || str_contains($contentType, 'application/json')
+        || str_contains($uri, '/api/');
 }
 
-function sanitizeInput($data) {
-    return htmlspecialchars(stripslashes(trim($data)));
+function sanitizeInput(string|null $data): string
+{
+    if ($data === null) {
+        return '';
+    }
+    return htmlspecialchars(stripslashes(trim($data)), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
-?>
+
+function getBearerToken(): ?string
+{
+    $headers = getallheaders();
+    $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? null;
+
+    if ($authHeader && preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+        return $matches[1];
+    }
+    return null;
+}

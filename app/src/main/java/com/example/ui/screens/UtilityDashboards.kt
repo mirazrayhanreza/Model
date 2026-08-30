@@ -11,7 +11,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -70,132 +73,16 @@ fun WalletDashboardContent(
 
     // Dialogs
     if (showAddFundsDialog) {
-        AlertDialog(
-            onDismissRequest = { showAddFundsDialog = false },
-            title = { Text("Add Funds to Wallet", color = Color.White, fontWeight = FontWeight.Bold) },
-            text = {
-                Column {
-                    OutlinedTextField(
-                        value = viewModel.depositAmount,
-                        onValueChange = { viewModel.depositAmount = it },
-                        label = { Text("Amount in Taka (৳)", color = TextSecondary) },
-                        placeholder = { Text("Enter amount, e.g. 1000", color = Color.Gray) },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = PinkHighlight,
-                            unfocusedBorderColor = Color(0xFF2E2E3E)
-                        ),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Select Funding Channel", color = TextSecondary, fontSize = 12.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf("bKash", "Nagad", "Rocket", "Stripe").forEach { m ->
-                            val isSel = viewModel.walletMethod == m
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isSel) PinkHighlight else Color(0xFF2E2E3E))
-                                    .clickable { viewModel.walletMethod = m }
-                                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                Text(m, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (viewModel.depositAmount.isNotBlank()) {
-                            viewModel.depositWallet()
-                            showAddFundsDialog = false
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight)
-                ) {
-                    Text("Confirm", fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showAddFundsDialog = false }) {
-                    Text("Cancel", color = TextSecondary)
-                }
-            },
-            containerColor = DarkSurface
+        DepositWorkflowDialog(
+            viewModel = viewModel,
+            onDismiss = { showAddFundsDialog = false }
         )
     }
 
     if (showWithdrawDialog) {
-        AlertDialog(
-            onDismissRequest = { showWithdrawDialog = false },
-            title = { Text("Request Income Withdrawal", color = Color.White, fontWeight = FontWeight.Bold) },
-            text = {
-                Column {
-                    OutlinedTextField(
-                        value = viewModel.withdrawAmount,
-                        onValueChange = { viewModel.withdrawAmount = it },
-                        label = { Text("Amount in Taka (৳)", color = TextSecondary) },
-                        placeholder = { Text("Enter amount, e.g. 2000", color = Color.Gray) },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = PinkHighlight,
-                            unfocusedBorderColor = Color(0xFF2E2E3E)
-                        ),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Select Withdrawal Channel", color = TextSecondary, fontSize = 12.sp)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        listOf("bKash", "Nagad", "Rocket", "Stripe").forEach { m ->
-                            val isSel = viewModel.walletMethod == m
-                            Box(
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isSel) PinkHighlight else Color(0xFF2E2E3E))
-                                    .clickable { viewModel.walletMethod = m }
-                                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                Text(m, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        if (viewModel.withdrawAmount.isNotBlank()) {
-                            viewModel.withdrawWallet()
-                            showWithdrawDialog = false
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight)
-                ) {
-                    Text("Confirm", fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showWithdrawDialog = false }) {
-                    Text("Cancel", color = TextSecondary)
-                }
-            },
-            containerColor = DarkSurface
+        WithdrawalWorkflowDialog(
+            viewModel = viewModel,
+            onDismiss = { showWithdrawDialog = false }
         )
     }
 
@@ -2738,9 +2625,769 @@ fun AdminEscrowReviewTab(viewModel: AppViewModel) {
 
 
 // ---------------- ADMIN CASH VERIFICATION TAB ----------------
+// ---------------- PROOF SCREENSHOT LIGHTBOX DIALOG ----------------
+@Composable
+fun ProofViewerDialog(
+    imageUri: String,
+    title: String,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                IconButton(onClick = onDismiss) {
+                    Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = Color.Gray)
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(280.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(Color.Black)
+                ) {
+                    SubcomposeAsyncImage(
+                        model = imageUri,
+                        contentDescription = title,
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+                Spacer(modifier = Modifier.height(10.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = Icons.Default.VerifiedUser, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Supporting evidence photo - Verified by Modol Ledger Engine", color = TextSecondary, fontSize = 11.sp)
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onDismiss,
+                colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight)
+            ) {
+                Text("Close Inspection", fontWeight = FontWeight.Bold)
+            }
+        },
+        containerColor = DarkSurface
+    )
+}
+
+// ---------------- USER DEPOSIT WORKFLOW DIALOG ----------------
+@Composable
+fun DepositWorkflowDialog(
+    viewModel: AppViewModel,
+    onDismiss: () -> Unit
+) {
+    val allAgents by viewModel.paymentAgents.collectAsStateWithLifecycle()
+    
+    // Payment method choice: "GOOGLE_PAY", "ALIPAY", "CASH_AGENT"
+    var selectedTopGateway by remember { mutableStateOf("GOOGLE_PAY") }
+    
+    // Cash Agent Flow states
+    var selectedCountry by remember { mutableStateOf("Bangladesh") }
+    val availableCountries = listOf("Bangladesh", "China", "USA", "UK", "UAE", "India", "Other")
+    
+    val countryAgents = remember(allAgents, selectedCountry) {
+        allAgents.filter { it.country.equals(selectedCountry, ignoreCase = true) }
+    }
+    
+    var selectedAgent by remember(countryAgents) {
+        mutableStateOf(countryAgents.firstOrNull() ?: allAgents.firstOrNull() ?: PaymentAgent("DEF", "Default Agent", "00", "Bangladesh", "01700000000", "bKash", "01700000000"))
+    }
+    
+    var depositAmountInput by remember { mutableStateOf("1000") }
+    var transactionIdInput by remember { mutableStateOf("TXN${(10000000..99999999).random()}") }
+    var userNoteInput by remember { mutableStateOf("Cash agent deposit") }
+    var selectedProofUrl by remember { mutableStateOf("https://images.unsplash.com/photo-1556742049-0a670f4a4591") }
+    
+    // Gateway simulation state
+    var isProcessingGateway by remember { mutableStateOf(false) }
+    var gatewayErrorNotice by remember { mutableStateOf<String?>(null) }
+    var gatewaySuccessNotice by remember { mutableStateOf<String?>(null) }
+
+    var showMarketplaceModal by remember { mutableStateOf(false) }
+
+    val sampleProofPhotos = listOf(
+        "bKash Receipt" to "https://images.unsplash.com/photo-1556742049-0a670f4a4591",
+        "Nagad Voucher" to "https://images.unsplash.com/photo-1563013544-824ae1b704d3",
+        "Bank Advice" to "https://images.unsplash.com/photo-1559526324-4b87b5e36e44"
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(PinkHighlight.copy(alpha = 0.2f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(imageVector = Icons.Default.AccountBalanceWallet, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text("MODOL CONNECT", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                        Text("Select Payment Method", color = TextSecondary, fontSize = 12.sp)
+                    }
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // UNIVERSAL 3 PAYMENT GATEWAY BUTTONS - ALWAYS VISIBLE REGARDLESS OF COUNTRY
+                Text("Available Payment Gateways (Universal):", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+
+                // 1. Google Pay
+                val isGPaySelected = selectedTopGateway == "GOOGLE_PAY"
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            selectedTopGateway = "GOOGLE_PAY"
+                            gatewayErrorNotice = null
+                            gatewaySuccessNotice = null
+                        },
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isGPaySelected) Color(0xFF00E676).copy(alpha = 0.15f) else DarkSurface
+                    ),
+                    border = BorderStroke(1.5.dp, if (isGPaySelected) Color(0xFF00E676) else Color(0xFF2E2E3E)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .background(Color(0xFF00E676), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(imageVector = Icons.Default.Payment, contentDescription = null, tint = Color.Black, modifier = Modifier.size(20.dp))
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text("🟢 Google Pay", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("Automatic Payment Gateway", color = TextSecondary, fontSize = 11.sp)
+                            }
+                        }
+                        RadioButton(
+                            selected = isGPaySelected,
+                            onClick = {
+                                selectedTopGateway = "GOOGLE_PAY"
+                                gatewayErrorNotice = null
+                                gatewaySuccessNotice = null
+                            },
+                            colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF00E676))
+                        )
+                    }
+                }
+
+                // 2. Alipay
+                val isAlipaySelected = selectedTopGateway == "ALIPAY"
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            selectedTopGateway = "ALIPAY"
+                            gatewayErrorNotice = null
+                            gatewaySuccessNotice = null
+                        },
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isAlipaySelected) Color(0xFF1E88E5).copy(alpha = 0.15f) else DarkSurface
+                    ),
+                    border = BorderStroke(1.5.dp, if (isAlipaySelected) Color(0xFF1E88E5) else Color(0xFF2E2E3E)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .background(Color(0xFF1E88E5), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("支", color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text("🔵 Alipay", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("Automatic Payment Gateway", color = TextSecondary, fontSize = 11.sp)
+                            }
+                        }
+                        RadioButton(
+                            selected = isAlipaySelected,
+                            onClick = {
+                                selectedTopGateway = "ALIPAY"
+                                gatewayErrorNotice = null
+                                gatewaySuccessNotice = null
+                            },
+                            colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF1E88E5))
+                        )
+                    }
+                }
+
+                // 3. Cash Agent
+                val isCashAgentSelected = selectedTopGateway == "CASH_AGENT"
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            selectedTopGateway = "CASH_AGENT"
+                            gatewayErrorNotice = null
+                            gatewaySuccessNotice = null
+                        },
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isCashAgentSelected) PinkHighlight.copy(alpha = 0.15f) else DarkSurface
+                    ),
+                    border = BorderStroke(1.5.dp, if (isCashAgentSelected) PinkHighlight else Color(0xFF2E2E3E)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .background(PinkHighlight, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text("👤 Cash Agent", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("Manual Verification Workflow", color = TextSecondary, fontSize = 11.sp)
+                            }
+                        }
+                        RadioButton(
+                            selected = isCashAgentSelected,
+                            onClick = {
+                                selectedTopGateway = "CASH_AGENT"
+                                gatewayErrorNotice = null
+                                gatewaySuccessNotice = null
+                            },
+                            colors = RadioButtonDefaults.colors(selectedColor = PinkHighlight)
+                        )
+                    }
+                }
+
+                HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+
+                // --- GATEWAY SPECIFIC UI CONTENT ---
+                if (selectedTopGateway == "GOOGLE_PAY" || selectedTopGateway == "ALIPAY") {
+                    val gwName = if (selectedTopGateway == "GOOGLE_PAY") "Google Pay" else "Alipay"
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text("Enter Amount ($gwName Automatic Checkout):", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        OutlinedTextField(
+                            value = depositAmountInput,
+                            onValueChange = { depositAmountInput = it },
+                            label = { Text("Amount (৳ / $)", color = TextSecondary) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        if (isProcessingGateway) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFF1E202E), RoundedCornerShape(8.dp))
+                                    .padding(12.dp)
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), color = PinkHighlight, strokeWidth = 2.dp)
+                                Text("Verifying $gwName gateway eligibility...", color = Color.White, fontSize = 12.sp)
+                            }
+                        }
+
+                        if (gatewayErrorNotice != null) {
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFF3E1E24)),
+                                border = BorderStroke(1.dp, Color(0xFFEF4444)),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("$gwName Gateway Notice", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    }
+                                    Text(gatewayErrorNotice!!, color = Color.White, fontSize = 11.sp)
+                                }
+                            }
+                        }
+
+                        if (gatewaySuccessNotice != null) {
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E382B)),
+                                border = BorderStroke(1.dp, Color(0xFF4CAF50)),
+                                shape = RoundedCornerShape(10.dp)
+                            ) {
+                                Text(gatewaySuccessNotice!!, color = Color(0xFF4CAF50), fontSize = 11.sp, modifier = Modifier.padding(12.dp))
+                            }
+                        }
+                    }
+                } else {
+                    // --- CASH AGENT FLOW ---
+                    // Cash Agent -> Country -> Verified Agent -> Payment Account -> Screenshot -> Admin Verification
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        // B2B Marketplace Banner Card
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showMarketplaceModal = true },
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E88E5).copy(alpha = 0.2f)),
+                            border = BorderStroke(1.dp, Color(0xFF1E88E5)),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                    Icon(imageVector = Icons.Default.Storefront, contentDescription = null, tint = Color(0xFF1E88E5), modifier = Modifier.size(22.dp))
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Text("🌐 Open B2B Cash Agent Marketplace", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        Text("Binance-style P2P deposit & withdraw with live agent chat", color = TextSecondary, fontSize = 10.sp)
+                                    }
+                                }
+                                Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = Color.White)
+                            }
+                        }
+
+                        // Step 1: Country
+                        Text("1. Select Country (Cash Agent Network):", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            availableCountries.forEach { c ->
+                                val isSel = selectedCountry.equals(c, ignoreCase = true)
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(if (isSel) PinkHighlight else Color(0xFF2E2E3E))
+                                        .clickable {
+                                            selectedCountry = c
+                                            val filtered = allAgents.filter { it.country.equals(c, ignoreCase = true) }
+                                            if (filtered.isNotEmpty()) selectedAgent = filtered.first()
+                                        }
+                                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Text(c, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+
+                        // Step 2: Verified Agent Selection
+                        Text("2. Select Verified Cash Agent ($selectedCountry):", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        if (countryAgents.isEmpty()) {
+                            Text("No local cash agents currently listed for $selectedCountry. Select 'Bangladesh' or 'China' for active agents.", color = TextSecondary, fontSize = 11.sp)
+                        } else {
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                countryAgents.forEach { agent ->
+                                    val isSel = selectedAgent.id == agent.id
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { selectedAgent = agent },
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = if (isSel) Color(0xFF1E203E) else Color(0xFF181A26)
+                                        ),
+                                        border = BorderStroke(1.dp, if (isSel) PinkHighlight else Color(0xFF2E2E3E)),
+                                        shape = RoundedCornerShape(10.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(10.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Column(modifier = Modifier.weight(1f)) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Text(agent.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                                    Spacer(modifier = Modifier.width(6.dp))
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .background(Color(0xFF4CAF50).copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                    ) {
+                                                        Text("VERIFIED AGENT", color = Color(0xFF4CAF50), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                                    }
+                                                }
+                                                Text("Method: ${agent.paymentMethod} • Code #${agent.agentCode}", color = TextSecondary, fontSize = 10.sp)
+                                                Text("Limit: Min ${agent.minLimit.toInt()} - Max ${agent.maxLimit.toInt()} • Comm: ${agent.commissionRate}%", color = PinkHighlight, fontSize = 10.sp)
+                                            }
+
+                                            RadioButton(
+                                                selected = isSel,
+                                                onClick = { selectedAgent = agent },
+                                                colors = RadioButtonDefaults.colors(selectedColor = PinkHighlight)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Step 3: Agent Payment Account Details
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E202E)),
+                            border = BorderStroke(1.dp, Color(0xFF2E2E3E)),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Agent Payment Account Details", color = PinkHighlight, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                }
+                                Text("Agent Name: ${selectedAgent.name} (#${selectedAgent.agentCode})", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text("Channel / Method: ${selectedAgent.paymentMethod}", color = TextSecondary, fontSize = 11.sp)
+                                Text("Account Number: ${selectedAgent.accountNumber}", color = Color.White, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                                if (selectedAgent.accountHolder.isNotEmpty()) {
+                                    Text("Account Holder: ${selectedAgent.accountHolder}", color = TextSecondary, fontSize = 11.sp)
+                                }
+                                Text("Instructions: Cash-in or transfer amount to the account above. Keep transaction receipt screenshot.", color = TextSecondary, fontSize = 10.sp)
+                            }
+                        }
+
+                        // Step 4: Amount, Transaction ID & Screenshot Proof
+                        Text("3. Amount, Transaction ID & Screenshot Proof:", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        OutlinedTextField(
+                            value = depositAmountInput,
+                            onValueChange = { depositAmountInput = it },
+                            label = { Text("Deposit Amount", color = TextSecondary) },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        OutlinedTextField(
+                            value = transactionIdInput,
+                            onValueChange = { transactionIdInput = it },
+                            label = { Text("Transaction ID / Ref (e.g. TXN100293)", color = TextSecondary) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+
+                        Text("Select Sample Receipt Screenshot Proof:", color = TextSecondary, fontSize = 10.sp)
+                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            sampleProofPhotos.forEach { (label, url) ->
+                                val isSel = selectedProofUrl == url
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(if (isSel) Color(0xFF2196F3) else Color(0xFF2E2E3E))
+                                        .clickable { selectedProofUrl = url }
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(label, color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+
+                        OutlinedTextField(
+                            value = userNoteInput,
+                            onValueChange = { userNoteInput = it },
+                            label = { Text("Note to Admin (Optional)", color = TextSecondary) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (selectedTopGateway == "GOOGLE_PAY" || selectedTopGateway == "ALIPAY") {
+                val gwName = if (selectedTopGateway == "GOOGLE_PAY") "Google Pay" else "Alipay"
+                Button(
+                    onClick = {
+                        isProcessingGateway = true
+                        gatewayErrorNotice = null
+                        gatewaySuccessNotice = null
+                        val amt = depositAmountInput.toDoubleOrNull() ?: 100.0
+                        viewModel.processAutomaticGatewayPayment(gwName, amt) { success, msg ->
+                            isProcessingGateway = false
+                            if (success) {
+                                gatewaySuccessNotice = msg
+                            } else {
+                                gatewayErrorNotice = msg
+                            }
+                        }
+                    },
+                    enabled = !isProcessingGateway,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (selectedTopGateway == "GOOGLE_PAY") Color(0xFF00E676) else Color(0xFF1E88E5)
+                    )
+                ) {
+                    Text("Proceed with $gwName", color = Color.Black, fontWeight = FontWeight.Bold)
+                }
+            } else {
+                Button(
+                    onClick = {
+                        val amt = depositAmountInput.toDoubleOrNull() ?: 1000.0
+                        viewModel.submitDepositRequest(
+                            agentId = selectedAgent.id,
+                            agentName = selectedAgent.name,
+                            country = selectedCountry,
+                            paymentMethod = selectedAgent.paymentMethod,
+                            amount = amt,
+                            transactionId = transactionIdInput.ifEmpty { "TXN${(10000000..99999999).random()}" },
+                            proofScreenshotUrl = selectedProofUrl,
+                            userNote = userNoteInput
+                        )
+                        onDismiss()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight)
+                ) {
+                    Text("Submit for Admin Verification", fontWeight = FontWeight.Bold)
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = TextSecondary)
+            }
+        },
+        containerColor = DarkSurface
+    )
+
+    if (showMarketplaceModal) {
+        B2BCashAgentMarketplaceDialog(
+            viewModel = viewModel,
+            onDismiss = { showMarketplaceModal = false }
+        )
+    }
+}
+
+// ---------------- USER WITHDRAWAL WORKFLOW DIALOG ----------------
+@Composable
+fun WithdrawalWorkflowDialog(
+    viewModel: AppViewModel,
+    onDismiss: () -> Unit
+) {
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+    val availableBalance = currentUser?.balance ?: 1500.0
+
+    var withdrawAmountInput by remember { mutableStateOf("500") }
+    var selectedMethod by remember { mutableStateOf("bKash Personal") }
+    var accountNumberInput by remember { mutableStateOf("01712345678") }
+    var accountHolderInput by remember { mutableStateOf(currentUser?.name ?: "Miraz Reza") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var showMarketplaceModal by remember { mutableStateOf(false) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(PinkHighlight.copy(alpha = 0.2f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(imageVector = Icons.Default.CallMade, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(20.dp))
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text("Withdraw Funds", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("Available Wallet Balance: ৳${availableBalance.toInt()}", color = Color(0xFF4CAF50), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                if (errorMessage != null) {
+                    Text(errorMessage!!, color = Color.Red, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showMarketplaceModal = true },
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1E88E5).copy(alpha = 0.2f)),
+                    border = BorderStroke(1.dp, Color(0xFF1E88E5)),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Icon(imageVector = Icons.Default.Storefront, contentDescription = null, tint = Color(0xFF1E88E5), modifier = Modifier.size(22.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text("🌐 Open B2B Cash Agent Marketplace", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text("Withdraw BDT/USD via B2B Cash Agents with live chat & escrow", color = TextSecondary, fontSize = 10.sp)
+                            }
+                        }
+                        Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = Color.White)
+                    }
+                }
+
+                Text("Withdrawal Amount (BDT):", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                OutlinedTextField(
+                    value = withdrawAmountInput,
+                    onValueChange = { withdrawAmountInput = it; errorMessage = null },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Text("Payment Channel:", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("bKash Personal", "Nagad Personal", "City Bank", "Rocket").forEach { m ->
+                        val isSel = selectedMethod == m
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (isSel) PinkHighlight else Color(0xFF2E2E3E))
+                                .clickable { selectedMethod = m }
+                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                        ) {
+                            Text(m, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = accountNumberInput,
+                    onValueChange = { accountNumberInput = it },
+                    label = { Text("Account / Phone Number", color = TextSecondary) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = accountHolderInput,
+                    onValueChange = { accountHolderInput = it },
+                    label = { Text("Account Holder Name", color = TextSecondary) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val amt = withdrawAmountInput.toDoubleOrNull() ?: 0.0
+                    if (amt <= 0) {
+                        errorMessage = "Please enter a valid withdrawal amount."
+                        return@Button
+                    }
+                    if (amt > availableBalance) {
+                        errorMessage = "Insufficient balance! Your balance is ৳${availableBalance.toInt()}."
+                        return@Button
+                    }
+                    val success = viewModel.submitWithdrawalRequest(
+                        amount = amt,
+                        paymentMethod = selectedMethod,
+                        accountNumber = accountNumberInput,
+                        accountHolder = accountHolderInput
+                    )
+                    if (success) {
+                        onDismiss()
+                    } else {
+                        errorMessage = "Failed to submit request."
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight)
+            ) {
+                Text("Confirm Withdrawal", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = TextSecondary)
+            }
+        },
+        containerColor = DarkSurface
+    )
+
+    if (showMarketplaceModal) {
+        B2BCashAgentMarketplaceDialog(
+            viewModel = viewModel,
+            onDismiss = { showMarketplaceModal = false }
+        )
+    }
+}
+
+// ---------------- ADMIN DEPOSIT REVIEW & LEDGER WORKSPACE ----------------
 @Composable
 fun AdminCollectionsTab(viewModel: AppViewModel) {
-    val collections by viewModel.cashCollections.collectAsStateWithLifecycle()
+    val deposits by viewModel.allDeposits.collectAsStateWithLifecycle()
+    val ledgerEntries by viewModel.allLedgerEntries.collectAsStateWithLifecycle()
+
+    var activeTab by remember { mutableIntStateOf(0) } // 0 = Deposits, 1 = Master Immutable Ledger
+    var showProofModalForDeposit by remember { mutableStateOf<DepositRequest?>(null) }
+    var adminNotesMap by remember { mutableStateOf(mutableMapOf<String, String>()) }
 
     Column(
         modifier = Modifier
@@ -2749,74 +3396,225 @@ fun AdminCollectionsTab(viewModel: AppViewModel) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("Payment & Cash collections", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-        Text("Review cash payments submitted by Cash Agents. Approving them will mark bookings as PAID and release escrow.", color = TextSecondary, fontSize = 11.sp)
-
-        LazyColumn(
-            modifier = Modifier.fillMaxWidth().weight(1f),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            items(collections) { coll ->
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                    shape = RoundedCornerShape(14.dp),
-                    modifier = Modifier.fillMaxWidth()
+            Column {
+                Text("Admin Ledger & Deposit Verification", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Verify transaction IDs & agent accounts before approving balance", color = TextSecondary, fontSize = 11.sp)
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Button(
+                    onClick = { activeTab = 0 },
+                    colors = ButtonDefaults.buttonColors(containerColor = if (activeTab == 0) PinkHighlight else Color(0xFF2E2E3E)),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                    modifier = Modifier.height(32.dp)
                 ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                    Text("Deposits (${deposits.count { it.status == "PENDING" }})", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+
+                Button(
+                    onClick = { activeTab = 1 },
+                    colors = ButtonDefaults.buttonColors(containerColor = if (activeTab == 1) PinkHighlight else Color(0xFF2E2E3E)),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text("Master Ledger (${ledgerEntries.size})", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        if (activeTab == 0) {
+            // Deposits Tab
+            if (deposits.isEmpty()) {
+                Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                    Text("No deposit requests found.", color = TextSecondary, fontSize = 12.sp)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(deposits) { dep ->
+                        val noteState = adminNotesMap[dep.id] ?: ""
+
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                            shape = RoundedCornerShape(14.dp),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Column {
-                                Text("ID: ${coll.id}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                Text("Booking: ${coll.bookingId}", color = TextSecondary, fontSize = 11.sp)
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .background(
-                                        if (coll.status == "PAID") Color(0xFF4CAF50).copy(alpha = 0.15f) else Color(0xFFFF9800).copy(alpha = 0.15f),
-                                        RoundedCornerShape(6.dp)
+                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text("Deposit #${dep.id}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                        Text("User: ${dep.userName} (${dep.userId})", color = TextSecondary, fontSize = 11.sp)
+                                    }
+
+                                    val statusBg = when (dep.status) {
+                                        "APPROVED" -> Color(0xFF4CAF50)
+                                        "REJECTED" -> Color(0xFFEF4444)
+                                        else -> Color(0xFFFF9800)
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .background(statusBg.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                                    ) {
+                                        Text(dep.status, color = statusBg, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+
+                                HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text("Payment Agent", color = TextSecondary, fontSize = 10.sp)
+                                        Text("${dep.agentName} • ${dep.country}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        Text("Method: ${dep.paymentMethod}", color = TextSecondary, fontSize = 10.sp)
+                                    }
+
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text("Deposit Amount", color = TextSecondary, fontSize = 10.sp)
+                                        Text("৳${dep.amount.toInt()}", color = PinkHighlight, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                                    }
+                                }
+
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color(0xFF191B28), RoundedCornerShape(8.dp))
+                                        .padding(10.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text("Transaction ID:", color = TextSecondary, fontSize = 10.sp)
+                                        Text(dep.transactionId, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    }
+
+                                    Button(
+                                        onClick = { showProofModalForDeposit = dep },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                                        shape = RoundedCornerShape(6.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                        modifier = Modifier.height(28.dp)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Receipt, contentDescription = null, modifier = Modifier.size(12.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Inspect Screenshot Proof", fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+
+                                if (dep.status == "PENDING") {
+                                    OutlinedTextField(
+                                        value = noteState,
+                                        onValueChange = { adminNotesMap[dep.id] = it },
+                                        placeholder = { Text("Admin Note / Agent Ledger Cross-check note...", color = Color.Gray, fontSize = 10.sp) },
+                                        colors = OutlinedTextFieldDefaults.colors(
+                                            focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                                            focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                        ),
+                                        modifier = Modifier.fillMaxWidth()
                                     )
-                                    .padding(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    coll.status,
-                                    color = if (coll.status == "PAID") Color(0xFF4CAF50) else Color(0xFFFF9800),
-                                    fontSize = 10.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Button(
+                                            onClick = {
+                                                viewModel.approveDeposit(
+                                                    dep.id,
+                                                    noteState.ifEmpty { "Transaction ID verified against agent ledger." }
+                                                )
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.weight(1f).height(36.dp)
+                                        ) {
+                                            Text("Approve & Credit Wallet", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        }
+
+                                        Button(
+                                            onClick = {
+                                                viewModel.rejectDeposit(
+                                                    dep.id,
+                                                    noteState.ifEmpty { "Transaction ID verification failed." }
+                                                )
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.height(36.dp)
+                                        ) {
+                                            Text("Reject", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
                             }
                         }
-                        
-                        Spacer(modifier = Modifier.height(10.dp))
-                        HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
-                        Spacer(modifier = Modifier.height(10.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text("Collected By", color = TextSecondary, fontSize = 10.sp)
-                                Text(coll.agentName, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                            }
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text("Amount Collected", color = TextSecondary, fontSize = 10.sp)
-                                Text("৳${coll.amount.toInt()}", color = PinkHighlight, fontWeight = FontWeight.Black, fontSize = 14.sp)
-                            }
-                        }
-
-                        if (coll.status == "PENDING") {
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Button(
-                                onClick = { viewModel.approveCashCollectionByAdmin(coll.id) },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
-                                shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.fillMaxWidth().height(36.dp)
+                    }
+                }
+            }
+        } else {
+            // Master Ledger Tab
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(ledgerEntries) { entry ->
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("Approve & Verify Cash Payment", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(imageVector = Icons.Default.Gavel, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Ledger #${entry.id} • Ref: ${entry.referenceId}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                }
+
+                                val isCredit = entry.transactionType.contains("CREDIT")
+                                Box(
+                                    modifier = Modifier
+                                        .background(if (isCredit) Color(0xFF4CAF50).copy(alpha = 0.15f) else Color(0xFFEF4444).copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                                ) {
+                                    Text(entry.transactionType, color = if (isCredit) Color(0xFF4CAF50) else Color(0xFFEF4444), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text("Account: ${entry.userName} (${entry.userRole})", color = TextSecondary, fontSize = 10.sp)
+                                    Text("Method/Ref: ${entry.paymentMethod} (${entry.transactionIdOrRef})", color = TextSecondary, fontSize = 10.sp)
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text("৳${entry.amount.toInt()}", color = if (entry.transactionType.contains("CREDIT")) Color(0xFF4CAF50) else Color(0xFFEF4444), fontWeight = FontWeight.Black, fontSize = 14.sp)
+                                    Text("Balance: ৳${entry.previousBalance.toInt()} ➔ ৳${entry.newBalance.toInt()}", color = TextSecondary, fontSize = 9.sp)
+                                }
                             }
                         }
                     }
@@ -2824,20 +3622,496 @@ fun AdminCollectionsTab(viewModel: AppViewModel) {
             }
         }
     }
-}
 
-// ---------------- ADMIN WALLET APPROVALS TAB ----------------
-@Composable
-fun AdminWalletsTab(viewModel: AppViewModel) {
-    var payoutRequests by remember {
-        mutableStateOf(
-            listOf(
-                Pair("Jessica (Model)", 1250.0),
-                Pair("Agent Sumon", 675.0),
-                Pair("Agent Rafiq", 820.0)
-            )
+    if (showProofModalForDeposit != null) {
+        val dep = showProofModalForDeposit!!
+        ProofViewerDialog(
+            imageUri = dep.proofScreenshotUrl,
+            title = "Deposit #${dep.id} Evidence Screenshot",
+            onDismiss = { showProofModalForDeposit = null }
         )
     }
+}
+
+// ---------------- ADMIN CASH AGENT MANAGEMENT TAB ----------------
+@Composable
+fun AdminCashAgentsTab(viewModel: AppViewModel) {
+    val agents by viewModel.paymentAgents.collectAsStateWithLifecycle()
+
+    var selectedCountryFilter by remember { mutableStateOf("ALL") }
+    var searchQuery by remember { mutableStateOf("") }
+    var showAddModal by remember { mutableStateOf(false) }
+    var editingAgent by remember { mutableStateOf<PaymentAgent?>(null) }
+
+    val countryOptions = listOf("ALL", "Bangladesh", "China", "USA", "UK", "UAE", "India", "Other")
+
+    val filteredAgents = remember(agents, selectedCountryFilter, searchQuery) {
+        agents.filter { agent ->
+            val matchCountry = if (selectedCountryFilter == "ALL") true else agent.country.equals(selectedCountryFilter, ignoreCase = true)
+            val matchSearch = searchQuery.isEmpty() ||
+                    agent.name.contains(searchQuery, ignoreCase = true) ||
+                    agent.agentCode.contains(searchQuery, ignoreCase = true) ||
+                    agent.paymentMethod.contains(searchQuery, ignoreCase = true) ||
+                    agent.accountNumber.contains(searchQuery, ignoreCase = true)
+            matchCountry && matchSearch
+        }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DarkBg)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(20.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Cash Agent Configuration", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                }
+                Text("Manage country network, limits, commissions & verification status", color = TextSecondary, fontSize = 11.sp)
+            }
+
+            Button(
+                onClick = { showAddModal = true },
+                colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight),
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Add Cash Agent", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        // Summary Cards Row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                modifier = Modifier.weight(1f)
+            ) {
+                Column(modifier = Modifier.padding(10.dp)) {
+                    Text("Total Cash Agents", color = TextSecondary, fontSize = 10.sp)
+                    Text("${agents.size}", color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                }
+            }
+
+            Card(
+                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                modifier = Modifier.weight(1f)
+            ) {
+                Column(modifier = Modifier.padding(10.dp)) {
+                    Text("Verified Active", color = TextSecondary, fontSize = 10.sp)
+                    Text("${agents.count { it.verificationStatus == "VERIFIED" }}", color = Color(0xFF4CAF50), fontWeight = FontWeight.Black, fontSize = 18.sp)
+                }
+            }
+
+            Card(
+                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                modifier = Modifier.weight(1f)
+            ) {
+                Column(modifier = Modifier.padding(10.dp)) {
+                    Text("Countries Covered", color = TextSecondary, fontSize = 10.sp)
+                    Text("${agents.map { it.country }.distinct().size}", color = Color(0xFF2196F3), fontWeight = FontWeight.Black, fontSize = 18.sp)
+                }
+            }
+        }
+
+        // Search & Country Filter Row
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { searchQuery = it },
+            placeholder = { Text("Search by name, code, method or account...", color = TextSecondary, fontSize = 12.sp) },
+            leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(18.dp)) },
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+            ),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            countryOptions.forEach { country ->
+                val isSel = selectedCountryFilter == country
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isSel) PinkHighlight else Color(0xFF2E2E3E))
+                        .clickable { selectedCountryFilter = country }
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text(country, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        // Agents List
+        if (filteredAgents.isEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                Text("No cash agents found matching criteria.", color = TextSecondary, fontSize = 12.sp)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(filteredAgents) { agent ->
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(agent.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .background(Color(0xFF2196F3).copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text("#${agent.agentCode}", color = Color(0xFF2196F3), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+
+                                val (statusColor, statusText) = when (agent.verificationStatus) {
+                                    "VERIFIED" -> Color(0xFF4CAF50) to "VERIFIED"
+                                    "SUSPENDED" -> Color(0xFFEF4444) to "SUSPENDED"
+                                    else -> Color(0xFFFF9800) to "PENDING"
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .background(statusColor.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                                ) {
+                                    Text(statusText, color = statusColor, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text("Country / Region: ${agent.country}", color = TextSecondary, fontSize = 11.sp)
+                                    Text("Channel: ${agent.paymentMethod}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    Text("Account: ${agent.accountNumber}", color = PinkHighlight, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    if (agent.accountHolder.isNotEmpty()) {
+                                        Text("Holder: ${agent.accountHolder}", color = TextSecondary, fontSize = 11.sp)
+                                    }
+                                    Text("Phone: ${agent.phone}", color = TextSecondary, fontSize = 11.sp)
+                                }
+
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text("Commission: ${agent.commissionRate}%", color = Color(0xFF00E676), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                    Text("Min Limit: ৳${agent.minLimit.toInt()}", color = TextSecondary, fontSize = 10.sp)
+                                    Text("Max Limit: ৳${agent.maxLimit.toInt()}", color = TextSecondary, fontSize = 10.sp)
+                                }
+                            }
+
+                            // Actions Row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    val nextStatus = when (agent.verificationStatus) {
+                                        "VERIFIED" -> "SUSPENDED"
+                                        "SUSPENDED" -> "VERIFIED"
+                                        else -> "VERIFIED"
+                                    }
+                                    Button(
+                                        onClick = { viewModel.togglePaymentAgentStatus(agent.id, nextStatus) },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (agent.verificationStatus == "VERIFIED") Color(0xFFEF4444) else Color(0xFF4CAF50)
+                                        ),
+                                        shape = RoundedCornerShape(6.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                        modifier = Modifier.height(28.dp)
+                                    ) {
+                                        Text(if (agent.verificationStatus == "VERIFIED") "Suspend" else "Verify Agent", fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                    }
+
+                                    Button(
+                                        onClick = { editingAgent = agent },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E2E3E)),
+                                        shape = RoundedCornerShape(6.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                        modifier = Modifier.height(28.dp)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(12.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Edit Config", fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+
+                                TextButton(
+                                    onClick = { viewModel.deletePaymentAgent(agent) },
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                    modifier = Modifier.height(28.dp)
+                                ) {
+                                    Text("Remove", color = Color(0xFFEF4444), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Add Agent Modal
+    if (showAddModal) {
+        AddOrEditCashAgentModal(
+            agent = null,
+            onDismiss = { showAddModal = false },
+            onSave = { newAgent ->
+                viewModel.savePaymentAgent(newAgent)
+                showAddModal = false
+            }
+        )
+    }
+
+    // Edit Agent Modal
+    if (editingAgent != null) {
+        AddOrEditCashAgentModal(
+            agent = editingAgent,
+            onDismiss = { editingAgent = null },
+            onSave = { updatedAgent ->
+                viewModel.savePaymentAgent(updatedAgent)
+                editingAgent = null
+            }
+        )
+    }
+}
+
+@Composable
+fun AddOrEditCashAgentModal(
+    agent: PaymentAgent?,
+    onDismiss: () -> Unit,
+    onSave: (PaymentAgent) -> Unit
+) {
+    var name by remember { mutableStateOf(agent?.name ?: "") }
+    var agentCode by remember { mutableStateOf(agent?.agentCode ?: "${(1000..9999).random()}") }
+    var country by remember { mutableStateOf(agent?.country ?: "Bangladesh") }
+    var phone by remember { mutableStateOf(agent?.phone ?: "") }
+    var paymentMethod by remember { mutableStateOf(agent?.paymentMethod ?: "bKash") }
+    var accountNumber by remember { mutableStateOf(agent?.accountNumber ?: "") }
+    var accountHolder by remember { mutableStateOf(agent?.accountHolder ?: "") }
+    var commissionRateInput by remember { mutableStateOf((agent?.commissionRate ?: 1.5).toString()) }
+    var minLimitInput by remember { mutableStateOf((agent?.minLimit ?: 100.0).toInt().toString()) }
+    var maxLimitInput by remember { mutableStateOf((agent?.maxLimit ?: 100000.0).toInt().toString()) }
+    var verificationStatus by remember { mutableStateOf(agent?.verificationStatus ?: "VERIFIED") }
+
+    val countries = listOf("Bangladesh", "China", "USA", "UK", "UAE", "India", "Other")
+    val methods = listOf("bKash", "Nagad", "Rocket", "Bank Transfer", "Alipay", "WeChat Pay", "Zelle", "Wise", "UPI")
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(if (agent == null) "Add Cash Agent" else "Edit Cash Agent Configuration", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Agent Full / Outlet Name", color = TextSecondary) },
+                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = agentCode,
+                        onValueChange = { agentCode = it },
+                        label = { Text("Agent Code", color = TextSecondary) },
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    OutlinedTextField(
+                        value = phone,
+                        onValueChange = { phone = it },
+                        label = { Text("Phone Contact", color = TextSecondary) },
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Text("Country Network:", color = TextSecondary, fontSize = 11.sp)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    countries.forEach { c ->
+                        val isSel = country == c
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (isSel) PinkHighlight else Color(0xFF2E2E3E))
+                                .clickable { country = c }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(c, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
+                Text("Payment Channel Method:", color = TextSecondary, fontSize = 11.sp)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    methods.forEach { m ->
+                        val isSel = paymentMethod == m
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (isSel) Color(0xFF2196F3) else Color(0xFF2E2E3E))
+                                .clickable { paymentMethod = m }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(m, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = accountNumber,
+                    onValueChange = { accountNumber = it },
+                    label = { Text("Account Number / Wallet ID", color = TextSecondary) },
+                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                OutlinedTextField(
+                    value = accountHolder,
+                    onValueChange = { accountHolder = it },
+                    label = { Text("Account Holder Name", color = TextSecondary) },
+                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = commissionRateInput,
+                        onValueChange = { commissionRateInput = it },
+                        label = { Text("Comm %", color = TextSecondary) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    OutlinedTextField(
+                        value = minLimitInput,
+                        onValueChange = { minLimitInput = it },
+                        label = { Text("Min Limit", color = TextSecondary) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    OutlinedTextField(
+                        value = maxLimitInput,
+                        onValueChange = { maxLimitInput = it },
+                        label = { Text("Max Limit", color = TextSecondary) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Text("Verification Status:", color = TextSecondary, fontSize = 11.sp)
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf("VERIFIED", "PENDING_VERIFICATION", "SUSPENDED").forEach { st ->
+                        val isSel = verificationStatus == st
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(if (isSel) PinkHighlight else Color(0xFF2E2E3E))
+                                .clickable { verificationStatus = st }
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(st, color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val newAgent = PaymentAgent(
+                        id = agent?.id ?: "AGENT_${System.currentTimeMillis()}",
+                        name = name.ifEmpty { "Cash Agent Outlet" },
+                        agentCode = agentCode.ifEmpty { "1001" },
+                        country = country,
+                        phone = phone.ifEmpty { "01700000000" },
+                        paymentMethod = paymentMethod,
+                        accountNumber = accountNumber.ifEmpty { "01700000000" },
+                        accountHolder = accountHolder,
+                        commissionRate = commissionRateInput.toDoubleOrNull() ?: 1.5,
+                        minLimit = minLimitInput.toDoubleOrNull() ?: 100.0,
+                        maxLimit = maxLimitInput.toDoubleOrNull() ?: 100000.0,
+                        verificationStatus = verificationStatus
+                    )
+                    onSave(newAgent)
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight)
+            ) {
+                Text("Save Cash Agent", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = TextSecondary)
+            }
+        },
+        containerColor = DarkSurface
+    )
+}
+
+// ---------------- ADMIN WITHDRAWAL APPROVALS & PROOFS TAB ----------------
+@Composable
+fun AdminWalletsTab(viewModel: AppViewModel) {
+    val withdrawals by viewModel.allWithdrawals.collectAsStateWithLifecycle()
+    var showProofModalForWithdrawal by remember { mutableStateOf<WithdrawalRequest?>(null) }
+    var proofUrlInput by remember { mutableStateOf("https://images.unsplash.com/photo-1559526324-4b87b5e36e44") }
+    var refInput by remember { mutableStateOf("FT20260809-901") }
 
     Column(
         modifier = Modifier
@@ -2846,8 +4120,8 @@ fun AdminWalletsTab(viewModel: AppViewModel) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Wallet & Withdrawal Requests", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-        
+        Text("Wallet & Withdrawal Approvals", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+
         Card(
             colors = CardDefaults.cardColors(containerColor = DarkSurface),
             shape = RoundedCornerShape(12.dp)
@@ -2857,19 +4131,19 @@ fun AdminWalletsTab(viewModel: AppViewModel) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column {
-                    Text("Total Escrow Volume", color = TextSecondary, fontSize = 11.sp)
-                    Text("৳1,250,300", color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                    Text("Total Withdrawal Requests", color = TextSecondary, fontSize = 11.sp)
+                    Text("${withdrawals.size} Requests", color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("Pending Withdrawals", color = TextSecondary, fontSize = 11.sp)
-                    Text("৳${payoutRequests.sumOf { it.second }.toInt()}", color = PinkHighlight, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                    Text("Pending Payout Volume", color = TextSecondary, fontSize = 11.sp)
+                    Text("৳${withdrawals.filter { it.status == "PENDING" || it.status == "PROOF_UPLOADED" }.sumOf { it.amount }.toInt()}", color = PinkHighlight, fontWeight = FontWeight.Black, fontSize = 18.sp)
                 }
             }
         }
 
-        Text("Pending Payout Approvals", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+        Text("Pending & Processed Withdrawals", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
 
-        if (payoutRequests.isEmpty()) {
+        if (withdrawals.isEmpty()) {
             Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
                 Text("All withdrawal requests cleared! ✓", color = TextSecondary, fontSize = 12.sp)
             }
@@ -2878,34 +4152,87 @@ fun AdminWalletsTab(viewModel: AppViewModel) {
                 modifier = Modifier.fillMaxWidth().weight(1f),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                items(payoutRequests.size) { idx ->
-                    val req = payoutRequests[idx]
+                items(withdrawals) { wd ->
                     Card(
                         colors = CardDefaults.cardColors(containerColor = DarkSurface),
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text(req.first, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                Text("Method: bKash Agent", color = TextSecondary, fontSize = 10.sp)
-                            }
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text("৳${req.second.toInt()}", color = PinkHighlight, fontWeight = FontWeight.Black, fontSize = 14.sp)
-                                Spacer(modifier = Modifier.height(4.dp))
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text("Withdrawal #${wd.id}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Text("Applicant: ${wd.applicantName} (${wd.applicantRole})", color = TextSecondary, fontSize = 10.sp)
+                                }
+
+                                val statusColor = when (wd.status) {
+                                    "COMPLETED" -> Color(0xFF4CAF50)
+                                    "REJECTED" -> Color(0xFFEF4444)
+                                    else -> Color(0xFFFF9800)
+                                }
+
                                 Box(
                                     modifier = Modifier
-                                        .background(Color(0xFF4CAF50), RoundedCornerShape(6.dp))
-                                        .clickable {
-                                            viewModel.addNotification("Withdrawal Approved", "Approved payment withdrawal of ৳${req.second} to ${req.first}", "Wallet")
-                                            payoutRequests = payoutRequests.toMutableList().apply { removeAt(idx) }
-                                        }
-                                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                                        .background(statusColor.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                                        .padding(horizontal = 8.dp, vertical = 2.dp)
                                 ) {
-                                    Text("Approve Payout", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                    Text(wd.status, color = statusColor, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column {
+                                    Text("Channel: ${wd.paymentMethod}", color = TextSecondary, fontSize = 10.sp)
+                                    Text("Account: ${wd.accountNumber} (${wd.accountHolder})", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                }
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text("৳${wd.amount.toInt()}", color = PinkHighlight, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                                }
+                            }
+
+                            if (wd.proofScreenshotUrl != null) {
+                                Button(
+                                    onClick = { showProofModalForWithdrawal = wd },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                                    shape = RoundedCornerShape(6.dp),
+                                    modifier = Modifier.fillMaxWidth().height(30.dp)
+                                ) {
+                                    Text("Inspect Payout Advice Proof Screenshot", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            if (wd.status == "PENDING" || wd.status == "PROOF_UPLOADED") {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Button(
+                                        onClick = {
+                                            viewModel.uploadWithdrawalProof(wd.id, proofUrlInput, refInput)
+                                            viewModel.approveWithdrawal(wd.id, "Payout verified & executed.")
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.weight(1f).height(36.dp)
+                                    ) {
+                                        Text("Attach Advice & Approve", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+
+                                    Button(
+                                        onClick = { viewModel.rejectWithdrawal(wd.id, "Invalid account number.") },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.height(36.dp)
+                                    ) {
+                                        Text("Reject", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
                                 }
                             }
                         }
@@ -2914,7 +4241,17 @@ fun AdminWalletsTab(viewModel: AppViewModel) {
             }
         }
     }
+
+    if (showProofModalForWithdrawal != null) {
+        val wd = showProofModalForWithdrawal!!
+        ProofViewerDialog(
+            imageUri = wd.proofScreenshotUrl ?: "https://images.unsplash.com/photo-1559526324-4b87b5e36e44",
+            title = "Withdrawal #${wd.id} Payout Proof",
+            onDismiss = { showProofModalForWithdrawal = null }
+        )
+    }
 }
+
 
 // ---------------- ADMIN SETTINGS TAB ----------------
 @Composable
@@ -4159,6 +5496,16 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
     var acceptStripe by remember { mutableStateOf(true) }
     var acceptGooglePay by remember { mutableStateOf(true) }
     var acceptApplePay by remember { mutableStateOf(true) }
+    var acceptGooglePlayBilling by remember { mutableStateOf(true) }
+
+    // Google Play Billing / In-App Purchase Config
+    var googlePlayLicenseKey by remember { mutableStateOf("MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQE3x8...") }
+    var googlePlayMerchantId by remember { mutableStateOf("merchant.com.aistudio.app") }
+    var googlePlayPackageName by remember { mutableStateOf("com.aistudio.app") }
+    var googlePlaySkuPrefix by remember { mutableStateOf("booking_payment_") }
+    var googlePlaySandboxMode by remember { mutableStateOf(true) }
+    var googlePlayAutoSync by remember { mutableStateOf(true) }
+    var googlePlayStatusMsg by remember { mutableStateOf("") }
 
     // 9. Service Description State
     var serviceTitle by remember { mutableStateOf("VIP Modeling & High-End Event Appearance") }
@@ -4928,7 +6275,8 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                 "Nagad" to acceptNagad,
                                 "Stripe" to acceptStripe,
                                 "Google Pay" to acceptGooglePay,
-                                "Apple Pay" to acceptApplePay
+                                "Apple Pay" to acceptApplePay,
+                                "Google Play Billing" to acceptGooglePlayBilling
                             )
 
                             pMethods.chunked(2).forEach { row ->
@@ -4951,6 +6299,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                                         "Stripe" -> acceptStripe = !acceptStripe
                                                         "Google Pay" -> acceptGooglePay = !acceptGooglePay
                                                         "Apple Pay" -> acceptApplePay = !acceptApplePay
+                                                        "Google Play Billing" -> acceptGooglePlayBilling = !acceptGooglePlayBilling
                                                     }
                                                 }
                                                 .padding(horizontal = 10.dp, vertical = 6.dp),
@@ -4967,6 +6316,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                                         "Stripe" -> acceptStripe = checked
                                                         "Google Pay" -> acceptGooglePay = checked
                                                         "Apple Pay" -> acceptApplePay = checked
+                                                        "Google Play Billing" -> acceptGooglePlayBilling = checked
                                                     }
                                                 },
                                                 colors = CheckboxDefaults.colors(checkedColor = PinkHighlight)
@@ -4977,6 +6327,167 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                     if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
                                 }
                                 Spacer(modifier = Modifier.height(6.dp))
+                            }
+
+                            if (acceptGooglePlayBilling) {
+                                Spacer(modifier = Modifier.height(14.dp))
+                                Card(
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E2E)),
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Column(modifier = Modifier.padding(14.dp)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(28.dp)
+                                                        .background(Color(0xFF00E676).copy(alpha = 0.2f), CircleShape),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.ShoppingBag,
+                                                        contentDescription = null,
+                                                        tint = Color(0xFF00E676),
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                Text(
+                                                    text = "Google Play In-App Billing Configuration",
+                                                    color = Color.White,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 13.sp
+                                                )
+                                            }
+                                        }
+
+                                        Spacer(modifier = Modifier.height(10.dp))
+
+                                        OutlinedTextField(
+                                            value = googlePlayPackageName,
+                                            onValueChange = { googlePlayPackageName = it; googlePlayStatusMsg = "" },
+                                            label = { Text("App Package Name", color = TextSecondary) },
+                                            placeholder = { Text("com.aistudio.app", color = Color.Gray) },
+                                            singleLine = true,
+                                            colors = OutlinedTextFieldDefaults.colors(
+                                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                            ),
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        OutlinedTextField(
+                                            value = googlePlayMerchantId,
+                                            onValueChange = { googlePlayMerchantId = it; googlePlayStatusMsg = "" },
+                                            label = { Text("Google Play Merchant / Service Account ID", color = TextSecondary) },
+                                            placeholder = { Text("merchant.com.aistudio.app", color = Color.Gray) },
+                                            singleLine = true,
+                                            colors = OutlinedTextFieldDefaults.colors(
+                                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                            ),
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        OutlinedTextField(
+                                            value = googlePlaySkuPrefix,
+                                            onValueChange = { googlePlaySkuPrefix = it; googlePlayStatusMsg = "" },
+                                            label = { Text("Product / In-App SKU Prefix", color = TextSecondary) },
+                                            placeholder = { Text("booking_payment_", color = Color.Gray) },
+                                            singleLine = true,
+                                            colors = OutlinedTextFieldDefaults.colors(
+                                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                            ),
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        OutlinedTextField(
+                                            value = googlePlayLicenseKey,
+                                            onValueChange = { googlePlayLicenseKey = it; googlePlayStatusMsg = "" },
+                                            label = { Text("Google Play RSA License Public Key (Base64)", color = TextSecondary) },
+                                            minLines = 2,
+                                            colors = OutlinedTextFieldDefaults.colors(
+                                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                            ),
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.fillMaxWidth()
+                                        )
+
+                                        Spacer(modifier = Modifier.height(10.dp))
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text("Google Play License Tester / Sandbox Mode", color = Color.White, fontSize = 11.sp)
+                                            Switch(
+                                                checked = googlePlaySandboxMode,
+                                                onCheckedChange = { googlePlaySandboxMode = it; googlePlayStatusMsg = "" },
+                                                colors = SwitchDefaults.colors(checkedThumbColor = PinkHighlight, checkedTrackColor = PinkHighlight.copy(alpha = 0.4f))
+                                            )
+                                        }
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text("Auto-Verify & Realtime Payment Webhook Sync", color = Color.White, fontSize = 11.sp)
+                                            Switch(
+                                                checked = googlePlayAutoSync,
+                                                onCheckedChange = { googlePlayAutoSync = it; googlePlayStatusMsg = "" },
+                                                colors = SwitchDefaults.colors(checkedThumbColor = PinkHighlight, checkedTrackColor = PinkHighlight.copy(alpha = 0.4f))
+                                            )
+                                        }
+
+                                        if (googlePlayStatusMsg.isNotEmpty()) {
+                                            Spacer(modifier = Modifier.height(6.dp))
+                                            Text(
+                                                text = googlePlayStatusMsg,
+                                                color = Color(0xFF00E676),
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.height(10.dp))
+
+                                        Button(
+                                            onClick = {
+                                                googlePlayStatusMsg = "✓ Google Play Billing Gateway Configured & Saved Successfully!"
+                                                viewModel.addNotification(
+                                                    "Google Play Billing Updated",
+                                                    "Google Play Billing credentials and license key updated in backend admin settings.",
+                                                    "Admin"
+                                                )
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0284C7)),
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text("Save & Verify Google Play Gateway", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -5495,6 +7006,1832 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
         }
     }
 }
+
+// ============================================================================
+// 12. LIVE SUPPORT CHAT SYSTEM & FACEBOOK MESSENGER ADMIN PANEL
+// ============================================================================
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LiveSupportChatModal(
+    onDismiss: () -> Unit,
+    viewModel: AppViewModel
+) {
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+    val allMessages by viewModel.allMessages.collectAsStateWithLifecycle()
+    val userId = currentUser?.id ?: "user_1"
+
+    var messageInput by remember { mutableStateOf("") }
+    val context = LocalContext.current
+
+    val supportMessages = remember(allMessages, userId) {
+        allMessages.filter {
+            (it.senderId == userId && it.receiverId == "ADMIN_SUPPORT") ||
+            (it.senderId == "ADMIN_SUPPORT" && it.receiverId == userId)
+        }.sortedBy { it.timestamp }
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding(),
+            color = Color(0xFF0F1019)
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Top Header
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF161824))
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .background(
+                                    Brush.linearGradient(listOf(Color(0xFFFF2B85), Color(0xFF9C27B0))),
+                                    CircleShape
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.SupportAgent,
+                                contentDescription = "Support Agent",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("Modol Live Support Desk", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Box(modifier = Modifier.size(8.dp).background(Color(0xFF00E676), CircleShape))
+                            }
+                            Text("🟢 Admin Team Online • 24/7 Live Care", color = Color(0xFF00E676), fontSize = 11.sp)
+                        }
+                    }
+
+                    IconButton(onClick = onDismiss) {
+                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+                    }
+                }
+
+                HorizontalDivider(color = Color(0xFF25283A))
+
+                // Quick Inquiry Chips
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF161824))
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val quickPills = listOf(
+                        "bKash Deposit Help",
+                        "Escrow Refund Status",
+                        "Model Verification",
+                        "Contact Admin Phone"
+                    )
+                    items(quickPills) { pill ->
+                        Surface(
+                            color = Color(0xFF25283A),
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.clickable {
+                                viewModel.sendSupportMessage(pill)
+                            }
+                        ) {
+                            Text(
+                                text = pill,
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = Color(0xFF25283A))
+
+                // Message Thread
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    if (supportMessages.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 40.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                    Icon(imageVector = Icons.Default.SupportAgent, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(56.dp))
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    Text("Welcome to Modol Connect Live Support!", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text("Type your question below or tap a quick topic to start.", color = TextSecondary, fontSize = 12.sp)
+                                }
+                            }
+                        }
+                    }
+
+                    items(supportMessages) { msg ->
+                        val isFromUser = msg.senderId == userId
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = if (isFromUser) Arrangement.End else Arrangement.Start
+                        ) {
+                            if (!isFromUser) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .background(Brush.linearGradient(listOf(Color(0xFFFF2B85), Color(0xFF9C27B0))), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(imageVector = Icons.Default.SupportAgent, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                            }
+
+                            Column(
+                                horizontalAlignment = if (isFromUser) Alignment.End else Alignment.Start,
+                                modifier = Modifier.widthIn(max = 280.dp)
+                            ) {
+                                Text(
+                                    text = if (isFromUser) "You" else "Modol Admin Support",
+                                    color = TextSecondary,
+                                    fontSize = 10.sp,
+                                    modifier = Modifier.padding(bottom = 2.dp)
+                                )
+                                Surface(
+                                    color = if (isFromUser) PinkHighlight else Color(0xFF202336),
+                                    shape = RoundedCornerShape(
+                                        topStart = 16.dp,
+                                        topEnd = 16.dp,
+                                        bottomStart = if (isFromUser) 16.dp else 2.dp,
+                                        bottomEnd = if (isFromUser) 2.dp else 16.dp
+                                    )
+                                ) {
+                                    Column(modifier = Modifier.padding(12.dp)) {
+                                        Text(text = msg.content, color = Color.White, fontSize = 13.sp)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Input Bar
+                Surface(
+                    color = Color(0xFF161824),
+                    tonalElevation = 8.dp,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(12.dp)
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = messageInput,
+                            onValueChange = { messageInput = it },
+                            placeholder = { Text("Ask Admin Live Support...", color = TextSecondary, fontSize = 13.sp) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = PinkHighlight,
+                                unfocusedBorderColor = Color(0xFF2E324D),
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedContainerColor = Color(0xFF0F1019),
+                                unfocusedContainerColor = Color(0xFF0F1019)
+                            ),
+                            shape = RoundedCornerShape(24.dp),
+                            modifier = Modifier.weight(1f),
+                            maxLines = 3
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        FloatingActionButton(
+                            onClick = {
+                                if (messageInput.isNotBlank()) {
+                                    viewModel.sendSupportMessage(messageInput)
+                                    messageInput = ""
+                                }
+                            },
+                            containerColor = PinkHighlight,
+                            contentColor = Color.White,
+                            modifier = Modifier.size(44.dp)
+                        ) {
+                            Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = "Send", modifier = Modifier.size(20.dp))
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ----------------------------------------------------------------------------
+// FACEBOOK MESSENGER STYLE ADMIN LIVE SUPPORT WORKSPACE
+// ----------------------------------------------------------------------------
+
+data class SupportThreadUser(
+    val id: String,
+    val name: String,
+    val role: String, // "CLIENT", "MODEL", "CASH_AGENT"
+    val avatarUrl: String,
+    val isOnline: Boolean = true
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AdminSupportMessengerTab(viewModel: AppViewModel) {
+    val allMessages by viewModel.allMessages.collectAsStateWithLifecycle()
+    val models by viewModel.allModels.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    var searchQuery by remember { mutableStateOf("") }
+    var selectedFilter by remember { mutableStateOf("All") } // "All", "Unread", "Clients", "Models", "Agents"
+    var adminMessageInput by remember { mutableStateOf("") }
+
+    // Pre-populated support contact list
+    val supportUsersList = listOf(
+        SupportThreadUser("user_1", "Rahul Verma", "CLIENT", "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d"),
+        SupportThreadUser("1", "Jessica Simpson", "MODEL", "https://images.unsplash.com/photo-1534528741775-53994a69daeb"),
+        SupportThreadUser("2", "Nusrat Jahan", "MODEL", "https://images.unsplash.com/photo-1517841905240-472988babdf9"),
+        SupportThreadUser("3", "Tanvir Agent", "CASH_AGENT", "https://images.unsplash.com/photo-1500648767791-00dcc994a43e"),
+        SupportThreadUser("4", "Anika Kabir", "MODEL", "https://images.unsplash.com/photo-1524504388940-b1c1722653e1")
+    )
+
+    val selectedUser = supportUsersList.firstOrNull { it.id == viewModel.adminSelectedSupportUserId } ?: supportUsersList.first()
+
+    // Filtered user list
+    val filteredUsers = supportUsersList.filter { u ->
+        val matchesSearch = u.name.contains(searchQuery, ignoreCase = true) || u.role.contains(searchQuery, ignoreCase = true)
+        val matchesFilter = when (selectedFilter) {
+            "Clients" -> u.role == "CLIENT"
+            "Models" -> u.role == "MODEL"
+            "Agents" -> u.role == "CASH_AGENT"
+            "Unread" -> true
+            else -> true
+        }
+        matchesSearch && matchesFilter
+    }
+
+    // Active conversation messages with selected user
+    val activeThreadMessages = remember(allMessages, selectedUser.id) {
+        allMessages.filter {
+            (it.senderId == selectedUser.id && it.receiverId == "ADMIN_SUPPORT") ||
+            (it.senderId == "ADMIN_SUPPORT" && it.receiverId == selectedUser.id) ||
+            (it.senderId == selectedUser.id && it.receiverId == "1") ||
+            (it.senderId == "1" && it.receiverId == selectedUser.id)
+        }.sortedBy { it.timestamp }
+    }
+
+    val messengerGradient = Brush.linearGradient(
+        listOf(Color(0xFF0084FF), Color(0xFFA033FF), Color(0xFFFF5252))
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0D0E15))
+    ) {
+        // --- 1. FACEBOOK MESSENGER HEADER BAR ---
+        Surface(
+            color = Color(0xFF141622),
+            tonalElevation = 6.dp,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .background(messengerGradient, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Chat,
+                            contentDescription = "Messenger",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                "Messenger Admin Support",
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(Color(0xFF00E676), CircleShape)
+                            )
+                        }
+                        Text(
+                            "⚡ Active Live Care Workspace • 24/7 Desk",
+                            color = Color(0xFF00E676),
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+
+                // Header Action Pill
+                Surface(
+                    color = Color(0xFF0084FF).copy(alpha = 0.2f),
+                    shape = RoundedCornerShape(20.dp),
+                    border = BorderStroke(1.dp, Color(0xFF0084FF))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(imageVector = Icons.Default.Shield, contentDescription = null, tint = Color(0xFF0084FF), modifier = Modifier.size(12.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Admin Master Mode", color = Color(0xFF0084FF), fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                    }
+                }
+            }
+        }
+
+        HorizontalDivider(color = Color(0xFF222538))
+
+        // --- 2. MAIN WORKSPACE CONTENT ---
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Top Active User Stories Bar (Facebook Messenger Style)
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF11131F))
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                item {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.clickable { viewModel.showLiveSupportModal = true }
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(Color(0xFF222538), CircleShape)
+                                .border(1.dp, Color(0xFF0084FF), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(imageVector = Icons.Default.Add, contentDescription = "New Ticket", tint = Color.White, modifier = Modifier.size(24.dp))
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text("Test Chat", color = TextSecondary, fontSize = 10.sp)
+                    }
+                }
+
+                items(supportUsersList) { user ->
+                    val isSelected = user.id == selectedUser.id
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.clickable { viewModel.adminSelectedSupportUserId = user.id }
+                    ) {
+                        Box(contentAlignment = Alignment.BottomEnd) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .border(
+                                        width = if (isSelected) 2.dp else 1.dp,
+                                        brush = if (isSelected) messengerGradient else Brush.linearGradient(listOf(Color(0xFF2E324D), Color(0xFF2E324D))),
+                                        shape = CircleShape
+                                    )
+                            ) {
+                                SubcomposeAsyncImage(
+                                    model = user.avatarUrl,
+                                    contentDescription = user.name,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.fillMaxSize(),
+                                    error = {
+                                        Box(modifier = Modifier.fillMaxSize().background(Color(0xFF2A2B3D)), contentAlignment = Alignment.Center) {
+                                            Text(user.name.take(1), color = Color.White, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                )
+                            }
+                            // Online Indicator Dot
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .background(Color(0xFF00E676), CircleShape)
+                                    .border(2.dp, Color(0xFF11131F), CircleShape)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = user.name.split(" ").firstOrNull() ?: user.name,
+                            color = if (isSelected) Color.White else TextSecondary,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+            }
+
+            HorizontalDivider(color = Color(0xFF222538))
+
+            // --- 3. FILTER TABS & SEARCH ---
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFF141622))
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search Messenger users...", color = TextSecondary, fontSize = 12.sp) },
+                    leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp)) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFF0084FF),
+                        unfocusedBorderColor = Color(0xFF2E324D),
+                        focusedTextColor = Color.White,
+                        unfocusedTextColor = Color.White,
+                        focusedContainerColor = Color(0xFF0D0E15),
+                        unfocusedContainerColor = Color(0xFF0D0E15)
+                    ),
+                    shape = RoundedCornerShape(20.dp),
+                    modifier = Modifier.weight(1f),
+                    singleLine = true
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Filter chips
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    val filters = listOf("All", "Clients", "Models", "Agents")
+                    items(filters) { flt ->
+                        val isSel = selectedFilter == flt
+                        Surface(
+                            color = if (isSel) Color(0xFF0084FF) else Color(0xFF222538),
+                            shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.clickable { selectedFilter = flt }
+                        ) {
+                            Text(
+                                text = flt,
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            HorizontalDivider(color = Color(0xFF222538))
+
+            // --- 4. MESSENGER CHAT WORKSPACE ---
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+            ) {
+                // Active Thread Header
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF181A29))
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(contentAlignment = Alignment.BottomEnd) {
+                            SubcomposeAsyncImage(
+                                model = selectedUser.avatarUrl,
+                                contentDescription = selectedUser.name,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(CircleShape),
+                                error = {
+                                    Box(modifier = Modifier.fillMaxSize().background(Color(0xFF2A2B3D)), contentAlignment = Alignment.Center) {
+                                        Text(selectedUser.name.take(1), color = Color.White, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(10.dp)
+                                    .background(Color(0xFF00E676), CircleShape)
+                                    .border(1.5.dp, Color(0xFF181A29), CircleShape)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(10.dp))
+
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    selectedUser.name,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Surface(
+                                    color = when (selectedUser.role) {
+                                        "MODEL" -> Color(0xFFE91E63).copy(alpha = 0.2f)
+                                        "CASH_AGENT" -> Color(0xFFFF9800).copy(alpha = 0.2f)
+                                        else -> Color(0xFF0084FF).copy(alpha = 0.2f)
+                                    },
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Text(
+                                        text = selectedUser.role,
+                                        color = when (selectedUser.role) {
+                                            "MODEL" -> Color(0xFFFF4081)
+                                            "CASH_AGENT" -> Color(0xFFFFB74D)
+                                            else -> Color(0xFF40C4FF)
+                                        },
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 9.sp,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                    )
+                                }
+                            }
+                            Text("🟢 Active Now • Facebook Messenger Live Support", color = Color(0xFF00E676), fontSize = 10.sp)
+                        }
+                    }
+
+                    // Header Call / Profile Icons
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        IconButton(onClick = {
+                            android.widget.Toast.makeText(context, "Initiating Support Call with ${selectedUser.name}...", android.widget.Toast.LENGTH_SHORT).show()
+                        }) {
+                            Icon(imageVector = Icons.Default.Call, contentDescription = "Call", tint = Color(0xFF0084FF), modifier = Modifier.size(20.dp))
+                        }
+                        IconButton(onClick = {
+                            android.widget.Toast.makeText(context, "Initiating Live Video Verification...", android.widget.Toast.LENGTH_SHORT).show()
+                        }) {
+                            Icon(imageVector = Icons.Default.Videocam, contentDescription = "Video", tint = Color(0xFF0084FF), modifier = Modifier.size(20.dp))
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = Color(0xFF25283A))
+
+                // Chat Messages Thread
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    if (activeThreadMessages.isEmpty()) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 30.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    "No previous messages with ${selectedUser.name}. Send a Messenger reply below!",
+                                    color = TextSecondary,
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
+                        }
+                    }
+
+                    items(activeThreadMessages) { msg ->
+                        val isAdminReply = msg.senderId == "ADMIN_SUPPORT"
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = if (isAdminReply) Arrangement.End else Arrangement.Start
+                        ) {
+                            if (!isAdminReply) {
+                                SubcomposeAsyncImage(
+                                    model = selectedUser.avatarUrl,
+                                    contentDescription = selectedUser.name,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .clip(CircleShape),
+                                    error = {
+                                        Box(modifier = Modifier.fillMaxSize().background(Color(0xFF2A2B3D)), contentAlignment = Alignment.Center) {
+                                            Text(selectedUser.name.take(1), color = Color.White, fontSize = 10.sp)
+                                        }
+                                    }
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                            }
+
+                            Column(
+                                horizontalAlignment = if (isAdminReply) Alignment.End else Alignment.Start,
+                                modifier = Modifier.widthIn(max = 290.dp)
+                            ) {
+                                Text(
+                                    text = if (isAdminReply) "Admin Support" else selectedUser.name,
+                                    color = TextSecondary,
+                                    fontSize = 9.sp,
+                                    modifier = Modifier.padding(bottom = 2.dp)
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .clip(
+                                            RoundedCornerShape(
+                                                topStart = 16.dp,
+                                                topEnd = 16.dp,
+                                                bottomStart = if (isAdminReply) 16.dp else 2.dp,
+                                                bottomEnd = if (isAdminReply) 2.dp else 16.dp
+                                            )
+                                        )
+                                        .background(
+                                            if (isAdminReply) messengerGradient else Brush.linearGradient(listOf(Color(0xFF202336), Color(0xFF202336)))
+                                        )
+                                ) {
+                                    Column(modifier = Modifier.padding(10.dp)) {
+                                        Text(text = msg.content, color = Color.White, fontSize = 13.sp)
+                                    }
+                                }
+
+                                if (isAdminReply) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.padding(top = 2.dp)
+                                    ) {
+                                        Text("Sent", color = Color(0xFF0084FF), fontSize = 9.sp)
+                                        Spacer(modifier = Modifier.width(2.dp))
+                                        Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = Color(0xFF0084FF), modifier = Modifier.size(10.dp))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Canned Preset Quick Replies (One-tap Admin Answers)
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF11131F))
+                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    val cannedReplies = listOf(
+                        "👋 Assalamu Alaikum! How can I help you?",
+                        "✅ Payment verified & approved!",
+                        "📄 Please upload your NID/passport proof.",
+                        "💰 Refund of ৳3,500 released to wallet.",
+                        "⭐ Your profile verification is complete!"
+                    )
+                    items(cannedReplies) { canned ->
+                        Surface(
+                            color = Color(0xFF202336),
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(0.5.dp, Color(0xFF0084FF).copy(alpha = 0.5f)),
+                            modifier = Modifier.clickable {
+                                viewModel.sendAdminSupportReply(selectedUser.id, selectedUser.name, canned)
+                            }
+                        ) {
+                            Text(
+                                text = canned,
+                                color = Color(0xFFE0E7FF),
+                                fontSize = 10.sp,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                            )
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = Color(0xFF25283A))
+
+                // --- 5. MESSENGER INPUT FOOTER ---
+                Surface(
+                    color = Color(0xFF141622),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .padding(10.dp)
+                            .fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        IconButton(onClick = {
+                            viewModel.sendAdminSupportReply(
+                                selectedUser.id,
+                                selectedUser.name,
+                                "📄 Attachment: [Payment Receipt & Escrow Proof Document Verified]"
+                            )
+                        }) {
+                            Icon(imageVector = Icons.Default.AttachFile, contentDescription = "Attach", tint = Color(0xFF0084FF), modifier = Modifier.size(22.dp))
+                        }
+
+                        OutlinedTextField(
+                            value = adminMessageInput,
+                            onValueChange = { adminMessageInput = it },
+                            placeholder = { Text("Type Messenger reply to ${selectedUser.name}...", color = TextSecondary, fontSize = 12.sp) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color(0xFF0084FF),
+                                unfocusedBorderColor = Color(0xFF2E324D),
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                focusedContainerColor = Color(0xFF0D0E15),
+                                unfocusedContainerColor = Color(0xFF0D0E15)
+                            ),
+                            shape = RoundedCornerShape(22.dp),
+                            modifier = Modifier.weight(1f),
+                            maxLines = 3
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        Button(
+                            onClick = {
+                                if (adminMessageInput.isNotBlank()) {
+                                    viewModel.sendAdminSupportReply(
+                                        selectedUser.id,
+                                        selectedUser.name,
+                                        adminMessageInput
+                                    )
+                                    adminMessageInput = ""
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0084FF)),
+                            shape = RoundedCornerShape(20.dp),
+                            contentPadding = PaddingValues(horizontal = 14.dp, vertical = 10.dp)
+                        ) {
+                            Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = "Send", modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Send", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ====================================================================
+// ============ B2B CASH AGENT MARKETPLACE & CHAT SYSTEM =============
+// ====================================================================
+
+@Composable
+fun B2BCashAgentMarketplaceDialog(
+    viewModel: AppViewModel,
+    onDismiss: () -> Unit
+) {
+    val allAgents by viewModel.paymentAgents.collectAsStateWithLifecycle()
+    val allOrders by viewModel.allB2BOrders.collectAsStateWithLifecycle()
+
+    var selectedCountry by remember { mutableStateOf("Bangladesh") }
+    var tradeType by remember { mutableStateOf("DEPOSIT") } // "DEPOSIT" or "WITHDRAWAL"
+    var selectedOrderForChat by remember { mutableStateOf<B2BOrder?>(null) }
+    var selectedAgentForOrder by remember { mutableStateOf<PaymentAgent?>(null) }
+
+    val countryList = listOf("Bangladesh", "China", "USA", "UK", "UAE", "India", "Other")
+
+    val countryAgents = remember(allAgents, selectedCountry, tradeType) {
+        allAgents.filter { agent ->
+            val matchCountry = agent.country.equals(selectedCountry, ignoreCase = true)
+            val matchTrade = if (tradeType == "DEPOSIT") agent.supportsDeposit else agent.supportsWithdraw
+            matchCountry && matchTrade && agent.verificationStatus == "VERIFIED"
+        }
+    }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = DarkBg
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("MODOL CONNECT", color = PinkHighlight, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .background(Color(0xFF00E676).copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text("B2B P2P ESCROW", color = Color(0xFF00E676), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Text("B2B Cash Agent Marketplace", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    }
+
+                    IconButton(onClick = onDismiss) {
+                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+                    }
+                }
+
+                // Trade Mode Toggle (Deposit vs Withdraw)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(DarkSurface, RoundedCornerShape(10.dp))
+                        .padding(4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (tradeType == "DEPOSIT") Color(0xFF00E676) else Color.Transparent)
+                            .clickable { tradeType = "DEPOSIT" }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "🟢 DEPOSIT (Cash-In)",
+                            color = if (tradeType == "DEPOSIT") Color.Black else Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(if (tradeType == "WITHDRAWAL") PinkHighlight else Color.Transparent)
+                            .clickable { tradeType = "WITHDRAWAL" }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "🔴 WITHDRAW (Payout)",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                    }
+                }
+
+                // 🌍 Country Selector Row
+                Text("Select Target Country:", color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    countryList.forEach { c ->
+                        val isSel = selectedCountry.equals(c, ignoreCase = true)
+                        val flag = when (c) {
+                            "Bangladesh" -> "🇧🇩"
+                            "China" -> "🇨🇳"
+                            "USA" -> "🇺🇸"
+                            "UK" -> "🇬🇧"
+                            "UAE" -> "🇦🇪"
+                            "India" -> "🇮🇳"
+                            else -> "🌍"
+                        }
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSel) PinkHighlight else DarkSurface)
+                                .clickable { selectedCountry = c }
+                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                        ) {
+                            Text("$flag $c", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
+                // Live Active Orders Bar
+                val activeOrders = remember(allOrders) {
+                    allOrders.filter { it.status != "RELEASED" && it.status != "CANCELLED" }
+                }
+
+                if (activeOrders.isNotEmpty()) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E203E)),
+                        border = BorderStroke(1.dp, PinkHighlight),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(imageVector = Icons.Default.Chat, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Active B2B Orders & Chat (${activeOrders.size})", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                            }
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                activeOrders.forEach { order ->
+                                    Card(
+                                        modifier = Modifier.clickable { selectedOrderForChat = order },
+                                        colors = CardDefaults.cardColors(containerColor = DarkBg),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Column {
+                                                Text("Order #${order.orderId}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                                Text("${order.type} ৳${order.amount.toInt()} • ${order.agentName}", color = TextSecondary, fontSize = 9.sp)
+                                            }
+
+                                            val (stColor, stLbl) = when (order.status) {
+                                                "DISPUTED" -> Color(0xFFEF4444) to "DISPUTED"
+                                                "PAYMENT_SUBMITTED" -> Color(0xFFFF9800) to "SUBMITTED"
+                                                else -> Color(0xFF2196F3) to "PENDING"
+                                            }
+
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(stColor.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                            ) {
+                                                Text(stLbl, color = stColor, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
+
+                // Verified Agents List for Selected Country & Trade
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Verified Agents ($selectedCountry - ${countryAgents.size})",
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
+                    Text("Instant B2B Escrow", color = Color(0xFF00E676), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+
+                if (countryAgents.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("No verified cash agents available in $selectedCountry for $tradeType at this moment. Try selecting 'Bangladesh' or 'China'.", color = TextSecondary, fontSize = 12.sp)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(countryAgents) { agent ->
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                                border = BorderStroke(1.dp, Color(0xFF2E2E3E)),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(agent.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(Color(0xFF00E676).copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                                            ) {
+                                                Text("✓ VERIFIED", color = Color(0xFF00E676), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFD700), modifier = Modifier.size(14.dp))
+                                            Spacer(modifier = Modifier.width(2.dp))
+                                            Text("${agent.rating}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        }
+                                    }
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween
+                                    ) {
+                                        Column {
+                                            Text("Available Pool: ৳${agent.availableBalance.toInt()}", color = PinkHighlight, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                            Text("Limit: ৳${agent.minLimit.toInt()} - ৳${agent.maxLimit.toInt()}", color = TextSecondary, fontSize = 11.sp)
+                                            Text("Comm Rate: ${agent.commissionRate}%", color = Color(0xFF00E676), fontSize = 11.sp)
+                                        }
+
+                                        Column(horizontalAlignment = Alignment.End) {
+                                            Text("Agent Code: #${agent.agentCode}", color = TextSecondary, fontSize = 11.sp)
+                                            Text("Channel: ${agent.paymentMethod}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                            Text("Account: ${agent.accountNumber}", color = TextSecondary, fontSize = 10.sp)
+                                        }
+                                    }
+
+                                    Text("Approved Payment Channels:", color = TextSecondary, fontSize = 10.sp)
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .horizontalScroll(rememberScrollState()),
+                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                    ) {
+                                        agent.allowedMethods.split(",").forEach { method ->
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(Color(0xFF2E2E3E), RoundedCornerShape(4.dp))
+                                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                                            ) {
+                                                Text("✓ ${method.trim()}", color = Color.White, fontSize = 9.sp)
+                                            }
+                                        }
+                                    }
+
+                                    Button(
+                                        onClick = { selectedAgentForOrder = agent },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (tradeType == "DEPOSIT") Color(0xFF00E676) else PinkHighlight
+                                        ),
+                                        shape = RoundedCornerShape(8.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(
+                                            if (tradeType == "DEPOSIT") "Trade (Buy / Cash-In)" else "Trade (Sell / Withdraw)",
+                                            color = if (tradeType == "DEPOSIT") Color.Black else Color.White,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Modal to create order for selected agent
+    if (selectedAgentForOrder != null) {
+        CreateB2BOrderModal(
+            agent = selectedAgentForOrder!!,
+            tradeType = tradeType,
+            onDismiss = { selectedAgentForOrder = null },
+            onCreated = { order ->
+                selectedAgentForOrder = null
+                selectedOrderForChat = order
+            },
+            viewModel = viewModel
+        )
+    }
+
+    // Modal for B2B Order Details and Real-time Chat
+    if (selectedOrderForChat != null) {
+        B2BOrderDetailAndChatDialog(
+            order = selectedOrderForChat!!,
+            onDismiss = { selectedOrderForChat = null },
+            viewModel = viewModel
+        )
+    }
+}
+
+@Composable
+fun CreateB2BOrderModal(
+    agent: PaymentAgent,
+    tradeType: String,
+    onDismiss: () -> Unit,
+    onCreated: (B2BOrder) -> Unit,
+    viewModel: AppViewModel
+) {
+    var amountInput by remember { mutableStateOf("1000") }
+    var selectedMethod by remember { mutableStateOf(agent.paymentMethod) }
+
+    val amountVal = amountInput.toDoubleOrNull() ?: 1000.0
+    val commFee = amountVal * (agent.commissionRate / 100.0)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text("Create B2B $tradeType Trade Order", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E202E))) {
+                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Verified Agent: ${agent.name}", color = PinkHighlight, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("Country: ${agent.country} • Code #${agent.agentCode}", color = TextSecondary, fontSize = 10.sp)
+                        Text("Agent Account: ${agent.accountNumber}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        if (agent.accountHolder.isNotEmpty()) {
+                            Text("Account Holder: ${agent.accountHolder}", color = TextSecondary, fontSize = 10.sp)
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = amountInput,
+                    onValueChange = { amountInput = it },
+                    label = { Text("Amount (৳ BDT)", color = TextSecondary) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text("Agent Commission (${agent.commissionRate}%):", color = TextSecondary, fontSize = 11.sp)
+                    Text("৳${commFee.toInt()} BDT", color = Color(0xFF00E676), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                }
+
+                Text("Instructions: You will pay directly to the verified cash agent account above and receive real-time escrow verification chat.", color = TextSecondary, fontSize = 10.sp)
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    viewModel.createB2BOrder(
+                        agent = agent,
+                        type = tradeType,
+                        amount = amountVal,
+                        paymentMethod = selectedMethod,
+                        onOrderCreated = { order ->
+                            onCreated(order)
+                        }
+                    )
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight)
+            ) {
+                Text("Confirm & Launch B2B Trade Chat", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = TextSecondary)
+            }
+        },
+        containerColor = DarkSurface
+    )
+}
+
+// ---------------- B2B ORDER DETAILS & IN-APP REAL-TIME CHAT DIALOG ----------------
+@Composable
+fun B2BOrderDetailAndChatDialog(
+    order: B2BOrder,
+    onDismiss: () -> Unit,
+    viewModel: AppViewModel
+) {
+    val liveMessages by viewModel.getB2BChatMessages(order.orderId).collectAsStateWithLifecycle(initialValue = emptyList())
+    val allOrders by viewModel.allB2BOrders.collectAsStateWithLifecycle()
+    val liveOrder = remember(allOrders, order) {
+        allOrders.find { it.orderId == order.orderId } ?: order
+    }
+
+    var messageInput by remember { mutableStateOf("") }
+    var selectedScreenshotUrl by remember { mutableStateOf("https://images.unsplash.com/photo-1556742049-0a670f4a4591") }
+    var showProofModal by remember { mutableStateOf(false) }
+    var showDisputeModal by remember { mutableStateOf(false) }
+
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(10.dp),
+            shape = RoundedCornerShape(16.dp),
+            color = DarkBg
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("B2B ORDER #${liveOrder.orderId}", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                            Spacer(modifier = Modifier.width(6.dp))
+
+                            val (stColor, stText) = when (liveOrder.status) {
+                                "RELEASED" -> Color(0xFF00E676) to "RELEASED & SETTLED"
+                                "DISPUTED" -> Color(0xFFEF4444) to "DISPUTED"
+                                "PAYMENT_SUBMITTED" -> Color(0xFFFF9800) to "PAYMENT SUBMITTED"
+                                else -> Color(0xFF2196F3) to "PENDING PAYMENT"
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .background(stColor.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text(stText, color = stColor, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Text("Agent: ${liveOrder.agentName} (${liveOrder.country})", color = TextSecondary, fontSize = 11.sp)
+                    }
+
+                    IconButton(onClick = onDismiss) {
+                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = Color.White)
+                    }
+                }
+
+                // Order Info Card
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                    border = BorderStroke(1.dp, Color(0xFF2E2E3E)),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Trade Amount: ৳${liveOrder.amount.toInt()} BDT", color = PinkHighlight, fontWeight = FontWeight.Black, fontSize = 14.sp)
+                            Text("Type: ${liveOrder.type}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                        Text("Agent Account (${liveOrder.paymentMethod}): ${liveOrder.agentAccountNumber}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        if (liveOrder.agentAccountHolder.isNotEmpty()) {
+                            Text("Account Holder: ${liveOrder.agentAccountHolder}", color = TextSecondary, fontSize = 10.sp)
+                        }
+                        if (liveOrder.transactionRef != null) {
+                            Text("Submitted Ref: ${liveOrder.transactionRef}", color = Color(0xFF00E676), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        }
+                    }
+                }
+
+                // Action Buttons Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    if (liveOrder.status == "PENDING_PAYMENT") {
+                        Button(
+                            onClick = { showProofModal = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Submit Payment Proof", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        }
+                    }
+
+                    if (liveOrder.status == "PAYMENT_SUBMITTED" || liveOrder.status == "PENDING_PAYMENT") {
+                        Button(
+                            onClick = { viewModel.releaseB2BOrder(liveOrder.orderId) },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Confirm & Release", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        }
+                    }
+
+                    if (liveOrder.status != "RELEASED" && liveOrder.status != "CANCELLED") {
+                        Button(
+                            onClick = { showDisputeModal = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("🚨 Raise Dispute", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        }
+                    }
+                }
+
+                if (liveOrder.status == "DISPUTED") {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF3E1E24)),
+                        border = BorderStroke(1.dp, Color(0xFFEF4444)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(8.dp)) {
+                            Text("🚨 Dispute Under Admin Moderation", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            Text("Reason: ${liveOrder.disputeReason ?: "Payment verification conflict"}. Admin support has access to inspect this chat log and payment proof.", color = Color.White, fontSize = 10.sp)
+                        }
+                    }
+                }
+
+                // Chat Policy / Privacy Notice
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF181A26), RoundedCornerShape(6.dp))
+                        .padding(6.dp)
+                ) {
+                    Text("🛡️ Admin Moderation Policy: Admin support can access chats & proofs for dispute resolution.", color = TextSecondary, fontSize = 9.sp)
+                }
+
+                // Real-Time B2B Chat Log
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .background(DarkSurface, RoundedCornerShape(12.dp))
+                        .padding(8.dp)
+                ) {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(liveMessages) { msg ->
+                            val isMe = msg.senderRole == "USER"
+                            val isAdmin = msg.senderRole == "ADMIN"
+
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalAlignment = if (isMe) Alignment.End else Alignment.Start
+                            ) {
+                                Text("${msg.senderName} (${msg.senderRole})", color = TextSecondary, fontSize = 9.sp)
+                                Card(
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = when {
+                                            isAdmin -> Color(0xFF2A1E3E)
+                                            isMe -> PinkHighlight
+                                            else -> Color(0xFF1E203E)
+                                        }
+                                    ),
+                                    shape = RoundedCornerShape(10.dp)
+                                ) {
+                                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Text(msg.content, color = Color.White, fontSize = 12.sp)
+                                        if (msg.imageUrl != null) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(Color.Black.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                                                    .padding(6.dp)
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Icon(imageVector = Icons.Default.Image, contentDescription = null, tint = Color(0xFF2196F3), modifier = Modifier.size(16.dp))
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text("[Screenshot Attachment Attached]", color = Color(0xFF2196F3), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Chat Input Row
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    OutlinedTextField(
+                        value = messageInput,
+                        onValueChange = { messageInput = it },
+                        placeholder = { Text("Type message to agent...", color = TextSecondary, fontSize = 11.sp) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White, unfocusedTextColor = Color.White,
+                            focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                        ),
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    Button(
+                        onClick = {
+                            if (messageInput.isNotBlank()) {
+                                viewModel.sendB2BChatMessage(
+                                    orderId = liveOrder.orderId,
+                                    senderRole = "USER",
+                                    content = messageInput
+                                )
+                                messageInput = ""
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = "Send", modifier = Modifier.size(16.dp))
+                    }
+                }
+            }
+        }
+    }
+
+    // Submit Proof Modal
+    if (showProofModal) {
+        var txnRef by remember { mutableStateOf("TXN${(10000000..99999999).random()}") }
+        AlertDialog(
+            onDismissRequest = { showProofModal = false },
+            title = { Text("Upload Payment Screenshot Proof", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = txnRef,
+                        onValueChange = { txnRef = it },
+                        label = { Text("Transaction Reference ID", color = TextSecondary) },
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text("Select Sample Screenshot:", color = TextSecondary, fontSize = 11.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        listOf(
+                            "bKash Receipt" to "https://images.unsplash.com/photo-1556742049-0a670f4a4591",
+                            "Nagad Slip" to "https://images.unsplash.com/photo-1563013544-824ae1b704d3"
+                        ).forEach { (lbl, url) ->
+                            val isSel = selectedScreenshotUrl == url
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(6.dp))
+                                    .background(if (isSel) PinkHighlight else DarkSurface)
+                                    .clickable { selectedScreenshotUrl = url }
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text(lbl, color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.submitB2BPaymentProof(liveOrder.orderId, txnRef, selectedScreenshotUrl)
+                        showProofModal = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight)
+                ) {
+                    Text("Submit Proof")
+                }
+            },
+            dismissButton = { TextButton(onClick = { showProofModal = false }) { Text("Cancel", color = TextSecondary) } },
+            containerColor = DarkSurface
+        )
+    }
+
+    // Raise Dispute Modal
+    if (showDisputeModal) {
+        var disputeReasonInput by remember { mutableStateOf("Payment made but agent delayed release") }
+        AlertDialog(
+            onDismissRequest = { showDisputeModal = false },
+            title = { Text("Raise B2B Escrow Dispute", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("State reason for dispute. Admin team will review order chat log & screenshot proof.", color = TextSecondary, fontSize = 11.sp)
+                    OutlinedTextField(
+                        value = disputeReasonInput,
+                        onValueChange = { disputeReasonInput = it },
+                        label = { Text("Dispute Details", color = TextSecondary) },
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.raiseB2BDispute(liveOrder.orderId, "USER", disputeReasonInput)
+                        showDisputeModal = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444))
+                ) {
+                    Text("Submit Dispute to Admin")
+                }
+            },
+            dismissButton = { TextButton(onClick = { showDisputeModal = false }) { Text("Cancel", color = TextSecondary) } },
+            containerColor = DarkSurface
+        )
+    }
+}
+
+// ---------------- ADMIN B2B DISPUTES & ORDERS CONTROL TAB ----------------
+@Composable
+fun AdminB2BDisputesTab(viewModel: AppViewModel) {
+    val allOrders by viewModel.allB2BOrders.collectAsStateWithLifecycle()
+    val allAgents by viewModel.paymentAgents.collectAsStateWithLifecycle()
+
+    var statusFilter by remember { mutableStateOf("ALL") }
+    var selectedOrderForAdminReview by remember { mutableStateOf<B2BOrder?>(null) }
+
+    val filteredOrders = remember(allOrders, statusFilter) {
+        if (statusFilter == "ALL") allOrders else allOrders.filter { it.status == statusFilter }
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DarkBg)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text("B2B Escrow & Dispute Center", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Monitor live B2B orders, chat histories, payment proofs & resolve disputes", color = TextSecondary, fontSize = 11.sp)
+            }
+        }
+
+        // B2B Dashboard Metrics Row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Card(colors = CardDefaults.cardColors(containerColor = DarkSurface), modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.padding(10.dp)) {
+                    Text("Total Orders", color = TextSecondary, fontSize = 10.sp)
+                    Text("${allOrders.size}", color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                }
+            }
+
+            Card(colors = CardDefaults.cardColors(containerColor = DarkSurface), modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.padding(10.dp)) {
+                    Text("Active Agents", color = TextSecondary, fontSize = 10.sp)
+                    Text("${allAgents.size}", color = Color(0xFF00E676), fontWeight = FontWeight.Black, fontSize = 18.sp)
+                }
+            }
+
+            Card(colors = CardDefaults.cardColors(containerColor = DarkSurface), modifier = Modifier.weight(1f)) {
+                Column(modifier = Modifier.padding(10.dp)) {
+                    Text("Open Disputes", color = TextSecondary, fontSize = 10.sp)
+                    Text("${allOrders.count { it.status == "DISPUTED" }}", color = Color(0xFFEF4444), fontWeight = FontWeight.Black, fontSize = 18.sp)
+                }
+            }
+        }
+
+        // Status Filter Tabs
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            listOf("ALL", "DISPUTED", "PAYMENT_SUBMITTED", "RELEASED", "PENDING_PAYMENT", "CANCELLED").forEach { st ->
+                val isSel = statusFilter == st
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(if (isSel) PinkHighlight else Color(0xFF2E2E3E))
+                        .clickable { statusFilter = st }
+                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                ) {
+                    Text(st, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        // Orders List
+        if (filteredOrders.isEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                Text("No B2B orders matching status criteria.", color = TextSecondary, fontSize = 12.sp)
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                items(filteredOrders) { order ->
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                        border = BorderStroke(1.dp, if (order.status == "DISPUTED") Color(0xFFEF4444) else Color(0xFF2E2E3E)),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("Order #${order.orderId}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("(${order.country})", color = TextSecondary, fontSize = 10.sp)
+                                }
+
+                                val (stColor, stText) = when (order.status) {
+                                    "RELEASED" -> Color(0xFF00E676) to "RELEASED"
+                                    "DISPUTED" -> Color(0xFFEF4444) to "DISPUTED"
+                                    "PAYMENT_SUBMITTED" -> Color(0xFFFF9800) to "SUBMITTED"
+                                    else -> Color(0xFF2196F3) to "PENDING"
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .background(stColor.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(stText, color = stColor, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text("User: ${order.userName}", color = Color.White, fontSize = 11.sp)
+                                    Text("Agent: ${order.agentName}", color = TextSecondary, fontSize = 11.sp)
+                                    Text("Method: ${order.paymentMethod}", color = TextSecondary, fontSize = 11.sp)
+                                }
+
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text("৳${order.amount.toInt()} BDT", color = PinkHighlight, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text("Type: ${order.type}", color = TextSecondary, fontSize = 10.sp)
+                                }
+                            }
+
+                            if (order.disputeReason != null) {
+                                Text("Reason: ${order.disputeReason}", color = Color(0xFFEF4444), fontSize = 10.sp)
+                            }
+
+                            Button(
+                                onClick = { selectedOrderForAdminReview = order },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                                shape = RoundedCornerShape(6.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(imageVector = Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(14.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Inspect Chat & Apply Dispute Decision", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Admin Dispute Resolution Dialog
+    if (selectedOrderForAdminReview != null) {
+        val selOrd = selectedOrderForAdminReview!!
+        val liveMsgs by viewModel.getB2BChatMessages(selOrd.orderId).collectAsStateWithLifecycle(initialValue = emptyList())
+        var adminNoteInput by remember { mutableStateOf("") }
+
+        AlertDialog(
+            onDismissRequest = { selectedOrderForAdminReview = null },
+            title = {
+                Text("Admin Dispute & Chat Moderation (#${selOrd.orderId})", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(350.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text("User: ${selOrd.userName} • Agent: ${selOrd.agentName} • Amount: ৳${selOrd.amount.toInt()}", color = TextSecondary, fontSize = 11.sp)
+                    if (selOrd.proofScreenshotUrl != null) {
+                        Text("Submitted Proof: ${selOrd.proofScreenshotUrl}", color = Color(0xFF00E676), fontSize = 10.sp)
+                    }
+
+                    Text("Full User ↔ Agent Chat Log:", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E202E))) {
+                        Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            liveMsgs.forEach { m ->
+                                Text("${m.senderName} (${m.senderRole}): ${m.content}", color = Color.White, fontSize = 10.sp)
+                            }
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = adminNoteInput,
+                        onValueChange = { adminNoteInput = it },
+                        label = { Text("Admin Decision Note", color = TextSecondary) },
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Text("Admin Action Decisions:", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Button(
+                            onClick = {
+                                viewModel.resolveB2BDispute(selOrd.orderId, "RELEASE_FUNDS", adminNoteInput.ifEmpty { "Funds released by admin" })
+                                selectedOrderForAdminReview = null
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Text("Release Funds", color = Color.Black, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = {
+                                viewModel.resolveB2BDispute(selOrd.orderId, "REFUND_USER", adminNoteInput.ifEmpty { "Refunded to user" })
+                                selectedOrderForAdminReview = null
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF9800)),
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Text("Refund User", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = {
+                                viewModel.resolveB2BDispute(selOrd.orderId, "REJECT_CLAIM", adminNoteInput.ifEmpty { "Dispute claim rejected" })
+                                selectedOrderForAdminReview = null
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                            shape = RoundedCornerShape(6.dp),
+                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                            modifier = Modifier.height(28.dp)
+                        ) {
+                            Text("Reject Claim", color = Color.White, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = { TextButton(onClick = { selectedOrderForAdminReview = null }) { Text("Close", color = TextSecondary) } },
+            containerColor = DarkSurface
+        )
+    }
+}
+
 
 
 

@@ -21,7 +21,8 @@ data class ModelProfile(
     val gender: String,
     val age: Int,
     val heightCm: Int,
-    val imageResName: String // Holds local asset drawable reference identifier
+    val imageResName: String, // Holds local asset drawable reference identifier
+    val country: String = "Bangladesh"
 )
 
 @Entity(tableName = "current_user")
@@ -119,4 +120,120 @@ data class CashCollectionRequest(
     val date: String = "18 May 2025",
     val receiptPhotoUrl: String? = null
 )
+
+@Entity(tableName = "deposit_requests")
+data class DepositRequest(
+    @PrimaryKey val id: String, // e.g. "DEP-10025"
+    val userId: String,
+    val userName: String,
+    val agentId: String,
+    val agentName: String,
+    val country: String = "Bangladesh",
+    val paymentMethod: String, // "bKash", "Nagad", "Rocket", "Bank Transfer"
+    val amount: Double,
+    val currency: String = "BDT",
+    val transactionId: String, // e.g. "TXN123456"
+    val proofScreenshotUrl: String,
+    val userNote: String? = null,
+    val status: String = "PENDING", // PENDING, UNDER_REVIEW, APPROVED, REJECTED, CANCELLED
+    val timestamp: Long = System.currentTimeMillis(),
+    val adminNote: String? = null,
+    val reviewedByAdmin: String? = null,
+    val reviewedAt: Long? = null
+)
+
+@Entity(tableName = "withdrawal_requests")
+data class WithdrawalRequest(
+    @PrimaryKey val id: String, // e.g. "WD-50021"
+    val applicantId: String,
+    val applicantName: String,
+    val applicantRole: String, // "USER", "MODEL", "AGENT"
+    val amount: Double,
+    val currency: String = "BDT",
+    val paymentMethod: String,
+    val accountNumber: String,
+    val accountHolder: String = "",
+    val proofScreenshotUrl: String? = null,
+    val paymentReference: String? = null,
+    val status: String = "PENDING", // PENDING, PROCESSING, PROOF_UPLOADED, UNDER_REVIEW, APPROVED, REJECTED, COMPLETED
+    val timestamp: Long = System.currentTimeMillis(),
+    val adminNote: String? = null,
+    val processedAt: Long? = null
+)
+
+@Entity(tableName = "ledger_entries")
+data class LedgerEntry(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val referenceId: String, // e.g. "DEP-10025" or "WD-50021"
+    val userId: String,
+    val userName: String,
+    val userRole: String,
+    val transactionType: String, // "DEPOSIT_CREDIT", "WITHDRAWAL_DEBIT", "ESCROW_LOCK", "ESCROW_RELEASE"
+    val amount: Double,
+    val previousBalance: Double,
+    val newBalance: Double,
+    val paymentMethod: String,
+    val transactionIdOrRef: String,
+    val timestamp: Long = System.currentTimeMillis(),
+    val isVerifiedByAdmin: Boolean = true
+)
+
+@Entity(tableName = "payment_agents")
+data class PaymentAgent(
+    @PrimaryKey val id: String,
+    val name: String,
+    val agentCode: String,
+    val country: String,
+    val phone: String,
+    val paymentMethod: String,
+    val accountNumber: String,
+    val accountHolder: String = "",
+    val commissionRate: Double = 1.5,
+    val minLimit: Double = 100.0,
+    val maxLimit: Double = 100000.0,
+    val availableBalance: Double = 50000.0,
+    val allowedMethods: String = "bKash, Bank, Nagad, Alipay",
+    val supportsDeposit: Boolean = true,
+    val supportsWithdraw: Boolean = true,
+    val verificationStatus: String = "VERIFIED", // "VERIFIED", "PENDING_VERIFICATION", "SUSPENDED"
+    val isOnline: Boolean = true,
+    val rating: Float = 4.9f
+)
+
+@Entity(tableName = "b2b_orders")
+data class B2BOrder(
+    @PrimaryKey val orderId: String,
+    val userId: String,
+    val userName: String,
+    val agentId: String,
+    val agentName: String,
+    val country: String,
+    val type: String, // "DEPOSIT" or "WITHDRAWAL"
+    val amount: Double,
+    val currency: String = "BDT",
+    val paymentMethod: String,
+    val agentAccountNumber: String,
+    val agentAccountHolder: String = "",
+    val status: String = "PENDING_PAYMENT", // PENDING_PAYMENT, PAYMENT_SUBMITTED, RELEASED, DISPUTED, CANCELLED
+    val proofScreenshotUrl: String? = null,
+    val transactionRef: String? = null,
+    val disputeReason: String? = null,
+    val disputeStatus: String = "NONE", // NONE, OPEN_DISPUTE, RESOLVED_RELEASED, RESOLVED_REFUNDED
+    val createdAt: Long = System.currentTimeMillis(),
+    val updatedAt: Long = System.currentTimeMillis()
+)
+
+@Entity(tableName = "b2b_chat_messages")
+data class B2BChatMessage(
+    @PrimaryKey val id: String = "MSG_${System.currentTimeMillis()}_${(100..999).random()}",
+    val orderId: String,
+    val senderId: String,
+    val senderName: String,
+    val senderRole: String, // "USER", "AGENT", "ADMIN"
+    val content: String,
+    val imageUrl: String? = null,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
+
 

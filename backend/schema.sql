@@ -1,8 +1,8 @@
--- Database Schema for Modol Connect Backend
--- MySQL 8.0 / InnoDB Engine
+-- Database Schema for Modol Connect Backend (PHP 8.2 / MySQL 8.0)
+-- Target Database: u376877788_app
 
-CREATE DATABASE IF NOT EXISTS `modol_connect_db` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `modol_connect_db`;
+CREATE DATABASE IF NOT EXISTS `u376877788_app` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE `u376877788_app`;
 
 -- 1. Admins Table
 CREATE TABLE IF NOT EXISTS `admins` (

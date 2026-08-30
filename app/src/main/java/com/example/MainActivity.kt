@@ -47,9 +47,17 @@ fun MainContent(viewModel: AppViewModel) {
             "SPLASH" -> SplashScreen(viewModel)
             "ONBOARDING" -> OnboardingScreen(viewModel)
             "LOGIN" -> LoginScreen(viewModel)
-            "REGISTER" -> RegisterScreen(viewModel)
-            "OTP" -> OtpScreen(viewModel)
+            "SELECT_ACCOUNT_TYPE" -> SelectAccountTypeScreen(viewModel)
+            "REGISTER_USER" -> RegisterUserScreen(viewModel)
+            "REGISTER_MODEL" -> RegisterModelScreen(viewModel)
+            "REGISTER" -> SelectAccountTypeScreen(viewModel) // Alias for backwards compatibility
+            "PHONE_VERIFICATION" -> PhoneVerificationScreen(viewModel)
+            "EMAIL_VERIFICATION" -> EmailVerificationScreen(viewModel)
+            "OTP" -> PhoneVerificationScreen(viewModel) // Alias for backwards compatibility
+            "LOGIN_WITH_OTP" -> LoginWithOtpScreen(viewModel)
             "FORGOT_PASSWORD" -> ForgotPasswordScreen(viewModel)
+            "FORGOT_OTP" -> ForgotOtpScreen(viewModel)
+            "CREATE_NEW_PASSWORD" -> CreateNewPasswordScreen(viewModel)
             "DASHBOARD" -> {
                 val userState = viewModel.currentUser.collectAsStateWithLifecycle().value
                 DashboardContainer(viewModel = viewModel) { paddingValues ->
@@ -58,11 +66,12 @@ fun MainContent(viewModel: AppViewModel) {
                             "ADMIN" -> {
                                 when (viewModel.selectedTab) {
                                     0 -> AdminDashboardTab(viewModel)
-                                    1 -> AdminUsersTab(viewModel)
-                                    2 -> AdminEscrowReviewTab(viewModel)
-                                    3 -> AdminCollectionsTab(viewModel)
-                                    4 -> AdminWalletsTab(viewModel)
-                                    5 -> AdminSettingsTab(viewModel)
+                                    1 -> AdminSupportMessengerTab(viewModel)
+                                    2 -> AdminUsersTab(viewModel)
+                                    3 -> AdminEscrowReviewTab(viewModel)
+                                    4 -> AdminCollectionsTab(viewModel)
+                                    5 -> AdminWalletsTab(viewModel)
+                                    6 -> AdminSettingsTab(viewModel)
                                     else -> AdminDashboardTab(viewModel)
                                 }
                             }
@@ -108,6 +117,7 @@ fun MainContent(viewModel: AppViewModel) {
             "ADMIN_PANEL" -> AdminPanelScreen(viewModel)
             "MODEL_OFFERED_SERVICES" -> ModelOfferedServicesScreen(viewModel)
             "SETTINGS" -> SettingsScreen(viewModel)
+            "EDIT_PROFILE" -> EditProfileScreen(viewModel)
             else -> SplashScreen(viewModel)
         }
     }

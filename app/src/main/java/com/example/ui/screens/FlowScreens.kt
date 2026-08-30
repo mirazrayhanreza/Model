@@ -16,7 +16,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
+import coil.compose.SubcomposeAsyncImage
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -159,7 +161,7 @@ fun ModelProfileScreen(viewModel: AppViewModel) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(model.location, color = Color.White, fontSize = 13.sp)
+                            Text("${model.location}, ${model.country}", color = Color.White, fontSize = 13.sp)
                         }
                     }
                 }
@@ -929,6 +931,7 @@ fun BookingSummaryScreen(viewModel: AppViewModel) {
 
                 val payMethods = listOf(
                     "Wallet Balance" to Color(0xFF9C27B0),
+                    "Google Play Billing" to Color(0xFF00E676),
                     "bKash" to Color(0xFFE91E63),
                     "Nagad" to Color(0xFFF57C00),
                     "Stripe" to Color(0xFF6772E5),
@@ -1179,3 +1182,263 @@ fun ConfirmBookingScreen(viewModel: AppViewModel) {
         }
     }
 }
+
+// ============================================================================
+// 6. EDIT PROFILE SCREEN
+// ============================================================================
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditProfileScreen(viewModel: AppViewModel) {
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+    val purplePrimary = Color(0xFF7C3AED)
+    val cardBg = Color.White
+    val textDark = Color(0xFF1E202C)
+    val textSub = Color(0xFF6B7280)
+
+    var name by remember { mutableStateOf(currentUser?.name ?: "Rahul Verma") }
+    var email by remember { mutableStateOf(currentUser?.email ?: "rahul.verma@email.com") }
+    var phone by remember { mutableStateOf(viewModel.clientPhone) }
+    var city by remember { mutableStateOf(currentUser?.city ?: "Dhaka") }
+    var dob by remember { mutableStateOf(viewModel.clientDob) }
+    var gender by remember { mutableStateOf(viewModel.clientGender) }
+
+    var languages by remember { mutableStateOf(viewModel.clientPreferredLanguages) }
+    var categories by remember { mutableStateOf(viewModel.clientPreferredCategories) }
+    var budget by remember { mutableStateOf(viewModel.clientBudgetRange) }
+    var bookingTime by remember { mutableStateOf(viewModel.clientBookingTime) }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Edit Profile", fontWeight = FontWeight.Bold, color = Color.White) },
+                navigationIcon = {
+                    IconButton(onClick = { viewModel.goBack() }) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E103C))
+            )
+        },
+        containerColor = Color(0xFFF6F7FB)
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Profile Photo Header Card
+            Card(
+                colors = CardDefaults.cardColors(containerColor = cardBg),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        contentAlignment = Alignment.BottomEnd,
+                        modifier = Modifier.clickable { viewModel.showPhotoUploadDialog = true }
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(90.dp)
+                                .clip(CircleShape)
+                                .border(3.dp, purplePrimary, CircleShape)
+                        ) {
+                            SubcomposeAsyncImage(
+                                model = currentUser?.avatarUrl ?: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
+                                contentDescription = "Profile Photo",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(30.dp)
+                                .background(purplePrimary, CircleShape)
+                                .border(2.dp, Color.White, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PhotoCamera,
+                                contentDescription = "Change Photo",
+                                tint = Color.White,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Tap photo to change profile picture", color = textSub, fontSize = 11.sp)
+                }
+            }
+
+            // Personal Information Card
+            Card(
+                colors = CardDefaults.cardColors(containerColor = cardBg),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text("Personal Details", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = textDark)
+
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text("Full Name") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary)
+                    )
+
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = { Text("Email Address") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary)
+                    )
+
+                    OutlinedTextField(
+                        value = phone,
+                        onValueChange = { phone = it },
+                        label = { Text("Phone Number") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary)
+                    )
+
+                    OutlinedTextField(
+                        value = city,
+                        onValueChange = { city = it },
+                        label = { Text("City / Location") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary)
+                    )
+
+                    OutlinedTextField(
+                        value = dob,
+                        onValueChange = { dob = it },
+                        label = { Text("Date of Birth") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary)
+                    )
+
+                    Text("Gender", color = textSub, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("Male", "Female", "Other").forEach { g ->
+                            val isSelected = gender.equals(g, ignoreCase = true)
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { gender = g },
+                                label = { Text(g) },
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = purplePrimary,
+                                    selectedLabelColor = Color.White
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Booking Preferences Card
+            Card(
+                colors = CardDefaults.cardColors(containerColor = cardBg),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Text("Booking Preferences", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = textDark)
+
+                    OutlinedTextField(
+                        value = languages,
+                        onValueChange = { languages = it },
+                        label = { Text("Preferred Languages") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary)
+                    )
+
+                    OutlinedTextField(
+                        value = categories,
+                        onValueChange = { categories = it },
+                        label = { Text("Preferred Categories") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary)
+                    )
+
+                    OutlinedTextField(
+                        value = budget,
+                        onValueChange = { budget = it },
+                        label = { Text("Budget Range") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary)
+                    )
+
+                    OutlinedTextField(
+                        value = bookingTime,
+                        onValueChange = { bookingTime = it },
+                        label = { Text("Preferred Booking Time") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary)
+                    )
+                }
+            }
+
+            // Save Changes Button
+            Button(
+                onClick = {
+                    viewModel.updateUserProfileDetails(
+                        name = name,
+                        email = email,
+                        phone = phone,
+                        city = city,
+                        dob = dob,
+                        gender = gender
+                    )
+                    viewModel.updateUserPreferences(
+                        languages = languages,
+                        categories = categories,
+                        budget = budget,
+                        bookingTime = bookingTime
+                    )
+                    viewModel.goBack()
+                },
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = purplePrimary)
+            ) {
+                Icon(imageVector = Icons.Default.Save, contentDescription = null, tint = Color.White)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Save Profile Changes", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+    }
+}
+
