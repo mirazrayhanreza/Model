@@ -6,6 +6,11 @@
     # Pass Authorization Header to PHP
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Automatically resolve .php files without needing .php in URL
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME}\.php -f
+    RewriteRule ^(.*)$ $1.php [L]
 </IfModule>
 
 # Security and CORS Headers
@@ -15,5 +20,9 @@
     Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
 </IfModule>
 
+# Directory default file
+DirectoryIndex index.php index.html
+
 # Prevent directory browsing
 Options -Indexes
+

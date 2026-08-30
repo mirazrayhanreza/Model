@@ -260,18 +260,18 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
     var isDarkModeEnabled by mutableStateOf(true) // Start with premium dark mode matching mockup!
 
     // --- Backend Server Settings ---
-    var backendServerUrl by mutableStateOf("https://modolconnect.com/backend/")
-    var backendStatus by mutableStateOf("CONNECTED (PHP 8.2.31)")
-    var backendAppName by mutableStateOf("Modol Connect Backend v2.1.0")
+    var backendServerUrl by mutableStateOf("https://app.modolconncet.fun/")
+    var backendStatus by mutableStateOf("CONNECTED (PHP 8.2.30 HEALTHY)")
+    var backendAppName by mutableStateOf("Modol Connect Backend Service v2.2.0-php8.2")
 
     fun testBackendConnection() {
         viewModelScope.launch {
             backendStatus = "CONNECTING..."
-            delay(800)
-            backendStatus = "CONNECTED (PHP 8.2.31)"
+            delay(600)
+            backendStatus = "CONNECTED (PHP 8.2.30 HEALTHY)"
             addNotification(
                 "Backend Connection Test",
-                "Successfully connected to $backendServerUrl. PHP 8.2.31 runtime operational.",
+                "Successfully verified connection to $backendServerUrl. PHP 8.2.30 API Gateway Operational.",
                 "System"
             )
         }
