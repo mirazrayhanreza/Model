@@ -55,7 +55,7 @@ if ($method === 'POST') {
     };
 }
 
-function handleCreateOrder(PDO $db, array $input): never
+function handleCreateOrder(PDO $db, array $input): void
 {
     $orderId = 'B2B_' . strtoupper(bin2hex(random_bytes(4)));
     $userId = sanitizeInput($input['user_id'] ?? 'user_default');
@@ -92,7 +92,7 @@ function handleCreateOrder(PDO $db, array $input): never
     ], 201);
 }
 
-function handleSubmitPaymentProof(PDO $db, array $input): never
+function handleSubmitPaymentProof(PDO $db, array $input): void
 {
     $orderId = sanitizeInput($input['order_id'] ?? '');
     $proofUrl = sanitizeInput($input['proof_screenshot_url'] ?? '');
@@ -119,7 +119,7 @@ function handleSubmitPaymentProof(PDO $db, array $input): never
     ]);
 }
 
-function handleReleaseFunds(PDO $db, array $input): never
+function handleReleaseFunds(PDO $db, array $input): void
 {
     $orderId = sanitizeInput($input['order_id'] ?? '');
 
@@ -140,7 +140,7 @@ function handleReleaseFunds(PDO $db, array $input): never
     ]);
 }
 
-function handleDisputeOrder(PDO $db, array $input): never
+function handleDisputeOrder(PDO $db, array $input): void
 {
     $orderId = sanitizeInput($input['order_id'] ?? '');
     $reason = sanitizeInput($input['dispute_reason'] ?? 'Payment reference does not match statement');

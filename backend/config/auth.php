@@ -58,10 +58,13 @@ function sanitizeInput(string|null $data): string
 
 function getBearerToken(): ?string
 {
-    $headers = getallheaders();
-    $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? null;
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? null;
+    if (!$authHeader && function_exists('getallheaders')) {
+        $headers = getallheaders();
+        $authHeader = $headers['Authorization'] ?? $headers['authorization'] ?? null;
+    }
 
-    if ($authHeader && preg_match('/Bearer\s(\S+)/', $authHeader, $matches)) {
+    if ($authHeader && preg_match('/Bearer\s(\S+)/i', $authHeader, $matches)) {
         return $matches[1];
     }
     return null;

@@ -1,4 +1,4 @@
--- Database Schema for Modol Connect Backend (PHP 8.2 / MySQL 8.0)
+-- Database Schema for Modol Connect Backend (PHP 8.0 - 8.3 / MySQL 8.0 / MariaDB)
 -- Target Database: u376877788_app
 
 CREATE DATABASE IF NOT EXISTS `u376877788_app` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS `admins` (
     `password` VARCHAR(255) NOT NULL,
     `role` VARCHAR(50) DEFAULT 'SUPER_ADMIN',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 2. Cash Agents Table
 CREATE TABLE IF NOT EXISTS `cash_agents` (
@@ -26,9 +26,9 @@ CREATE TABLE IF NOT EXISTS `cash_agents` (
     `wallet_balance` DECIMAL(12,2) DEFAULT 0.00,
     `status` ENUM('ACTIVE', 'SUSPENDED') DEFAULT 'ACTIVE',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 3. Users (Clients) Table
+-- 3. Users Table
 CREATE TABLE IF NOT EXISTS `users` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `name` VARCHAR(100) NOT NULL,
@@ -36,37 +36,94 @@ CREATE TABLE IF NOT EXISTS `users` (
     `phone` VARCHAR(20) UNIQUE NOT NULL,
     `password` VARCHAR(255) NOT NULL,
     `role` VARCHAR(20) DEFAULT 'USER',
+    `is_verified` TINYINT(1) DEFAULT 1,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 4. Models Table
 CREATE TABLE IF NOT EXISTS `models` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `user_id` INT,
+    `user_id` INT NULL,
     `name` VARCHAR(100) NOT NULL,
     `hourly_rate` DECIMAL(10,2) NOT NULL,
-    `category` VARCHAR(50) NOT NULL,
+    `category` VARCHAR(50) NOT NULL DEFAULT 'Fashion',
     `location` VARCHAR(100) DEFAULT 'Dhaka',
-    `is_verified` TINYINT(1) DEFAULT 0,
+    `is_online` TINYINT(1) DEFAULT 1,
+    `is_verified` TINYINT(1) DEFAULT 1,
     `rating` DECIMAL(3,2) DEFAULT 4.90,
-    `FOREIGN KEY` (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
-) ENGINE=InnoDB;
+    `review_count` INT DEFAULT 0,
+    `bio` TEXT NULL,
+    `skills` VARCHAR(255) NULL,
+    `languages` VARCHAR(255) NULL,
+    `services` VARCHAR(255) NULL,
+    `availability_days` VARCHAR(100) DEFAULT 'All Days',
+    `gender` VARCHAR(20) DEFAULT 'Female',
+    `age` INT DEFAULT 23,
+    `height_cm` INT DEFAULT 172,
+    `image_res_name` VARCHAR(100) DEFAULT 'model_ayesha',
+    `country` VARCHAR(50) DEFAULT 'Bangladesh',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT `fk_models_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 5. Bookings Table
 CREATE TABLE IF NOT EXISTS `bookings` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `booking_code` VARCHAR(20) UNIQUE NOT NULL,
-    `client_id` INT NOT NULL,
+    `booking_code` VARCHAR(50) NULL,
+    `user_id` VARCHAR(50) NOT NULL,
     `model_id` INT NOT NULL,
-    `event_date` VARCHAR(50) NOT NULL,
-    `total_amount` DECIMAL(12,2) NOT NULL,
-    `payment_type` ENUM('ONLINE', 'CASH') DEFAULT 'CASH',
-    `payment_status` ENUM('PENDING', 'PAID', 'ESCROW_HELD', 'RELEASED') DEFAULT 'PENDING',
-    `booking_status` ENUM('PENDING', 'ACCEPTED', 'COMPLETED', 'CANCELLED') DEFAULT 'PENDING',
+    `model_name` VARCHAR(100) NOT NULL,
+    `model_photo` VARCHAR(100) DEFAULT 'model_1',
+    `date` VARCHAR(50) NOT NULL,
+    `time` VARCHAR(50) NOT NULL,
+    `service_type` VARCHAR(100) NOT NULL,
+    `duration_hours` INT DEFAULT 2,
+    `location` VARCHAR(150) NOT NULL,
+    `notes` TEXT NULL,
+    `total_price` DECIMAL(12,2) NOT NULL,
+    `status` VARCHAR(50) DEFAULT 'PAYMENT_RECEIVED',
+    `payment_status` VARCHAR(50) DEFAULT 'ESCROW_HELD',
+    `payment_method` VARCHAR(50) DEFAULT 'WALLET',
+    `model_earnings` DECIMAL(12,2) DEFAULT 0.00,
+    `platform_fee` DECIMAL(12,2) DEFAULT 0.00,
+    `proof_selfie_url` TEXT NULL,
+    `proof_photos` TEXT NULL,
+    `proof_gps_location` VARCHAR(100) NULL,
+    `proof_notes` TEXT NULL,
+    `proof_submitted_time` BIGINT NULL,
+    `user_rating` INT DEFAULT 5,
+    `user_feedback` TEXT NULL,
+    `dispute_status` VARCHAR(50) NULL,
+    `dispute_reason` TEXT NULL,
+    `timestamp` BIGINT NOT NULL,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 6. Cash Collections Table
+-- 6. B2B Escrow Orders
+CREATE TABLE IF NOT EXISTS `b2b_orders` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `order_id` VARCHAR(50) UNIQUE NOT NULL,
+    `user_id` VARCHAR(50) NOT NULL,
+    `userName` VARCHAR(100) NOT NULL,
+    `agent_id` VARCHAR(50) NOT NULL,
+    `agent_name` VARCHAR(100) NOT NULL,
+    `country` VARCHAR(50) DEFAULT 'Bangladesh',
+    `type` VARCHAR(20) DEFAULT 'DEPOSIT',
+    `amount` DECIMAL(12,2) NOT NULL,
+    `currency` VARCHAR(10) DEFAULT 'BDT',
+    `payment_method` VARCHAR(50) DEFAULT 'bKash',
+    `agent_account_number` VARCHAR(50) NULL,
+    `agent_account_holder` VARCHAR(100) NULL,
+    `status` VARCHAR(50) DEFAULT 'PENDING_PAYMENT',
+    `proof_screenshot_url` TEXT NULL,
+    `transaction_ref` VARCHAR(100) NULL,
+    `dispute_status` VARCHAR(50) NULL,
+    `dispute_reason` TEXT NULL,
+    `created_at` BIGINT NOT NULL,
+    `updated_at` BIGINT NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 7. Cash Collections Table
 CREATE TABLE IF NOT EXISTS `cash_collections` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `collection_code` VARCHAR(30) UNIQUE NOT NULL,
@@ -79,30 +136,32 @@ CREATE TABLE IF NOT EXISTS `cash_collections` (
     `collected_at` TIMESTAMP NULL,
     `verified_by_admin` TINYINT(1) DEFAULT 0,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 7. Wallets & Transactions
+-- 8. Wallets & Transactions
 CREATE TABLE IF NOT EXISTS `wallets` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `user_type` ENUM('ADMIN', 'MODEL', 'AGENT') NOT NULL,
-    `user_id` INT NOT NULL,
+    `user_type` ENUM('ADMIN', 'MODEL', 'AGENT', 'USER') NOT NULL,
+    `user_id` VARCHAR(50) NOT NULL,
     `balance` DECIMAL(12,2) DEFAULT 0.00,
     `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE IF NOT EXISTS `withdraw_requests` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `user_type` ENUM('MODEL', 'AGENT') NOT NULL,
-    `user_id` INT NOT NULL,
+    `user_id` VARCHAR(50) NOT NULL,
     `amount` DECIMAL(12,2) NOT NULL,
     `payment_method` VARCHAR(50) DEFAULT 'bKash Agent',
     `status` ENUM('PENDING', 'APPROVED', 'REJECTED') DEFAULT 'PENDING',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Insert Seed Admin & Cash Agent
-INSERT INTO `admins` (`name`, `email`, `password`, `role`) 
-VALUES ('System Admin', 'admin@modolconnect.com', '$2y$10$e8T8e...hashed_password', 'SUPER_ADMIN');
+-- Seed Initial Data
+INSERT IGNORE INTO `admins` (`id`, `name`, `email`, `password`, `role`) 
+VALUES 
+(1, 'System Admin (Miraz Reza)', 'hmmirazreza2@gmail.com', '$2y$10$e8T8e...hashed_password', 'SUPER_ADMIN'),
+(2, 'System Admin', 'admin@modolconnect.com', '$2y$10$e8T8e...hashed_password', 'SUPER_ADMIN');
 
-INSERT INTO `cash_agents` (`agent_code`, `name`, `phone`, `email`, `password`, `commission_rate`, `wallet_balance`)
-VALUES ('AGENT001', 'Agent Sumon', '+8801700000001', 'sumon@agent.com', '$2y$10$e8T8e...hashed_password', 5.00, 12500.00);
+INSERT IGNORE INTO `cash_agents` (`id`, `agent_code`, `name`, `phone`, `email`, `password`, `commission_rate`, `wallet_balance`)
+VALUES (1, 'AGENT001', 'Agent Sumon', '+8801700000001', 'sumon@agent.com', '$2y$10$e8T8e...hashed_password', 5.00, 12500.00);

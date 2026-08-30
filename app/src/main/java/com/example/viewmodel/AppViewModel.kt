@@ -219,6 +219,12 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
     var loginPhone by mutableStateOf("1712-345678")
     var rememberMe by mutableStateOf(true)
 
+    // Firebase Auth States
+    val authManager = com.example.data.auth.FirebaseAuthManager(application.applicationContext, repository)
+    var isAuthLoading by mutableStateOf(false)
+    var authErrorMessage by mutableStateOf<String?>(null)
+    var authSuccessMessage by mutableStateOf<String?>(null)
+
     var registerName by mutableStateOf("")
     var registerPhone by mutableStateOf("+880 1712-345678")
     var registerEmail by mutableStateOf("")
@@ -358,99 +364,152 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
         _activeChatPartnerId.value = partnerId
     }
 
-    // --- Auth Logic ---
+    // --- Auth Logic with Firebase Authentication ---
     fun login() {
-        viewModelScope.launch {
-            val role = when {
-                loginEmail.contains("admin", true) -> "ADMIN"
-                loginEmail.contains("model", true) -> "MODEL"
-                else -> "USER"
-            }
-            val userId = when (role) {
-                "ADMIN" -> "admin_1"
-                "MODEL" -> "model_1"
-                else -> "user_1"
-            }
-            val name = when (role) {
-                "ADMIN" -> "System Admin"
-                "MODEL" -> "Jessica (Model Account)"
-                else -> "Miraz Reza"
-            }
+        authErrorMessage = null
+        authSuccessMessage = null
+        val email = loginEmail.trim()
+        val password = loginPassword.trim()
 
-            val user = CurrentUser(
-                id = userId,
-                name = name,
-                role = role,
-                balance = if (role == "MODEL") 2450.0 else 1500.0,
-                avatarUrl = if (role == "MODEL") "https://images.unsplash.com/photo-1534528741775-53994a69daeb" else "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
-                isVerified = true,
-                email = loginEmail.ifEmpty { "hmmirazreza2@gmail.com" },
-                city = "Dhaka"
-            )
-            repository.insertCurrentUser(user)
-            addNotification("Login Success", "Welcome back, ${user.name}! Enjoy secure model booking.", "System")
-            navigateTo("DASHBOARD")
+        if (email.isEmpty()) {
+            authErrorMessage = "Please enter your email address or phone."
+            return
+        }
+        if (password.isEmpty()) {
+            authErrorMessage = "Please enter your password."
+            return
+        }
+
+        viewModelScope.launch {
+            isAuthLoading = true
+            val result = authManager.signInWithEmail(email, password)
+            isAuthLoading = false
+
+            result.onSuccess { user ->
+                authErrorMessage = null
+                addNotification("Login Success", "Welcome back, ${user.name}! Enjoy secure model booking.", "System")
+                navigateTo("DASHBOARD")
+            }.onFailure { error ->
+                authErrorMessage = error.message ?: "Login failed. Please check your credentials."
+                addNotification("Login Failed", authErrorMessage ?: "Authentication error", "System")
+            }
         }
     }
 
     fun register() {
+        authErrorMessage = null
+        authSuccessMessage = null
+        val name = registerName.trim()
+        val email = registerEmail.trim()
+        val password = registerPassword.trim()
+        val confirmPass = registerConfirmPassword.trim()
+
+        if (name.isEmpty()) {
+            authErrorMessage = "Please enter your full name."
+            return
+        }
+        if (email.isEmpty()) {
+            authErrorMessage = "Please enter a valid email address."
+            return
+        }
+        if (password.isEmpty()) {
+            authErrorMessage = "Please enter a password."
+            return
+        }
+        if (password.length < 6) {
+            authErrorMessage = "Password must be at least 6 characters long."
+            return
+        }
+        if (password != confirmPass) {
+            authErrorMessage = "Passwords do not match."
+            return
+        }
+
         viewModelScope.launch {
-            val userId = if (registerRole == "MODEL") "model_user_${System.currentTimeMillis()}" else "user_${System.currentTimeMillis()}"
-            val user = CurrentUser(
-                id = userId,
-                name = registerName.ifEmpty { "New User" },
+            isAuthLoading = true
+            val result = authManager.signUpWithEmail(
+                email = email,
+                password = password,
+                name = name,
                 role = registerRole,
-                balance = 500.0, // Welcome gift!
-                avatarUrl = "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
-                isVerified = registerRole == "USER", // Models need review to get verified
-                email = registerEmail.ifEmpty { "user@example.com" },
-                city = "Dhaka"
+                phone = registerPhone
             )
-            repository.insertCurrentUser(user)
-            repository.insertTransaction(
-                WalletTransaction(
-                    userId = userId,
-                    type = "DEPOSIT",
-                    amount = 500.0,
-                    description = "Welcome Sign-Up Bonus"
+            isAuthLoading = false
+
+            result.onSuccess { user ->
+                authErrorMessage = null
+                repository.insertTransaction(
+                    WalletTransaction(
+                        userId = user.id,
+                        type = "DEPOSIT",
+                        amount = 500.0,
+                        description = "Welcome Sign-Up Bonus"
+                    )
                 )
-            )
-            addNotification("Registration Success", "Account created successfully with a ৳500 signup bonus!", "System")
-            
-            // If model role, insert as model in model list too!
-            if (registerRole == "MODEL") {
-                val modelId = (10..1000).random()
-                val newModel = ModelProfile(
-                    id = modelId,
-                    name = registerName,
-                    rating = 5.0f,
-                    reviewCount = 0,
-                    location = "Dhaka",
-                    isOnline = true,
-                    isVerified = false,
-                    bio = "Hi! I just joined MODOL CONNECT. Looking forward to professional opportunities.",
-                    skills = "New Face",
-                    languages = "Bengali, English",
-                    services = "Photoshoot, Fashion Show",
-                    hourlyRate = 100,
-                    availabilityDays = "Sun, Mon, Tue, Wed, Thu, Fri, Sat",
-                    gender = "Female",
-                    age = 22,
-                    heightCm = 170,
-                    imageResName = "default_model"
-                )
-                repository.insertModels(listOf(newModel))
+                addNotification("Registration Success", "Account created successfully with a ৳500 signup bonus!", "System")
+
+                // If model role, insert as model in model list too!
+                if (registerRole == "MODEL") {
+                    val modelId = (10..1000).random()
+                    val newModel = ModelProfile(
+                        id = modelId,
+                        name = name,
+                        rating = 5.0f,
+                        reviewCount = 0,
+                        location = "Dhaka",
+                        isOnline = true,
+                        isVerified = false,
+                        bio = "Hi! I just joined MODOL CONNECT. Looking forward to professional opportunities.",
+                        skills = "New Face",
+                        languages = "Bengali, English",
+                        services = "Photoshoot, Fashion Show",
+                        hourlyRate = 100,
+                        availabilityDays = "Sun, Mon, Tue, Wed, Thu, Fri, Sat",
+                        gender = registerGender,
+                        age = 22,
+                        heightCm = 170,
+                        imageResName = "default_model"
+                    )
+                    repository.insertModels(listOf(newModel))
+                }
+                navigateTo("DASHBOARD")
+            }.onFailure { error ->
+                authErrorMessage = error.message ?: "Registration failed. Please try again."
+                addNotification("Registration Failed", authErrorMessage ?: "Sign up error", "System")
             }
-            navigateTo("DASHBOARD")
+        }
+    }
+
+    fun sendPasswordReset(targetEmail: String? = null) {
+        authErrorMessage = null
+        authSuccessMessage = null
+        val email = (targetEmail ?: forgotEmail).trim()
+        if (email.isEmpty()) {
+            authErrorMessage = "Please enter your registered email address."
+            return
+        }
+
+        viewModelScope.launch {
+            isAuthLoading = true
+            val result = authManager.sendPasswordReset(email)
+            isAuthLoading = false
+            result.onSuccess {
+                authSuccessMessage = "Password reset email sent to $email. Please check your inbox."
+                addNotification("Password Reset", "Reset instructions sent to $email", "Security")
+            }.onFailure { error ->
+                authErrorMessage = error.message ?: "Failed to send reset link."
+            }
         }
     }
 
     fun logout() {
         viewModelScope.launch {
-            repository.deleteCurrentUser()
+            authManager.signOut()
             selectedTab = 0
             loginEmail = ""
             loginPassword = ""
+            authErrorMessage = null
+            authSuccessMessage = null
             navigateTo("LOGIN")
         }
     }

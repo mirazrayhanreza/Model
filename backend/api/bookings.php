@@ -52,7 +52,7 @@ if ($method === 'POST') {
     };
 }
 
-function handleCreateBooking(PDO $db, array $input): never
+function handleCreateBooking(PDO $db, array $input): void
 {
     $userId = sanitizeInput($input['user_id'] ?? '');
     $modelId = (int)($input['model_id'] ?? 0);
@@ -96,7 +96,7 @@ function handleCreateBooking(PDO $db, array $input): never
     ], 201);
 }
 
-function handleSubmitProof(PDO $db, array $input): never
+function handleSubmitProof(PDO $db, array $input): void
 {
     $bookingId = (int)($input['booking_id'] ?? 0);
     $selfieUrl = sanitizeInput($input['proof_selfie_url'] ?? '');
@@ -133,7 +133,7 @@ function handleSubmitProof(PDO $db, array $input): never
     ]);
 }
 
-function handleConfirmCompletion(PDO $db, array $input): never
+function handleConfirmCompletion(PDO $db, array $input): void
 {
     $bookingId = (int)($input['booking_id'] ?? 0);
     $rating = (int)($input['rating'] ?? 5);
@@ -160,7 +160,7 @@ function handleConfirmCompletion(PDO $db, array $input): never
     ]);
 }
 
-function handleRaiseDispute(PDO $db, array $input): never
+function handleRaiseDispute(PDO $db, array $input): void
 {
     $bookingId = (int)($input['booking_id'] ?? 0);
     $reason = sanitizeInput($input['dispute_reason'] ?? 'Service not fulfilled according to terms');

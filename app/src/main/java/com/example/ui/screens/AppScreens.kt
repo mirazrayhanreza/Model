@@ -877,12 +877,40 @@ fun LoginScreen(viewModel: AppViewModel) {
                     textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(28.dp))
+                // Error Message Banner
+                if (viewModel.authErrorMessage != null) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF3B1219)),
+                        border = BorderStroke(1.dp, Color(0xFFFF5252)),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFFF5252), modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = viewModel.authErrorMessage ?: "",
+                                color = Color(0xFFFFCDD2),
+                                fontSize = 13.sp,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // Input: Phone or Email
                 PremiumTextField(
                     value = viewModel.loginEmail,
-                    onValueChange = { viewModel.loginEmail = it },
+                    onValueChange = { 
+                        viewModel.loginEmail = it 
+                        if (viewModel.authErrorMessage != null) viewModel.authErrorMessage = null
+                    },
                     label = "Phone Number or Email",
                     placeholder = "Enter phone or email",
                     leadingIcon = Icons.Default.Person,
@@ -894,7 +922,10 @@ fun LoginScreen(viewModel: AppViewModel) {
                 // Input: Password
                 OutlinedTextField(
                     value = viewModel.loginPassword,
-                    onValueChange = { viewModel.loginPassword = it },
+                    onValueChange = { 
+                        viewModel.loginPassword = it 
+                        if (viewModel.authErrorMessage != null) viewModel.authErrorMessage = null
+                    },
                     label = { Text("Password") },
                     placeholder = { Text("••••••••") },
                     leadingIcon = { Icon(imageVector = Icons.Default.Lock, contentDescription = null, tint = TextSecondary) },
@@ -955,6 +986,7 @@ fun LoginScreen(viewModel: AppViewModel) {
                 // Primary Login Button
                 Button(
                     onClick = { viewModel.login() },
+                    enabled = !viewModel.isAuthLoading,
                     colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
@@ -962,7 +994,15 @@ fun LoginScreen(viewModel: AppViewModel) {
                         .height(50.dp)
                         .testTag("login_submit_button")
                 ) {
-                    Text("Login", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    if (viewModel.isAuthLoading) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(22.dp),
+                            strokeWidth = 2.5.dp
+                        )
+                    } else {
+                        Text("Login", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
@@ -1326,7 +1366,32 @@ fun RegisterUserScreen(viewModel: AppViewModel) {
                         style = MaterialTheme.typography.bodyMedium.copy(color = TextSecondary)
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    // Auth Error Banner
+                    if (viewModel.authErrorMessage != null) {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF3B1219)),
+                            border = BorderStroke(1.dp, Color(0xFFFF5252)),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFFF5252), modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = viewModel.authErrorMessage ?: "",
+                                    color = Color(0xFFFFCDD2),
+                                    fontSize = 13.sp,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     // 1. Full Name
                     PremiumTextField(
@@ -1531,21 +1596,47 @@ fun RegisterUserScreen(viewModel: AppViewModel) {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Submit Send OTP
+                    // Primary Create Account Button
                     Button(
+                        onClick = { viewModel.register() },
+                        enabled = !viewModel.isAuthLoading,
+                        colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .testTag("register_user_submit_button")
+                    ) {
+                        if (viewModel.isAuthLoading) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(22.dp),
+                                strokeWidth = 2.5.dp
+                            )
+                        } else {
+                            Text("Create Account", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Secondary: Send OTP option
+                    OutlinedButton(
                         onClick = {
                             viewModel.verificationTarget = viewModel.registerPhone.ifEmpty { "+880 1712-345678" }
                             viewModel.verificationType = "PHONE"
                             viewModel.verificationNextScreen = "DASHBOARD"
                             viewModel.navigateTo("PHONE_VERIFICATION")
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary),
+                        border = BorderStroke(1.dp, Color(0xFF2E2E3E)),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp)
+                            .height(46.dp)
                     ) {
-                        Text("Send OTP", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Icon(imageVector = Icons.Default.Smartphone, contentDescription = null, tint = PurplePrimary, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Register with Phone OTP", color = Color.White, fontSize = 13.sp)
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -1627,7 +1718,32 @@ fun RegisterModelScreen(viewModel: AppViewModel) {
                         style = MaterialTheme.typography.bodyMedium.copy(color = TextSecondary)
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    // Auth Error Banner
+                    if (viewModel.authErrorMessage != null) {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFF3B1219)),
+                            border = BorderStroke(1.dp, Color(0xFFFF5252)),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFFF5252), modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = viewModel.authErrorMessage ?: "",
+                                    color = Color(0xFFFFCDD2),
+                                    fontSize = 13.sp,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     // 1. Full Name
                     PremiumTextField(
@@ -1832,21 +1948,47 @@ fun RegisterModelScreen(viewModel: AppViewModel) {
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Submit Send OTP
+                    // Primary Create Account Button
                     Button(
+                        onClick = { viewModel.register() },
+                        enabled = !viewModel.isAuthLoading,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF4081)),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(50.dp)
+                            .testTag("register_model_submit_button")
+                    ) {
+                        if (viewModel.isAuthLoading) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(22.dp),
+                                strokeWidth = 2.5.dp
+                            )
+                        } else {
+                            Text("Create Model Account", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Secondary: Send OTP option
+                    OutlinedButton(
                         onClick = {
                             viewModel.verificationTarget = viewModel.registerPhone.ifEmpty { "+880 1712-345678" }
                             viewModel.verificationType = "PHONE"
                             viewModel.verificationNextScreen = "DASHBOARD"
                             viewModel.navigateTo("PHONE_VERIFICATION")
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary),
+                        border = BorderStroke(1.dp, Color(0xFF2E2E3E)),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp)
+                            .height(46.dp)
                     ) {
-                        Text("Send OTP", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Icon(imageVector = Icons.Default.Smartphone, contentDescription = null, tint = Color(0xFFFF4081), modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Register with Phone OTP", color = Color.White, fontSize = 13.sp)
                     }
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -2257,11 +2399,110 @@ fun ForgotPasswordScreen(viewModel: AppViewModel) {
                 Spacer(modifier = Modifier.height(6.dp))
 
                 Text(
-                    text = "Select how you want to reset your password",
+                    text = "Enter your email or phone to reset your password",
                     style = MaterialTheme.typography.bodyMedium.copy(color = TextSecondary, textAlign = TextAlign.Center)
                 )
 
-                Spacer(modifier = Modifier.height(28.dp))
+                // Error Message Banner
+                if (viewModel.authErrorMessage != null) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF3B1219)),
+                        border = BorderStroke(1.dp, Color(0xFFFF5252)),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFFF5252), modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = viewModel.authErrorMessage ?: "",
+                                color = Color(0xFFFFCDD2),
+                                fontSize = 13.sp,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+
+                // Success Message Banner
+                if (viewModel.authSuccessMessage != null) {
+                    Spacer(modifier = Modifier.height(14.dp))
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1B3820)),
+                        border = BorderStroke(1.dp, Color(0xFF4CAF50)),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text(
+                                text = viewModel.authSuccessMessage ?: "",
+                                color = Color(0xFFC8E6C9),
+                                fontSize = 13.sp,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Direct Email Reset Section
+                PremiumTextField(
+                    value = viewModel.forgotEmail,
+                    onValueChange = { 
+                        viewModel.forgotEmail = it 
+                        if (viewModel.authErrorMessage != null) viewModel.authErrorMessage = null
+                    },
+                    label = "Registered Email Address",
+                    placeholder = "example@email.com",
+                    leadingIcon = Icons.Default.Email,
+                    testTag = "forgot_email_input"
+                )
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Button(
+                    onClick = { viewModel.sendPasswordReset(viewModel.forgotEmail) },
+                    enabled = !viewModel.isAuthLoading,
+                    colors = ButtonDefaults.buttonColors(containerColor = PurplePrimary),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .testTag("send_reset_email_button")
+                ) {
+                    if (viewModel.isAuthLoading) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(22.dp),
+                            strokeWidth = 2.5.dp
+                        )
+                    } else {
+                        Text("Send Password Reset Link", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFF2E2E3E))
+                    Text("  or other methods  ", color = TextSecondary, fontSize = 12.sp)
+                    HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFF2E2E3E))
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Option 1: Reset via Phone
                 Card(
@@ -2294,7 +2535,7 @@ fun ForgotPasswordScreen(viewModel: AppViewModel) {
 
                         Column {
                             Text(
-                                text = "Reset via Phone",
+                                text = "Reset via Phone OTP",
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = Color.White,
