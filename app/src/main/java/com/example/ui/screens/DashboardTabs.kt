@@ -5148,7 +5148,7 @@ fun PhotoUploadChooserModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = "Target API: https://modolconnect.com/backend/api/upload/profile-photo.php",
+                        text = "Target API: https://app.modolconncet.fun/backend/api/upload/profile-photo.php",
                         color = Color.Gray,
                         fontSize = 10.sp,
                         textAlign = TextAlign.Center

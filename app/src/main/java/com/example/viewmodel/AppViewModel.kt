@@ -1187,7 +1187,7 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
             repository.updateCurrentUser(updatedUser)
             addNotification(
                 "Profile Photo Updated",
-                "Your profile photo has been successfully uploaded to https://modolconnect.com/uploads/profile/ and updated.",
+                "Your profile photo has been successfully uploaded to https://app.modolconncet.fun/uploads/profile/ and updated.",
                 "Profile"
             )
         }

@@ -4875,7 +4875,7 @@ ${'$'}filename = ${'$'}userId . '_' . time() . '.' . ${'$'}ext;
 ${'$'}targetFile = ${'$'}targetDir . ${'$'}filename;
 
 if (move_uploaded_file(${'$'}file['tmp_name'], ${'$'}targetFile)) {
-    ${'$'}photoUrl = "https://modolconnect.com/uploads/profile/" . ${'$'}filename;
+    ${'$'}photoUrl = "https://app.modolconncet.fun/uploads/profile/" . ${'$'}filename;
     
     // Update MySQL Database
     ${'$'}stmt = ${'$'}pdo->prepare("UPDATE users SET profile_photo = ?, updated_at = NOW() WHERE id = ?");
@@ -4902,12 +4902,12 @@ echo json_encode([
         'app_name' => 'Modol Connect Backend',
         'environment' => 'production',
         'production' => true,
-        'base_url' => 'https://modolconnect.com/',
+        'base_url' => 'https://app.modolconncet.fun/',
         'modules' => [
-            'Admin Portal' => 'https://modolconnect.com/backend/admin/dashboard.php',
-            'Cash Agent Portal' => 'https://modolconnect.com/backend/agent/dashboard.php',
-            'API' => 'https://modolconnect.com/backend/api/',
-            'Documentation' => 'https://modolconnect.com/backend/docs/'
+            'Admin Portal' => 'https://app.modolconncet.fun/backend/admin/dashboard.php',
+            'Cash Agent Portal' => 'https://app.modolconncet.fun/backend/agent/dashboard.php',
+            'API' => 'https://app.modolconncet.fun/backend/api/',
+            'Documentation' => 'https://app.modolconncet.fun/backend/docs/'
         ],
         'server' => [
             'php_version' => '8.2.31',
@@ -5323,12 +5323,12 @@ Content-Type: application/json
     "app_name": "Modol Connect Backend",
     "environment": "production",
     "production": true,
-    "base_url": "https://modolconnect.com/",
+    "base_url": "https://app.modolconncet.fun/",
     "modules": {
-      "Admin Portal": "https://modolconnect.com/backend/admin/dashboard.php",
-      "Cash Agent Portal": "https://modolconnect.com/backend/agent/dashboard.php",
-      "API": "https://modolconnect.com/backend/api/",
-      "Documentation": "https://modolconnect.com/backend/docs/"
+      "Admin Portal": "https://app.modolconncet.fun/backend/admin/dashboard.php",
+      "Cash Agent Portal": "https://app.modolconncet.fun/backend/agent/dashboard.php",
+      "API": "https://app.modolconncet.fun/backend/api/",
+      "Documentation": "https://app.modolconncet.fun/backend/docs/"
     },
     "server": {
       "php_version": "8.2.31",

@@ -694,7 +694,7 @@ class Repository(private val db: AppDatabase) {
                     AppDatabase::class.java,
                     "modol_connect_database"
                 )
-                .fallbackToDestructiveMigration()
+                .fallbackToDestructiveMigration(dropAllTables = true)
                 .build()
                 val repo = Repository(db)
                 INSTANCE = repo
