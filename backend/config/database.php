@@ -15,9 +15,9 @@ final class Database
     {
         $dsn = sprintf(
             'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
-            Config::DB_HOST,
-            Config::DB_PORT,
-            Config::DB_NAME
+            Config::getDbHost(),
+            Config::getDbPort(),
+            Config::getDbName()
         );
 
         $options = [
@@ -27,16 +27,16 @@ final class Database
         ];
 
         try {
-            $this->conn = new PDO($dsn, Config::DB_USER, Config::DB_PASS, $options);
+            $this->conn = new PDO($dsn, Config::getDbUser(), Config::getDbPass(), $options);
             $this->conn->exec("SET NAMES utf8mb4");
         } catch (PDOException $e) {
             sendJsonResponse(
                 'error',
-                'Database connection failed: ' . $e->getMessage() . '. Please verify MySQL user privileges in cPanel/phpMyAdmin.',
+                'Database connection failed: ' . $e->getMessage() . '. Please verify MySQL credentials.',
                 [
-                    'db_name' => Config::DB_NAME,
-                    'db_user' => Config::DB_USER,
-                    'db_host' => Config::DB_HOST
+                    'db_name' => Config::getDbName(),
+                    'db_user' => Config::getDbUser(),
+                    'db_host' => Config::getDbHost()
                 ],
                 500
             );

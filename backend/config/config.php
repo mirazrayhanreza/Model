@@ -13,15 +13,35 @@ final class Config
 {
     public const APP_NAME = 'Modol Connect Backend Service';
     public const APP_VERSION = '2.2.0-php8.2';
-    public const BASE_URL = 'https://app.modolconncet.fun/';
+    public const BASE_URL = 'http://173.249.28.110/';
     public const AGENT_COMMISSION_PERCENT = 5.0;
     public const ADMIN_PLATFORM_FEE_PERCENT = 15.0;
 
     public const DB_HOST = 'localhost';
-    public const DB_USER = 'u376877788_appu';
-    public const DB_PASS = 'Miraz@2019m';
-    public const DB_NAME = 'u376877788_app';
+    public const DB_USER = 'modol_user';
+    public const DB_PASS = 'ModolConnect@2026#Secure';
+    public const DB_NAME = 'modol_connect';
     public const DB_PORT = 3306;
+
+    public static function getBaseUrl(): string {
+        return getenv('BASE_URL') ?: self::BASE_URL;
+    }
+
+    public static function getDbHost(): string {
+        return getenv('DB_HOST') ?: self::DB_HOST;
+    }
+    public static function getDbUser(): string {
+        return getenv('DB_USER') ?: self::DB_USER;
+    }
+    public static function getDbPass(): string {
+        return getenv('DB_PASS') !== false ? getenv('DB_PASS') : self::DB_PASS;
+    }
+    public static function getDbName(): string {
+        return getenv('DB_NAME') ?: self::DB_NAME;
+    }
+    public static function getDbPort(): int {
+        return getenv('DB_PORT') ? (int)getenv('DB_PORT') : self::DB_PORT;
+    }
 }
 
 // Session Lifetime Configuration

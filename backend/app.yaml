@@ -1,0 +1,14 @@
+runtime: php82
+instance_class: F1
+
+env_variables:
+  DB_HOST: "localhost"
+  DB_USER: "root"
+  DB_PASS: ""
+  DB_NAME: "modol_connect"
+  DB_PORT: "3306"
+  BASE_URL: "https://your-project-id.appspot.com/"
+
+handlers:
+  - url: /.*
+    script: auto

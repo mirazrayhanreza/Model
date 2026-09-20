@@ -6,6 +6,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../config/config.php';
+require_once __DIR__ . '/../../config/auth.php';
 require_once __DIR__ . '/../../enums/UserRole.php';
 
 $input = json_decode(file_get_contents('php://input'), true) ?? $_POST;
