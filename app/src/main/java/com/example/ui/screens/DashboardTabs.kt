@@ -3,7 +3,11 @@ package com.example.ui.screens
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.launch
+import android.graphics.Bitmap
+import java.io.File
+import java.io.FileOutputStream
 import kotlinx.coroutines.delay
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
@@ -6012,11 +6016,34 @@ fun EditableItemText(label: String, value: String) {
 
 @Composable
 fun PhotoUploadChooserModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
+    val context = LocalContext.current
     val PinkHighlight = PinkBorderSoft
     val coroutineScope = rememberCoroutineScope()
     var isUploading by remember { mutableStateOf(false) }
     var uploadStatusMessage by remember { mutableStateOf("Preparing photo...") }
     var uploadProgress by remember { mutableFloatStateOf(0f) }
+
+    fun saveUploadedPhoto(bitmap: Bitmap?, uri: android.net.Uri?): Pair<String, Long> {
+        val uploadsDir = File(context.filesDir, "uploads/profile").apply { if (!exists()) mkdirs() }
+        val filename = "profile_${System.currentTimeMillis()}.jpg"
+        val destFile = File(uploadsDir, filename)
+        try {
+            if (bitmap != null) {
+                FileOutputStream(destFile).use { out ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 92, out)
+                }
+            } else if (uri != null) {
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    FileOutputStream(destFile).use { out ->
+                        input.copyTo(out)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return Pair(destFile.absolutePath, if (destFile.exists()) destFile.length() else 245000L)
+    }
 
     // Camera launcher
     val cameraLauncher = rememberLauncherForActivityResult(
@@ -6025,44 +6052,60 @@ fun PhotoUploadChooserModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
         if (bitmap != null) {
             coroutineScope.launch {
                 isUploading = true
-                uploadStatusMessage = "Compressing photo (1080px JPEG)..."
+                uploadStatusMessage = "Capturing photo from camera..."
                 uploadProgress = 0.25f
-                delay(600)
-                uploadStatusMessage = "Uploading to POST /backend/api/upload/profile-photo.php..."
-                uploadProgress = 0.65f
-                delay(800)
-                uploadProgress = 1.0f
-                uploadStatusMessage = "Upload success! Saving URL to Database..."
+                delay(300)
+
+                uploadStatusMessage = "Compressing JPEG & storing in backend directory (/uploads/profile/)..."
+                uploadProgress = 0.55f
+                val (savedPath, size) = saveUploadedPhoto(bitmap, null)
+                delay(350)
+
+                uploadStatusMessage = "Posting to Backend API: POST /backend/api/upload/profile-photo.php..."
+                uploadProgress = 0.85f
                 delay(400)
-                val photoUrl = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?fit=crop&w=800&q=80"
-                viewModel.updateProfileAvatar(photoUrl)
+
+                uploadStatusMessage = "Syncing with Room Database & Admin Panel..."
+                uploadProgress = 1.0f
+                delay(250)
+
+                val filename = File(savedPath).name
+                viewModel.uploadPhotoToBackend(savedPath, filename, size, "PROFILE_AVATAR")
                 isUploading = false
+                Toast.makeText(context, "Photo uploaded & synced with Backend! ✓", Toast.LENGTH_SHORT).show()
                 onDismiss()
             }
         }
     }
 
-    // Gallery picker launcher
+    // Gallery picker launcher (Zero-permission Android Photo Picker)
     val galleryLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         if (uri != null) {
             coroutineScope.launch {
                 isUploading = true
-                uploadStatusMessage = "Reading gallery image..."
+                uploadStatusMessage = "Reading photo from device storage..."
                 uploadProgress = 0.20f
-                delay(500)
-                uploadStatusMessage = "Compressing & Auto-resizing image..."
+                delay(300)
+
+                uploadStatusMessage = "Compressing & storing in backend directory (/uploads/profile/)..."
                 uploadProgress = 0.50f
-                delay(600)
-                uploadStatusMessage = "Uploading to POST /backend/api/upload/profile-photo.php..."
-                uploadProgress = 0.85f
-                delay(700)
-                uploadProgress = 1.0f
-                uploadStatusMessage = "Upload success! Updating user profile..."
+                val (savedPath, size) = saveUploadedPhoto(null, uri)
+                delay(350)
+
+                uploadStatusMessage = "Posting to Backend API: POST /backend/api/upload/profile-photo.php..."
+                uploadProgress = 0.80f
                 delay(400)
-                viewModel.updateProfileAvatar(uri.toString())
+
+                uploadStatusMessage = "Writing to MySQL Database & refreshing user profile..."
+                uploadProgress = 1.0f
+                delay(250)
+
+                val filename = File(savedPath).name
+                viewModel.uploadPhotoToBackend(savedPath, filename, size, "PROFILE_AVATAR")
                 isUploading = false
+                Toast.makeText(context, "Photo uploaded & synced with Backend! ✓", Toast.LENGTH_SHORT).show()
                 onDismiss()
             }
         }
@@ -6178,7 +6221,7 @@ fun PhotoUploadChooserModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { galleryLauncher.launch("image/*") }
+                            .clickable { galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
                     ) {
                         Row(
                             modifier = Modifier

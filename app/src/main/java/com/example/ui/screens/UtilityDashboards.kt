@@ -1857,7 +1857,7 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
 
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             SystemOverviewRow(icon = Icons.Default.Person, label = "Online Users", value = "256", iconTint = Color(0xFF4CAF50))
-                            SystemOverviewRow(icon = Icons.Default.Layers, label = "App Version", value = "2.0.1", iconTint = Color(0xFF9C27B0))
+                            SystemOverviewRow(icon = Icons.Default.Layers, label = "App Version", value = "2.00", iconTint = Color(0xFF9C27B0))
                             SystemOverviewRow(icon = Icons.Default.SwapHoriz, label = "Total Transactions", value = "24,856", iconTint = Color(0xFF2196F3))
                             SystemOverviewRow(icon = Icons.Default.Public, label = "Active Countries", value = "16", iconTint = Color(0xFFFF9800))
                         }
@@ -2226,7 +2226,8 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                 "Verification Center ($totalPendingCount)" to 0,
                 "All Users (${managedUsers.size})" to 1,
                 "Models (${models.size})" to 2,
-                "Cash Agents" to 3
+                "Cash Agents" to 3,
+                "Uploaded Photos (${viewModel.backendUploadedPhotos.size})" to 4
             ).forEach { (label, idx) ->
                 val isSel = tabSelected == idx
                 Surface(
@@ -2590,7 +2591,7 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                         }
                     }
                 }
-            } else {
+            } else if (tabSelected == 3) {
                 // Cash Agents Tab
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -2614,6 +2615,107 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                                             .padding(horizontal = 8.dp, vertical = 4.dp)
                                     ) {
                                         Text("5% Commission", color = Color(0xFF2196F3), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if (tabSelected == 4) {
+                // Tab 4: Backend Uploaded Photos & Media Storage
+                val uploads = viewModel.backendUploadedPhotos
+                if (uploads.isEmpty()) {
+                    item {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(Icons.Default.CloudUpload, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(36.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("No uploaded media found", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("Photos uploaded from app camera or gallery will appear here in backend storage.", color = TextSecondary, fontSize = 11.sp)
+                            }
+                        }
+                    }
+                } else {
+                    items(uploads) { item ->
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(1.dp, Color(0xFF374151)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(52.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(Color(0xFF374151))
+                                        ) {
+                                            SubcomposeAsyncImage(
+                                                model = item.fileUrl,
+                                                contentDescription = "Uploaded photo",
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier.fillMaxSize()
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Column {
+                                            Text(item.fileName, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                            Text("Uploaded by: ${item.uploaderName} (#${item.uploaderId})", color = TextSecondary, fontSize = 11.sp)
+                                            Text("Size: ${item.fileSizeBytes / 1024} KB • ${item.timestamp}", color = Color.Gray, fontSize = 10.sp)
+                                        }
+                                    }
+
+                                    Surface(
+                                        color = Color(0xFF16A34A).copy(alpha = 0.2f),
+                                        shape = RoundedCornerShape(6.dp)
+                                    ) {
+                                        Text(
+                                            text = "STORED IN DB ✓",
+                                            color = Color(0xFF00E676),
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+
+                                HorizontalDivider(color = Color.White.copy(alpha = 0.08f), thickness = 0.8.dp)
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = "Target: /uploads/profile/${item.fileName}",
+                                        color = TextSecondary,
+                                        fontSize = 10.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    TextButton(
+                                        onClick = {
+                                            val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                            clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("URL", item.fileUrl))
+                                            Toast.makeText(context, "Photo URL copied!", Toast.LENGTH_SHORT).show()
+                                        },
+                                        contentPadding = PaddingValues(0.dp)
+                                    ) {
+                                        Text("Copy URL", color = PinkHighlight, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
