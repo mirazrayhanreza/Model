@@ -1,5 +1,7 @@
 package com.example
 
+import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -15,7 +17,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.Repository
@@ -35,9 +40,15 @@ class MainActivity : ComponentActivity() {
         val factory = AppViewModelFactory(application, repository)
         viewModel = ViewModelProvider(this, factory)[AppViewModel::class.java]
 
-        // Ensure the First Page is ALWAYS the Splash page on launch / restart
-        viewModel.currentScreen = "SPLASH"
-        viewModel.splashFinished = false
+        // Route based on session:
+        // "LOGIN NA KORLE FAST PAGE THEKE SURU HBE ARE AKBER LOGIN KORLE ARE LOGIN KRA LAGBE NA"
+        if (viewModel.isLoggedIn) {
+            viewModel.currentScreen = "DASHBOARD"
+            viewModel.splashFinished = true
+        } else {
+            viewModel.currentScreen = "SPLASH"
+            viewModel.splashFinished = false
+        }
 
         enableEdgeToEdge()
         
@@ -51,14 +62,19 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainContent(viewModel: AppViewModel) {
+    val context = LocalContext.current
+    val prefs = remember(context) { context.getSharedPreferences("app_permissions_prefs", Context.MODE_PRIVATE) }
+
     // Request app permissions: SMS, CAMERA, CONTACTS, MICROPHONE, NOTIFICATIONS, LOCATION, NEARBY DEVICES, PHOTOS/VIDEOS, PHONE
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { _ ->
-        // Permissions handled smoothly
+        // Permissions handled once; persist immediately so user is never prompted repeatedly
+        prefs.edit().putBoolean("permissions_already_requested", true).commit()
     }
 
     LaunchedEffect(Unit) {
+        val alreadyRequested = prefs.getBoolean("permissions_already_requested", false)
         val permissions = buildList {
             add(android.Manifest.permission.CAMERA)
             add(android.Manifest.permission.RECORD_AUDIO)
@@ -80,12 +96,30 @@ fun MainContent(viewModel: AppViewModel) {
                 add(android.Manifest.permission.BLUETOOTH_SCAN)
             }
         }
-        permissionLauncher.launch(permissions.toTypedArray())
+
+        // Only query permissions that are NOT currently granted
+        val ungranted = permissions.filter { p ->
+            ContextCompat.checkSelfPermission(context, p) != PackageManager.PERMISSION_GRANTED
+        }
+        val anyGranted = permissions.any { p ->
+            ContextCompat.checkSelfPermission(context, p) == PackageManager.PERMISSION_GRANTED
+        }
+
+        if (ungranted.isEmpty() || alreadyRequested || anyGranted) {
+            // All or some permissions already granted, or previously requested! Never prompt again
+            prefs.edit().putBoolean("permissions_already_requested", true).commit()
+        } else {
+            // Ask only once on very first launch, and never prompt again
+            prefs.edit().putBoolean("permissions_already_requested", true).commit()
+            permissionLauncher.launch(ungranted.toTypedArray())
+        }
     }
 
-    // Handle back navigation: secondary screens go back, Dashboard root goes to Splash
+    // Handle back navigation: Dashboard minimizes app when logged in; Login returns to Splash when not logged in; sub-screens go back
     BackHandler(enabled = viewModel.currentScreen != "SPLASH") {
         if (viewModel.currentScreen == "DASHBOARD") {
+            (context as? ComponentActivity)?.moveTaskToBack(true)
+        } else if (viewModel.currentScreen == "LOGIN" && !viewModel.isLoggedIn) {
             viewModel.currentScreen = "SPLASH"
         } else {
             viewModel.goBack()
@@ -116,12 +150,13 @@ fun MainContent(viewModel: AppViewModel) {
                             "ADMIN" -> {
                                 when (viewModel.selectedTab) {
                                     0 -> AdminDashboardTab(viewModel)
-                                    1 -> AdminSupportMessengerTab(viewModel)
-                                    2 -> AdminUsersTab(viewModel)
-                                    3 -> AdminEscrowReviewTab(viewModel)
-                                    4 -> AdminCollectionsTab(viewModel)
-                                    5 -> AdminWalletsTab(viewModel)
-                                    6 -> AdminSettingsTab(viewModel)
+                                    1 -> AdminLiveLocationTrackingTab(viewModel, onBack = { viewModel.selectedTab = 0 })
+                                    2 -> AdminSupportMessengerTab(viewModel)
+                                    3 -> AdminUsersTab(viewModel)
+                                    4 -> AdminEscrowReviewTab(viewModel)
+                                    5 -> AdminCollectionsTab(viewModel)
+                                    6 -> AdminWalletsTab(viewModel)
+                                    7 -> AdminSettingsTab(viewModel)
                                     else -> AdminDashboardTab(viewModel)
                                 }
                             }

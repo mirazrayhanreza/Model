@@ -113,6 +113,25 @@ class FirebaseAuthManager(
                 )
 
                 repository.insertCurrentUser(user)
+
+                // Sync registered user directly with Backend at http://173.249.28.110/
+                try {
+                    com.example.data.network.BackendApiClient.registerUserOnBackend(
+                        baseUrl = "http://173.249.28.110/",
+                        name = cleanName,
+                        email = cleanEmail,
+                        password = password,
+                        phone = phone,
+                        role = role,
+                        city = "Dhaka",
+                        country = "Bangladesh",
+                        uid = userId
+                    )
+                    Log.i("FirebaseAuthManager", "User registration synced with backend 173.249.28.110")
+                } catch (e: Exception) {
+                    Log.w("FirebaseAuthManager", "Backend sync during signup warning: ${e.message}")
+                }
+
                 return Result.success(user)
             } catch (e: FirebaseAuthException) {
                 val friendlyMessage = when (e.errorCode) {
@@ -140,6 +159,24 @@ class FirebaseAuthManager(
                 city = "Dhaka"
             )
             repository.insertCurrentUser(user)
+
+            // Still try syncing to backend
+            try {
+                com.example.data.network.BackendApiClient.registerUserOnBackend(
+                    baseUrl = "http://173.249.28.110/",
+                    name = cleanName,
+                    email = cleanEmail,
+                    password = password,
+                    phone = phone,
+                    role = role,
+                    city = "Dhaka",
+                    country = "Bangladesh",
+                    uid = localUserId
+                )
+            } catch (e: Exception) {
+                Log.w("FirebaseAuthManager", "Offline backend sync warning: ${e.message}")
+            }
+
             return Result.success(user)
         }
     }
@@ -329,7 +366,7 @@ class FirebaseAuthManager(
     ) {
         val firebaseAuth = auth
         if (firebaseAuth == null) {
-            onError(Exception("Firebase Auth is not initialized or google-services.json not loaded."))
+            onError(Exception("Authentication gateway is temporarily initializing. Please try again."))
             return
         }
 
@@ -403,13 +440,13 @@ class FirebaseAuthManager(
                 val credential = PhoneAuthProvider.getCredential(verificationId, cleanOtp)
                 val authResult = firebaseAuth.signInWithCredential(credential).await()
                 val firebaseUser = authResult.user
-                    ?: return Result.failure(Exception("Failed to retrieve user details from Firebase."))
+                    ?: return Result.failure(Exception("Failed to retrieve user details. Please try again."))
 
                 verifiedUid = firebaseUser.uid
                 verifiedPhone = firebaseUser.phoneNumber ?: cleanPhone
             } catch (e: Exception) {
                 Log.w("FirebaseAuthManager", "Firebase Phone credential signin error: ${e.message}")
-                return Result.failure(Exception("Invalid Firebase OTP code: ${e.localizedMessage ?: "Verification failed."}"))
+                return Result.failure(Exception("Invalid verification code: ${e.localizedMessage ?: "Please enter the correct 6-digit code."}"))
             }
         }
 

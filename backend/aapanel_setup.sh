@@ -13,9 +13,11 @@ if [ ! -d "${TARGET_DIR}" ]; then
     mkdir -p "${TARGET_DIR}"
 fi
 
-echo ">>> [2/3] Setting permissions for www user..."
+echo ">>> [2/3] Setting permissions and symlink for /backend prefix..."
 chown -R www:www "${TARGET_DIR}" 2>/dev/null || chown -R www-data:www-data "${TARGET_DIR}" 2>/dev/null || true
 chmod -R 755 "${TARGET_DIR}"
+# Create symlink so http://173.249.28.110/backend/ maps directly to root without 404
+ln -sfn "${TARGET_DIR}" "${TARGET_DIR}/backend" 2>/dev/null || true
 
 echo ">>> [3/3] Checking if database schema needs to be imported..."
 if [ -f "${TARGET_DIR}/schema.sql" ]; then

@@ -632,7 +632,11 @@ fun SplashScreen(viewModel: AppViewModel) {
             Button(
                 onClick = {
                     viewModel.splashFinished = true
-                    viewModel.navigateTo("DASHBOARD")
+                    if (viewModel.isLoggedIn) {
+                        viewModel.navigateTo("DASHBOARD")
+                    } else {
+                        viewModel.navigateTo("LOGIN")
+                    }
                 },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.White,
@@ -646,7 +650,7 @@ fun SplashScreen(viewModel: AppViewModel) {
                     .testTag("splash_get_started_btn")
             ) {
                 Text(
-                    text = "Get Started",
+                    text = if (viewModel.isLoggedIn) "Go to Dashboard" else "Get Started",
                     fontSize = 17.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFFD81B60)
@@ -660,11 +664,44 @@ fun SplashScreen(viewModel: AppViewModel) {
                 )
             }
 
+            Spacer(modifier = Modifier.height(14.dp))
+
+            if (!viewModel.isLoggedIn) {
+                Row(
+                    modifier = Modifier
+                        .clickable {
+                            viewModel.splashFinished = true
+                            viewModel.navigateTo("LOGIN")
+                        }
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Already have an account? ",
+                        color = Color.White.copy(alpha = 0.85f),
+                        fontSize = 13.sp
+                    )
+                    Text(
+                        text = "Login",
+                        color = Color.White,
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 14.sp
+                    )
+                }
+            } else {
+                Text(
+                    text = "Welcome Back • Active Session",
+                    color = Color.White.copy(alpha = 0.85f),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
             // Subtle secondary indicator
             Text(
-                text = "Explore Bangladesh's #1 Model Marketplace",
+                text = "Explore World's #1 Model Marketplace",
                 style = MaterialTheme.typography.bodySmall.copy(
                     color = Color.White.copy(alpha = 0.75f),
                     fontSize = 11.sp,
@@ -1021,6 +1058,33 @@ fun LoginScreen(viewModel: AppViewModel) {
                     style = MaterialTheme.typography.bodyMedium.copy(color = TextSecondary),
                     textAlign = TextAlign.Center
                 )
+
+                // 1-Tap Instant Demo Login Chips
+                Spacer(modifier = Modifier.height(14.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    listOf(
+                        "ADMIN" to "Admin",
+                        "MODEL" to "Model",
+                        "USER" to "Client",
+                        "CASH_AGENT" to "Agent"
+                    ).forEach { (role, label) ->
+                        OutlinedButton(
+                            onClick = { viewModel.loginAsDemo(role) },
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(36.dp),
+                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp),
+                            border = BorderStroke(1.dp, Color(0xFFFF85A6)),
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White)
+                        ) {
+                            Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PurplePrimary)
+                        }
+                    }
+                }
 
                 // Error Message Banner
                 if (viewModel.authErrorMessage != null) {
@@ -2287,7 +2351,7 @@ fun PhoneVerificationScreen(viewModel: AppViewModel) {
 
                 Spacer(modifier = Modifier.height(14.dp))
 
-                // Firebase Live OTP Gateway Status Badge
+                // Secure SMS Verification Gateway Status Badge
                 Surface(
                     shape = RoundedCornerShape(12.dp),
                     color = Color.White,
@@ -2303,7 +2367,7 @@ fun PhoneVerificationScreen(viewModel: AppViewModel) {
                         Column(modifier = Modifier.weight(1f)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = "Firebase Live OTP Gateway",
+                                    text = "Official SMS Verification Gateway",
                                     color = TextPrimary,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold
@@ -2318,7 +2382,7 @@ fun PhoneVerificationScreen(viewModel: AppViewModel) {
                             }
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "লাইভ ওটিপি শুধুমাত্র Firebase থেকে এসএমএস এ পাঠানো হয়। ওটিপি যাচাইয়ের পর বাকি সমস্ত একাউন্ট ও ডাটাবেজ ব্যাকএন্ড থেকে লোড হবে।",
+                                text = "আপনার মোবাইল নম্বরে ৬-সংখ্যার সুরক্ষিত ওটিপি কোড পাঠানো হয়েছে। কোডটি প্রদান করে অ্যাকাউন্ট যাচাই সম্পন্ন করুন।",
                                 color = TextSecondary,
                                 fontSize = 11.sp
                             )
@@ -3018,7 +3082,7 @@ fun ForgotPasswordScreen(viewModel: AppViewModel) {
 
                     Spacer(modifier = Modifier.height(10.dp))
 
-                    // Alternative: Send Firebase Password Reset Link
+                    // Alternative: Send Official Password Reset Link
                     OutlinedButton(
                         onClick = { viewModel.sendPasswordReset(viewModel.forgotEmail) },
                         enabled = !viewModel.isAuthLoading,
@@ -3028,7 +3092,7 @@ fun ForgotPasswordScreen(viewModel: AppViewModel) {
                             .fillMaxWidth()
                             .height(46.dp)
                     ) {
-                        Text("Send Firebase Password Reset Link", color = PurplePrimary, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        Text("Send Password Reset Link via Email", color = PurplePrimary, fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
                     }
                 }
 
@@ -3159,7 +3223,7 @@ fun ForgotOtpScreen(viewModel: AppViewModel) {
                     }
                     Spacer(modifier = Modifier.height(12.dp))
                 } else {
-                    // Gateway Badge (Firebase Phone SMS)
+                    // Gateway Badge (Phone SMS)
                     Surface(
                         shape = RoundedCornerShape(8.dp),
                         color = Color.White,
@@ -3172,7 +3236,7 @@ fun ForgotOtpScreen(viewModel: AppViewModel) {
                             Icon(Icons.Default.PhoneIphone, contentDescription = null, tint = PurplePrimary, modifier = Modifier.size(14.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                text = "Gateway: Firebase Live SMS Gateway",
+                                text = "Gateway: Official SMS Gateway",
                                 color = TextPrimary,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium
@@ -3246,7 +3310,7 @@ fun ForgotOtpScreen(viewModel: AppViewModel) {
                             text = if (isEmailMethod) 
                                 "আপনার ইমেইলে ওটিপি কোড পাঠানো হয়েছে। কোডটি দেখে ইনপুট করুন।"
                             else 
-                                "লাইভ ওটিপি Firebase থেকে এসএমএস এ পাঠানো হয়েছে। পাসওয়ার্ড পরিবর্তন ব্যাকএন্ডে আপডেট হবে।",
+                                "আপনার ফোনে সুরক্ষিত ওটিপি কোড পাঠানো হয়েছে। ওটিপি যাচাই করে পাসওয়ার্ড পরিবর্তন করুন।",
                             color = TextSecondary,
                             fontSize = 11.sp
                         )
@@ -3548,118 +3612,182 @@ fun DashboardContainer(viewModel: AppViewModel, content: @Composable (PaddingVal
 
     Scaffold(
         topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .statusBarsPadding()
-                    .background(DarkBg)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // Header Title
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .background(
-                                brush = Brush.linearGradient(
-                                    colors = listOf(Color(0xFFFF2A6D), Color(0xFFFF5E8A), Color(0xFFC2185B))
-                                ),
-                                shape = RoundedCornerShape(11.dp)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Favorite,
-                            contentDescription = "Logo",
-                            tint = Color.White,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "MODOL ",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Black,
-                                color = TextPrimary,
-                                letterSpacing = 1.sp
-                            )
-                        )
-                        Text(
-                            text = "CONNECT",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Black,
-                                color = PinkHighlight,
-                                letterSpacing = 1.sp
-                            )
-                        )
-                    }
-                }
-
-                // Top Bar Actions
+            Column(modifier = Modifier.background(DarkBg)) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .statusBarsPadding()
+                        .background(DarkBg)
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    // Quick Wallet Balance Pill Button
-                    val userBal = currentUser?.balance ?: 1500.0
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = Color.White,
-                        border = BorderStroke(1.2.dp, Color(0xFFFFD6E2)),
-                        modifier = Modifier.clickable { viewModel.navigateTo("WALLET") }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    // Header Title
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .background(
+                                    brush = Brush.linearGradient(
+                                        colors = listOf(Color(0xFFFF2A6D), Color(0xFFFF5E8A), Color(0xFFC2185B))
+                                    ),
+                                    shape = RoundedCornerShape(11.dp)
+                                ),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Icon(imageVector = Icons.Default.AccountBalanceWallet, contentDescription = "Wallet", tint = PinkHighlight, modifier = Modifier.size(14.dp))
-                            Text("৳ %,.0f".format(userBal), color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 11.sp)
+                            Icon(
+                                imageVector = Icons.Default.Favorite,
+                                contentDescription = "Logo",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
-                    }
-
-                    // Quick B2B P2P Pill Button
-                    Surface(
-                        shape = RoundedCornerShape(20.dp),
-                        color = Color(0xFFFFEFF3),
-                        border = BorderStroke(1.dp, Color(0xFFFFD6E2)),
-                        modifier = Modifier.clickable { viewModel.navigateTo("WALLET") }
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(3.dp)
-                        ) {
-                            Icon(imageVector = Icons.Default.SwapHoriz, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(14.dp))
-                            Text("B2B", color = PinkHighlight, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                        }
-                    }
-
-                    // Notification bell with unread indicator
-                    Surface(
-                        shape = CircleShape,
-                        color = Color.White,
-                        border = BorderStroke(1.dp, Color(0xFFFFDDE6)),
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clickable { viewModel.navigateTo("NOTIFICATIONS") }
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(imageVector = Icons.Default.NotificationsNone, contentDescription = "Notifications", tint = TextPrimary, modifier = Modifier.size(20.dp))
-                            if (viewModel.notifications.collectAsStateWithLifecycle().value.isNotEmpty()) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .background(PinkHighlight, shape = CircleShape)
-                                        .align(Alignment.TopEnd)
-                                        .padding(top = 4.dp, end = 4.dp)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "MODOL ",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Black,
+                                    color = TextPrimary,
+                                    letterSpacing = 1.sp
                                 )
+                            )
+                            Text(
+                                text = "CONNECT",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Black,
+                                    color = PinkHighlight,
+                                    letterSpacing = 1.sp
+                                )
+                            )
+                        }
+                    }
+
+                    // Top Bar Actions
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Quick Wallet Balance Pill Button
+                        val userBal = currentUser?.balance ?: 1500.0
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = Color.White,
+                            border = BorderStroke(1.2.dp, Color(0xFFFFD6E2)),
+                            modifier = Modifier.clickable { viewModel.navigateTo("WALLET") }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(imageVector = Icons.Default.AccountBalanceWallet, contentDescription = "Wallet", tint = PinkHighlight, modifier = Modifier.size(14.dp))
+                                Text("৳ %,.0f".format(userBal), color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 11.sp)
+                            }
+                        }
+
+                        // Quick B2B P2P Pill Button
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = Color(0xFFFFEFF3),
+                            border = BorderStroke(1.dp, Color(0xFFFFD6E2)),
+                            modifier = Modifier.clickable { viewModel.navigateTo("WALLET") }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                            ) {
+                                Icon(imageVector = Icons.Default.SwapHoriz, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(14.dp))
+                                Text("B2B", color = PinkHighlight, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            }
+                        }
+
+                        // Notification bell with unread indicator
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.White,
+                            border = BorderStroke(1.dp, Color(0xFFFFDDE6)),
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clickable { viewModel.navigateTo("NOTIFICATIONS") }
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(imageVector = Icons.Default.NotificationsNone, contentDescription = "Notifications", tint = TextPrimary, modifier = Modifier.size(20.dp))
+                                if (viewModel.notifications.collectAsStateWithLifecycle().value.isNotEmpty()) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .background(PinkHighlight, shape = CircleShape)
+                                            .align(Alignment.TopEnd)
+                                            .padding(top = 4.dp, end = 4.dp)
+                                    )
+                                }
                             }
                         }
                     }
+                }
+
+                // Dedicated Admin Backend Horizontal Sub-Tab Strip
+                if (currentUser?.role == "ADMIN") {
+                    val adminTabs = listOf(
+                        Triple(0, "Overview", Icons.Default.Dashboard),
+                        Triple(1, "Live GPS", Icons.Default.LocationOn),
+                        Triple(2, "Messenger", Icons.Default.Chat),
+                        Triple(3, "Users & Models", Icons.Default.People),
+                        Triple(4, "Escrow", Icons.Default.VerifiedUser),
+                        Triple(5, "Collections", Icons.Default.Payments),
+                        Triple(6, "Wallets", Icons.Default.AccountBalanceWallet),
+                        Triple(7, "Settings", Icons.Default.Settings)
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState())
+                            .padding(horizontal = 12.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        adminTabs.forEach { (idx, title, icon) ->
+                            val isSel = viewModel.selectedTab == idx
+                            Surface(
+                                shape = RoundedCornerShape(18.dp),
+                                color = if (isSel) PinkHighlight else DarkSurface,
+                                border = BorderStroke(1.dp, if (isSel) PinkHighlight else PinkBorderSoft),
+                                modifier = Modifier.clickable {
+                                    viewModel.selectedTab = idx
+                                    viewModel.navigateTo("DASHBOARD")
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = title,
+                                        tint = if (isSel) Color.White else if (idx == 1) Color(0xFF00E676) else TextSecondary,
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                    Text(
+                                        text = title,
+                                        color = if (isSel) Color.White else TextPrimary,
+                                        fontWeight = if (isSel) FontWeight.Bold else FontWeight.Medium,
+                                        fontSize = 11.sp
+                                    )
+                                    if (idx == 1) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(6.dp)
+                                                .background(if (isSel) Color.White else Color(0xFF00E676), CircleShape)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    HorizontalDivider(color = PinkBorderSoft, thickness = 0.5.dp)
                 }
             }
         },
@@ -3763,113 +3891,55 @@ fun DashboardContainer(viewModel: AppViewModel, content: @Composable (PaddingVal
                         )
                     )
                 } else if (isAdmin) {
-                    NavigationBarItem(
-                        selected = viewModel.selectedTab == 0,
-                        onClick = { viewModel.selectedTab = 0; viewModel.navigateTo("DASHBOARD") },
-                        icon = { Icon(imageVector = Icons.Default.Dashboard, contentDescription = "Dashboard") },
-                        label = { Text("Overview", fontSize = 8.sp, maxLines = 1) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PinkHighlight,
-                            selectedTextColor = PinkHighlight,
-                            unselectedIconColor = TextSecondary,
-                            unselectedTextColor = TextSecondary,
-                            indicatorColor = PinkHighlight.copy(alpha = 0.15f)
-                        )
+                    val adminBottomTabs = listOf(
+                        Triple(0, "Overview", Icons.Default.Dashboard),
+                        Triple(1, "Live GPS", Icons.Default.LocationOn),
+                        Triple(2, "Messenger", Icons.Default.Chat),
+                        Triple(3, "Users", Icons.Default.People),
+                        Triple(4, "Escrow", Icons.Default.VerifiedUser),
+                        Triple(5, "Cash", Icons.Default.Payments),
+                        Triple(6, "Wallets", Icons.Default.AccountBalanceWallet),
+                        Triple(7, "Settings", Icons.Default.Settings)
                     )
-
-                    NavigationBarItem(
-                        selected = viewModel.selectedTab == 1,
-                        onClick = { viewModel.selectedTab = 1; viewModel.navigateTo("DASHBOARD") },
-                        icon = {
-                            Box {
-                                Icon(imageVector = Icons.Default.Chat, contentDescription = "Messenger Support")
-                                Box(
-                                    modifier = Modifier
-                                        .size(10.dp)
-                                        .background(Color(0xFF00E676), CircleShape)
-                                        .align(Alignment.TopEnd)
-                                )
-                            }
-                        },
-                        label = { Text("Messenger", fontSize = 8.sp, maxLines = 1) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = Color(0xFF0084FF),
-                            selectedTextColor = Color(0xFF0084FF),
-                            unselectedIconColor = TextSecondary,
-                            unselectedTextColor = TextSecondary,
-                            indicatorColor = Color(0xFF0084FF).copy(alpha = 0.15f)
+                    adminBottomTabs.forEach { (idx, label, icon) ->
+                        NavigationBarItem(
+                            selected = viewModel.selectedTab == idx,
+                            onClick = { viewModel.selectedTab = idx; viewModel.navigateTo("DASHBOARD") },
+                            icon = {
+                                if (idx == 1) {
+                                    Box {
+                                        Icon(imageVector = icon, contentDescription = label)
+                                        Box(
+                                            modifier = Modifier
+                                                .size(7.dp)
+                                                .background(Color(0xFF00E676), CircleShape)
+                                                .align(Alignment.TopEnd)
+                                        )
+                                    }
+                                } else if (idx == 2) {
+                                    Box {
+                                        Icon(imageVector = icon, contentDescription = label)
+                                        Box(
+                                            modifier = Modifier
+                                                .size(7.dp)
+                                                .background(Color(0xFF0084FF), CircleShape)
+                                                .align(Alignment.TopEnd)
+                                        )
+                                    }
+                                } else {
+                                    Icon(imageVector = icon, contentDescription = label)
+                                }
+                            },
+                            label = { Text(label, fontSize = 7.5.sp, maxLines = 1) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = if (idx == 1) Color(0xFF00E676) else PinkHighlight,
+                                selectedTextColor = if (idx == 1) Color(0xFF00E676) else PinkHighlight,
+                                unselectedIconColor = TextSecondary,
+                                unselectedTextColor = TextSecondary,
+                                indicatorColor = if (idx == 1) Color(0xFF00E676).copy(alpha = 0.15f) else PinkHighlight.copy(alpha = 0.15f)
+                            )
                         )
-                    )
-
-                    NavigationBarItem(
-                        selected = viewModel.selectedTab == 2,
-                        onClick = { viewModel.selectedTab = 2; viewModel.navigateTo("DASHBOARD") },
-                        icon = { Icon(imageVector = Icons.Default.People, contentDescription = "Users") },
-                        label = { Text("Users", fontSize = 8.sp, maxLines = 1) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PinkHighlight,
-                            selectedTextColor = PinkHighlight,
-                            unselectedIconColor = TextSecondary,
-                            unselectedTextColor = TextSecondary,
-                            indicatorColor = PinkHighlight.copy(alpha = 0.15f)
-                        )
-                    )
-
-                    NavigationBarItem(
-                        selected = viewModel.selectedTab == 3,
-                        onClick = { viewModel.selectedTab = 3; viewModel.navigateTo("DASHBOARD") },
-                        icon = { Icon(imageVector = Icons.Default.VerifiedUser, contentDescription = "Escrow & Proofs") },
-                        label = { Text("Escrow", fontSize = 8.sp, maxLines = 1) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PinkHighlight,
-                            selectedTextColor = PinkHighlight,
-                            unselectedIconColor = TextSecondary,
-                            unselectedTextColor = TextSecondary,
-                            indicatorColor = PinkHighlight.copy(alpha = 0.15f)
-                        )
-                    )
-
-                    NavigationBarItem(
-                        selected = viewModel.selectedTab == 4,
-                        onClick = { viewModel.selectedTab = 4; viewModel.navigateTo("DASHBOARD") },
-                        icon = { Icon(imageVector = Icons.Default.Payments, contentDescription = "Collections") },
-                        label = { Text("Cash", fontSize = 8.sp, maxLines = 1) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PinkHighlight,
-                            selectedTextColor = PinkHighlight,
-                            unselectedIconColor = TextSecondary,
-                            unselectedTextColor = TextSecondary,
-                            indicatorColor = PinkHighlight.copy(alpha = 0.15f)
-                        )
-                    )
-
-                    NavigationBarItem(
-                        selected = viewModel.selectedTab == 5,
-                        onClick = { viewModel.selectedTab = 5; viewModel.navigateTo("DASHBOARD") },
-                        icon = { Icon(imageVector = Icons.Default.AccountBalanceWallet, contentDescription = "Wallets") },
-                        label = { Text("Wallets", fontSize = 8.sp, maxLines = 1) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PinkHighlight,
-                            selectedTextColor = PinkHighlight,
-                            unselectedIconColor = TextSecondary,
-                            unselectedTextColor = TextSecondary,
-                            indicatorColor = PinkHighlight.copy(alpha = 0.15f)
-                        )
-                    )
-
-                    NavigationBarItem(
-                        selected = viewModel.selectedTab == 6,
-                        onClick = { viewModel.selectedTab = 6; viewModel.navigateTo("DASHBOARD") },
-                        icon = { Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings") },
-                        label = { Text("Settings", fontSize = 8.sp, maxLines = 1) },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PinkHighlight,
-                            selectedTextColor = PinkHighlight,
-                            unselectedIconColor = TextSecondary,
-                            unselectedTextColor = TextSecondary,
-                            indicatorColor = PinkHighlight.copy(alpha = 0.15f)
-                        )
-                    )
+                    }
                 } else if (isAgent) {
                     NavigationBarItem(
                         selected = viewModel.selectedTab == 0,

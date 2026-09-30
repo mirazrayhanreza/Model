@@ -28,6 +28,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
@@ -1135,11 +1137,37 @@ fun SettingsScreen(viewModel: AppViewModel) {
                     Text("About MODOL CONNECT", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        "MODOL CONNECT is Bangladesh's first professional model marketplace app. We connect brands, fashion houses, and individuals with local professional talents seamlessly, with secure escrow payments.",
+                        "MODOL CONNECT is the World's #1 professional model marketplace app. We connect brands, fashion houses, and individuals with top professional talents worldwide seamlessly, with secure escrow payments.",
                         color = TextSecondary,
                         fontSize = 12.sp,
                         lineHeight = 18.sp
                     )
+                }
+            }
+
+            // Sign Out / Logout Card
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF0F3)),
+                border = BorderStroke(1.dp, Color(0xFFFFB3BA)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel.logout() }
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(imageVector = Icons.Default.Logout, contentDescription = "Logout", tint = Color(0xFFD32F2F))
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text("Sign Out / Log Out", color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Safely exit your account session", color = TextSecondary, fontSize = 12.sp)
+                        }
+                    }
+                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Exit", tint = Color(0xFFD32F2F), modifier = Modifier.size(18.dp))
                 }
             }
         }
@@ -1314,6 +1342,148 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
                             Text("PHP Live Source", color = PinkHighlight, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                         }
                     }
+                }
+            }
+        }
+
+        // --- 1.5 USER TO MODEL LIVE LOCATION TRACKING HERO CARD ---
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.5.dp, Color(0xFF00E676).copy(alpha = 0.7f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel.selectedTab = 1 }
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .background(Color(0xFF00E676).copy(alpha = 0.2f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.LocationOn,
+                                    contentDescription = null,
+                                    tint = Color(0xFF00E676),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text("User to Model Live Tracking", color = Color.White, fontWeight = FontWeight.Black, fontSize = 13.sp)
+                                    Box(
+                                        modifier = Modifier
+                                            .background(Color(0xFF00E676), RoundedCornerShape(10.dp))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text("LIVE GPS", color = Color.Black, fontWeight = FontWeight.ExtraBold, fontSize = 8.sp)
+                                    }
+                                }
+                                Text("Real-Time Radar Map & Escort Geofence Telemetry", color = Color(0xFF94A3B8), fontSize = 10.sp)
+                            }
+                        }
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = "Open",
+                            tint = Color(0xFF00E676),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    // Mini live stats strip
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF1E293B), RoundedCornerShape(10.dp))
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("3 Active Escort Routes", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        Text("Precision: ±2.5m • 16 Sats", color = Color(0xFF00E676), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                        Text("Open Map ➔", color = PinkHighlight, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    }
+                }
+            }
+        }
+
+        // --- 1.1 FIREBASE & OTP GATEWAY QUICK CONFIG CARD ---
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, Color(0xFFFF9100).copy(alpha = 0.4f)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { viewModel.selectedTab = 7 }
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 14.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        modifier = Modifier.weight(1f),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(Color(0xFFFF9100).copy(alpha = 0.2f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocalFireDepartment,
+                                contentDescription = null,
+                                tint = Color(0xFFFF9100),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    "Firebase & OTP Gateway",
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 13.sp
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .background(Color(0xFF00E676).copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 5.dp, vertical = 1.dp)
+                                ) {
+                                    Text("ADMIN CONFIG", color = Color(0xFF00E676), fontSize = 8.sp, fontWeight = FontWeight.ExtraBold)
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text(
+                                "Live SMS Gateway • User-Facing Firebase Hidden • Tap to Configure ➔",
+                                color = Color(0xFF94A3B8),
+                                fontSize = 10.sp
+                            )
+                        }
+                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "Open Settings",
+                        tint = Color(0xFFFF9100),
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
         }
@@ -1610,14 +1780,14 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
                                     label = "Add New Model",
                                     color = Color(0xFFFF2B85),
                                     modifier = Modifier.weight(1f)
-                                ) { viewModel.selectedTab = 1 }
+                                ) { viewModel.selectedTab = 3 }
 
                                 QuickActionButtonTile(
                                     icon = Icons.Default.WorkOutline,
                                     label = "Add Cash Agent",
                                     color = Color(0xFF4CAF50),
                                     modifier = Modifier.weight(1f)
-                                ) { viewModel.selectedTab = 1 }
+                                ) { viewModel.selectedTab = 3 }
                             }
 
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1626,14 +1796,14 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
                                     label = "Add New User",
                                     color = Color(0xFF2196F3),
                                     modifier = Modifier.weight(1f)
-                                ) { viewModel.selectedTab = 1 }
+                                ) { viewModel.selectedTab = 3 }
 
                                 QuickActionButtonTile(
-                                    icon = Icons.Default.CalendarMonth,
-                                    label = "New Booking",
-                                    color = Color(0xFFFF9800),
+                                    icon = Icons.Default.LocationOn,
+                                    label = "Live GPS Radar",
+                                    color = Color(0xFF00E676),
                                     modifier = Modifier.weight(1f)
-                                ) { viewModel.navigateTo("EXPLORE") }
+                                ) { viewModel.selectedTab = 1 }
                             }
 
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1642,14 +1812,14 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
                                     label = "Pending Payments",
                                     color = Color(0xFF9C27B0),
                                     modifier = Modifier.weight(1f)
-                                ) { viewModel.selectedTab = 3 }
+                                ) { viewModel.selectedTab = 4 }
 
                                 QuickActionButtonTile(
                                     icon = Icons.Default.Payments,
                                     label = "Cash Collection",
                                     color = Color(0xFF009688),
                                     modifier = Modifier.weight(1f)
-                                ) { viewModel.selectedTab = 2 }
+                                ) { viewModel.selectedTab = 5 }
                             }
                         }
                     }
@@ -1769,7 +1939,7 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
                         Box(
                             modifier = Modifier
                                 .background(PinkHighlight.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
-                                .clickable { viewModel.selectedTab = 2 }
+                                .clickable { viewModel.selectedTab = 5 }
                                 .padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
                             Text("View All", color = PinkHighlight, fontSize = 10.sp, fontWeight = FontWeight.Bold)
@@ -2168,6 +2338,7 @@ fun RecentNotificationItem(text: String, time: String, color: Color) {
 fun AdminUsersTab(viewModel: AppViewModel) {
     val context = LocalContext.current
     val models by viewModel.allModels.collectAsStateWithLifecycle()
+    val dbAgents by viewModel.paymentAgents.collectAsStateWithLifecycle()
     val managedUsers = viewModel.managedUsers
     var tabSelected by remember { mutableStateOf(0) } // 0: Verification Center, 1: All Users, 2: Models, 3: Cash Agents
     var searchQuery by remember { mutableStateOf("") }
@@ -2227,7 +2398,8 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                 "All Users (${managedUsers.size})" to 1,
                 "Models (${models.size})" to 2,
                 "Cash Agents" to 3,
-                "Uploaded Photos (${viewModel.backendUploadedPhotos.size})" to 4
+                "Uploaded Photos (${viewModel.backendUploadedPhotos.size})" to 4,
+                "📍 Live Tracking (3 Active)" to 5
             ).forEach { (label, idx) ->
                 val isSel = tabSelected == idx
                 Surface(
@@ -2595,26 +2767,28 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                 // Cash Agents Tab
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        listOf("Agent Sumon", "Agent Rafiq", "Agent Arif", "Agent Jibon", "Agent Hasan").forEach { agent ->
+                        dbAgents.forEach { agent ->
                             Card(
                                 colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                                shape = RoundedCornerShape(12.dp)
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, PinkBorderSoft)
                             ) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth().padding(14.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Column {
-                                        Text(agent, color = TextPrimary, fontWeight = FontWeight.Bold)
-                                        Text("Commission Earned: ৳12,450", color = TextSecondary, fontSize = 10.sp)
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(agent.name, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                        Text("${agent.paymentMethod} • Acc: ${agent.accountNumber}", color = Color.White.copy(alpha = 0.85f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                        Text("Float Balance: ৳ %,.0f • ${agent.country}".format(agent.availableBalance), color = Color(0xFF00E676), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                     }
                                     Box(
                                         modifier = Modifier
                                             .background(Color(0xFF2196F3).copy(alpha = 0.15f), RoundedCornerShape(6.dp))
                                             .padding(horizontal = 8.dp, vertical = 4.dp)
                                     ) {
-                                        Text("5% Commission", color = Color(0xFF2196F3), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                        Text("${agent.commissionRate}% Commission", color = Color(0xFF2196F3), fontSize = 9.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -2721,6 +2895,11 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                             }
                         }
                     }
+                }
+            } else if (tabSelected == 5) {
+                // Tab 5: User to Model Live Location Tracking
+                item {
+                    UserToModelLiveTrackingContent(viewModel = viewModel)
                 }
             }
         }
@@ -4885,17 +5064,458 @@ fun AdminWalletsTab(viewModel: AppViewModel) {
 // ---------------- ADMIN SETTINGS TAB ----------------
 @Composable
 fun AdminSettingsTab(viewModel: AppViewModel) {
+    val context = LocalContext.current
     var feePercentage by remember { mutableStateOf("15") }
-    
+
+    // Admin Firebase & OTP form state (bound to AppViewModel live states)
+    var projectIdInput by remember(viewModel.firebaseProjectId) { mutableStateOf(viewModel.firebaseProjectId) }
+    var apiKeyInput by remember(viewModel.firebaseApiKey) { mutableStateOf(viewModel.firebaseApiKey) }
+    var appIdInput by remember(viewModel.firebaseAppId) { mutableStateOf(viewModel.firebaseAppId) }
+    var storageBucketInput by remember(viewModel.firebaseStorageBucket) { mutableStateOf(viewModel.firebaseStorageBucket) }
+    var dbUrlInput by remember(viewModel.firebaseDatabaseUrl) { mutableStateOf(viewModel.firebaseDatabaseUrl) }
+    var gatewayModeInput by remember(viewModel.otpGatewayMode) { mutableStateOf(viewModel.otpGatewayMode) }
+    var senderBrandInput by remember(viewModel.otpSenderBrand) { mutableStateOf(viewModel.otpSenderBrand) }
+    var testPhoneInput by remember(viewModel.otpTestPhoneNumber) { mutableStateOf(viewModel.otpTestPhoneNumber) }
+    var testCodeInput by remember(viewModel.otpTestCode) { mutableStateOf(viewModel.otpTestCode) }
+    var bypassRecaptchaInput by remember(viewModel.firebaseBypassRecaptcha) { mutableStateOf(viewModel.firebaseBypassRecaptcha) }
+    var showApiKey by remember { mutableStateOf(false) }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(DarkBg)
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("System Settings", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        // Top Header
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text("Admin System Settings", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Firebase, OTP Gateway, Fees & Server Database", color = TextSecondary, fontSize = 11.sp)
+            }
+            Box(
+                modifier = Modifier
+                    .background(Color(0xFF00E676).copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Text("ADMIN ONLY", color = Color(0xFF00E676), fontWeight = FontWeight.ExtraBold, fontSize = 9.sp)
+            }
+        }
 
+        // =========================================================================
+        // 🔥 1. FIREBASE & OTP GATEWAY MASTER CONFIGURATION (ADMIN EXCLUSIVE)
+        // =========================================================================
+        Card(
+            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+            shape = RoundedCornerShape(14.dp),
+            border = BorderStroke(1.dp, PinkHighlight.copy(alpha = 0.35f))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // Header with Flame Icon
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .background(Color(0xFFFF9100).copy(alpha = 0.2f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocalFireDepartment,
+                                contentDescription = null,
+                                tint = Color(0xFFFF9100),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                "Firebase & OTP Gateway Configuration",
+                                color = TextPrimary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp
+                            )
+                            Text(
+                                "Live Phone Auth & Backend Infrastructure",
+                                color = TextSecondary,
+                                fontSize = 10.sp
+                            )
+                        }
+                    }
+                }
+
+                // Security & Privacy Shield Badge (User Request: All Firebase Hidden on User OTP)
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFF1E293B),
+                    border = BorderStroke(1.dp, Color(0xFF334155)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Shield,
+                            contentDescription = null,
+                            tint = Color(0xFF00E676),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                "USER-FACING OTP: ALL FIREBASE METADATA HIDDEN",
+                                color = Color(0xFF00E676),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
+                            Text(
+                                "ইউজার বা মডেলদের ওটিপি স্ক্রিনে Firebase সম্পূর্ণ গোপন থাকবে। ওটিপি সংক্রান্ত সমস্ত কনফিগারেশন শুধুমাত্র অ্যাডমিন এখান থেকে পরিচালনা করবেন।",
+                                color = Color(0xFF94A3B8),
+                                fontSize = 10.sp
+                            )
+                        }
+                    }
+                }
+
+                // Status Banner
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFF0F172A), RoundedCornerShape(8.dp))
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(Color(0xFF00E676), CircleShape)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = viewModel.firebaseConnectionStatus,
+                            color = Color.White,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                    Text(
+                        text = "ID: ${projectIdInput.take(14)}...",
+                        color = TextSecondary,
+                        fontSize = 10.sp
+                    )
+                }
+
+                // Project ID Input
+                Column {
+                    Text("Firebase Project ID", color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = projectIdInput,
+                        onValueChange = { projectIdInput = it },
+                        placeholder = { Text("e.g. modol-connect", color = Color.Gray, fontSize = 12.sp) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            unfocusedBorderColor = Color.Gray,
+                            focusedBorderColor = PinkHighlight
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                // Web API Key Input (with visibility toggle)
+                Column {
+                    Text("Firebase Web / App API Key", color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = apiKeyInput,
+                        onValueChange = { apiKeyInput = it },
+                        placeholder = { Text("AIzaSy...", color = Color.Gray, fontSize = 12.sp) },
+                        visualTransformation = if (showApiKey) androidx.compose.ui.text.input.VisualTransformation.None else androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { showApiKey = !showApiKey }) {
+                                Icon(
+                                    imageVector = if (showApiKey) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                    contentDescription = "Toggle visibility",
+                                    tint = TextSecondary,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            unfocusedBorderColor = Color.Gray,
+                            focusedBorderColor = PinkHighlight
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                // Mobile SDK App ID Input
+                Column {
+                    Text("Mobile SDK App ID (mobilesdk_app_id)", color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = appIdInput,
+                        onValueChange = { appIdInput = it },
+                        placeholder = { Text("1:125116191467:android:...", color = Color.Gray, fontSize = 12.sp) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            unfocusedBorderColor = Color.Gray,
+                            focusedBorderColor = PinkHighlight
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                // Storage Bucket Input
+                Column {
+                    Text("Firebase Storage Bucket", color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = storageBucketInput,
+                        onValueChange = { storageBucketInput = it },
+                        placeholder = { Text("modol-connect.firebasestorage.app", color = Color.Gray, fontSize = 12.sp) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            unfocusedBorderColor = Color.Gray,
+                            focusedBorderColor = PinkHighlight
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                // Backend Database API URL
+                Column {
+                    Text("Backend Database / API Endpoint", color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    OutlinedTextField(
+                        value = dbUrlInput,
+                        onValueChange = { dbUrlInput = it },
+                        placeholder = { Text("http://173.249.28.110/", color = Color.Gray, fontSize = 12.sp) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            unfocusedBorderColor = Color.Gray,
+                            focusedBorderColor = PinkHighlight
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
+
+                // --- OTP Gateway Mode Selection ---
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Active OTP Gateway Mode", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        listOf(
+                            Triple("FIREBASE_LIVE", "Firebase Live SMS", Icons.Default.Sms),
+                            Triple("BACKEND_SMS", "Backend SMS", Icons.Default.Sensors),
+                            Triple("TEST_MODE", "Test Whitelist", Icons.Default.VpnKey)
+                        ).forEach { (mode, label, icon) ->
+                            val isSel = gatewayModeInput == mode
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isSel) PinkHighlight.copy(alpha = 0.2f) else Color(0xFF1E293B),
+                                border = BorderStroke(1.dp, if (isSel) PinkHighlight else Color(0xFF334155)),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { gatewayModeInput = mode }
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(vertical = 10.dp, horizontal = 4.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = icon,
+                                        contentDescription = null,
+                                        tint = if (isSel) PinkHighlight else TextSecondary,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        label,
+                                        color = if (isSel) Color.White else TextSecondary,
+                                        fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
+                                        fontSize = 10.sp,
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Test Whitelist Phone & Code Fields
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Column(modifier = Modifier.weight(1.4f)) {
+                        Text("Test Whitelist Phone", color = TextSecondary, fontSize = 11.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = testPhoneInput,
+                            onValueChange = { testPhoneInput = it },
+                            placeholder = { Text("+8801700000000", color = Color.Gray, fontSize = 11.sp) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                unfocusedBorderColor = Color.Gray,
+                                focusedBorderColor = PinkHighlight
+                            ),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Test OTP Code", color = TextSecondary, fontSize = 11.sp)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        OutlinedTextField(
+                            value = testCodeInput,
+                            onValueChange = { testCodeInput = it },
+                            placeholder = { Text("123456", color = Color.Gray, fontSize = 11.sp) },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = Color.White,
+                                unfocusedTextColor = Color.White,
+                                unfocusedBorderColor = Color.Gray,
+                                focusedBorderColor = PinkHighlight
+                            ),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
+                // Bypass reCAPTCHA Switch
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Bypass reCAPTCHA for Testing", color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                        Text("Disable phone verification challenge for frictionless SMS", color = TextSecondary, fontSize = 10.sp)
+                    }
+                    Switch(
+                        checked = bypassRecaptchaInput,
+                        onCheckedChange = { bypassRecaptchaInput = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = PinkHighlight
+                        )
+                    )
+                }
+
+                // Action Buttons
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = {
+                            viewModel.saveFirebaseConfig(
+                                projectId = projectIdInput,
+                                apiKey = apiKeyInput,
+                                appId = appIdInput,
+                                storageBucket = storageBucketInput,
+                                databaseUrl = dbUrlInput,
+                                gatewayMode = gatewayModeInput,
+                                senderBrand = senderBrandInput,
+                                testPhone = testPhoneInput,
+                                testCode = testCodeInput,
+                                bypassRecaptcha = bypassRecaptchaInput
+                            )
+                            Toast.makeText(context, "Firebase & OTP Configuration Saved!", Toast.LENGTH_SHORT).show()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(46.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Save, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Save & Apply Firebase Config", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.testFirebaseConnection()
+                                Toast.makeText(context, "Diagnostics: Firebase Auth Connected", Toast.LENGTH_SHORT).show()
+                            },
+                            border = BorderStroke(1.dp, Color(0xFF00E676)),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.FlashOn, contentDescription = null, tint = Color(0xFF00E676), modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Test Auth", color = Color(0xFF00E676), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                viewModel.resetFirebaseConfigToDefaults()
+                                projectIdInput = "modol-connect"
+                                apiKeyInput = "AIzaSyA14wj8tZCED9AsSbyvy_SO1zS_Q_AR9nA"
+                                appIdInput = "1:125116191467:android:89995d07837981f91924ae"
+                                storageBucketInput = "modol-connect.firebasestorage.app"
+                                dbUrlInput = "http://173.249.28.110/"
+                                gatewayModeInput = "FIREBASE_LIVE"
+                                testPhoneInput = "+8801700000000"
+                                testCodeInput = "123456"
+                                bypassRecaptchaInput = true
+                                Toast.makeText(context, "Restored Production Defaults", Toast.LENGTH_SHORT).show()
+                            },
+                            border = BorderStroke(1.dp, Color.Gray),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(40.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Defaults", color = Color.LightGray, fontSize = 11.sp)
+                        }
+                    }
+                }
+            }
+        }
+
+        // =========================================================================
+        // 2. COMMISSION RATES CARD
+        // =========================================================================
         Card(
             colors = CardDefaults.cardColors(containerColor = DarkSurface),
             shape = RoundedCornerShape(12.dp)
@@ -4939,6 +5559,9 @@ fun AdminSettingsTab(viewModel: AppViewModel) {
             }
         }
 
+        // =========================================================================
+        // 3. DATABASE BACKUP CARD
+        // =========================================================================
         Card(
             colors = CardDefaults.cardColors(containerColor = DarkSurface),
             shape = RoundedCornerShape(12.dp)
@@ -5676,15 +6299,21 @@ fun CashAgentDashboardTab(viewModel: AppViewModel) {
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Are you sure you have received payment of ৳${ord.amount.toInt()} for Order #${ord.orderId.takeLast(8)} from ${ord.userName}?", color = TextSecondary, fontSize = 12.sp)
-                    Text("Releasing will immediately credit the customer's wallet or settle cash-in.", color = Color(0xFFFF9800), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    if (ord.type == "DEPOSIT") {
+                        Text("Are you sure you have received payment of ৳${ord.amount.toInt()} for Order #${ord.orderId.takeLast(8)} from ${ord.userName}?", color = TextSecondary, fontSize = 12.sp)
+                        Text("Releasing will credit ৳${ord.amount.toInt()} directly to customer's wallet balance.", color = Color(0xFF00E676), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    } else {
+                        Text("Release withdrawal of ৳${ord.amount.toInt()} for customer ${ord.userName}?", color = TextSecondary, fontSize = 12.sp)
+                        Text("Releasing will deduct ৳${ord.amount.toInt()} from customer's wallet and transfer it to your Cash Agent float/balance. Ensure cash is disbursed to the customer.", color = Color(0xFFFF9800), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
                         viewModel.releaseB2BOrder(ord.orderId)
-                        Toast.makeText(context, "Escrow Released! ৳${ord.amount.toInt()} settled with ${ord.userName}", Toast.LENGTH_LONG).show()
+                        val msg = if (ord.type == "DEPOSIT") "Escrow Released! ৳${ord.amount.toInt()} credited to ${ord.userName}'s wallet." else "Withdrawal Released! ৳${ord.amount.toInt()} deducted from customer and transferred to Cash Agent."
+                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                         orderToRelease = null
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676))
@@ -10152,21 +10781,69 @@ fun B2BCashAgentMarketplaceContent(
         )
     }
 
-    // Modal 3: Top Up Dialog (Updates Shared Wallet Balance)
+    // Modal 3: Top Up Dialog (B2B Cash Agent Escrow Topup)
     if (showTopUpDialog) {
         var topUpAmount by remember { mutableStateOf("1000") }
         val presets = listOf("500", "1000", "2000", "5000")
+        val availableAgents by viewModel.paymentAgents.collectAsStateWithLifecycle()
+        val defaultAgent = availableAgents.firstOrNull() ?: PaymentAgent(
+            id = "agent_sumon",
+            name = "Agent Sumon",
+            agentCode = "CA-2048",
+            country = "Bangladesh",
+            phone = "01711204899",
+            paymentMethod = "bKash / Nagad",
+            accountNumber = "01711204899",
+            accountHolder = "Md. Sumon Reza",
+            availableBalance = 50000.0
+        )
+        var selectedAgent by remember { mutableStateOf(defaultAgent) }
+
         AlertDialog(
             onDismissRequest = { showTopUpDialog = false },
             containerColor = Color.White,
-            title = { Text("Top Up Wallet", color = Color(0xFF1E1E1E), fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = Icons.Default.AddCircle, contentDescription = null, tint = Color(0xFFFF2A6D))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("B2B Cash Agent Top Up", color = Color(0xFF1E1E1E), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Add funds to your shared wallet balance. This balance is instantly available across both Personal Wallet & B2B Cash Agent Marketplace:", color = Color(0xFF666666), fontSize = 12.sp)
+                    // Agent info card
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F0F4)),
+                        border = BorderStroke(1.dp, Color(0xFFFFC0D0)),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text("Cash Agent: ${selectedAgent.name}", fontWeight = FontWeight.Bold, color = Color(0xFFC2185B), fontSize = 12.sp)
+                                Box(
+                                    modifier = Modifier
+                                        .background(Color(0xFF00A86B).copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text("VERIFIED AGENT", color = Color(0xFF00A86B), fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                                }
+                            }
+                            Text("Agent Account (${selectedAgent.paymentMethod}): ${selectedAgent.accountNumber}", fontWeight = FontWeight.SemiBold, color = Color(0xFF333333), fontSize = 11.sp)
+                            if (selectedAgent.accountHolder.isNotEmpty()) {
+                                Text("Account Holder: ${selectedAgent.accountHolder}", color = Color(0xFF666666), fontSize = 10.sp)
+                            }
+                        }
+                    }
+
                     OutlinedTextField(
                         value = topUpAmount,
                         onValueChange = { topUpAmount = it.filter { ch -> ch.isDigit() || ch == '.' } },
-                        label = { Text("Amount (৳ BDT)") },
+                        label = { Text("Top Up Amount (৳ BDT)") },
                         prefix = { Text("৳ ", fontWeight = FontWeight.Bold, color = Color(0xFFFF2A6D)) },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Color(0xFFFF2A6D),
@@ -10174,6 +10851,7 @@ fun B2BCashAgentMarketplaceContent(
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -10198,6 +10876,26 @@ fun B2BCashAgentMarketplaceContent(
                             }
                         }
                     }
+
+                    // Strict Policy Warning Box
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF8E1)),
+                        border = BorderStroke(1.dp, Color(0xFFFFD54F)),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.Top) {
+                            Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = Color(0xFFF57F17), modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                "ক্যাশ এজেন্ট রিলিজ না করা পর্যন্ত ব্যালেন্স যোগ হবে না। পেমেন্ট প্রুফ জমা দিলে এজেন্ট যাচাই করে রিলিজ করলেই ব্যালেন্স ওয়ালেটে যোগ হবে।",
+                                color = Color(0xFFE65100),
+                                fontSize = 11.sp,
+                                lineHeight = 15.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
                 }
             },
             confirmButton = {
@@ -10205,14 +10903,25 @@ fun B2BCashAgentMarketplaceContent(
                     onClick = {
                         val amt = topUpAmount.toDoubleOrNull() ?: 1000.0
                         if (amt > 0) {
-                            viewModel.quickAddWalletBalance(amt)
-                            Toast.makeText(context, "৳${amt.toInt()} added! Balance synced across B2B & Personal Wallet.", Toast.LENGTH_LONG).show()
-                            showTopUpDialog = false
+                            viewModel.createB2BOrder(
+                                agent = selectedAgent,
+                                type = "DEPOSIT",
+                                amount = amt,
+                                paymentMethod = selectedAgent.paymentMethod
+                            ) { createdOrder ->
+                                showTopUpDialog = false
+                                selectedOrderForChat = createdOrder
+                                Toast.makeText(
+                                    context,
+                                    "B2B Topup Order #${createdOrder.orderId} Created! Cash Agent release required.",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF2A6D))
                 ) {
-                    Text("Top Up Now", fontWeight = FontWeight.Bold)
+                    Text("Request Top Up & Open Chat", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -10223,23 +10932,56 @@ fun B2BCashAgentMarketplaceContent(
         )
     }
 
-    // Modal 4: Withdraw Dialog (Withdraws from Shared Wallet Balance)
+    // Modal 4: Withdraw Dialog (B2B Cash Agent Escrow Withdrawal)
     if (showWithdrawDialog) {
         var withdrawAmount by remember { mutableStateOf("500") }
         val presets = listOf("500", "1000", "2000", "5000")
         val currentBal = currentUser?.balance ?: 1500.0
+        val availableAgents by viewModel.paymentAgents.collectAsStateWithLifecycle()
+        val defaultAgent = availableAgents.firstOrNull() ?: PaymentAgent(
+            id = "agent_sumon",
+            name = "Agent Sumon",
+            agentCode = "CA-2048",
+            country = "Bangladesh",
+            phone = "01711204899",
+            paymentMethod = "bKash / Nagad",
+            accountNumber = "01711204899",
+            accountHolder = "Md. Sumon Reza",
+            availableBalance = 50000.0
+        )
+        var selectedAgent by remember { mutableStateOf(defaultAgent) }
+
         AlertDialog(
             onDismissRequest = { showWithdrawDialog = false },
             containerColor = Color.White,
-            title = { Text("Withdraw from Wallet", color = Color(0xFF1E1E1E), fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = Icons.Default.CallMade, contentDescription = null, tint = Color(0xFFFF2A6D))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("B2B Cash Agent Withdrawal", color = Color(0xFF1E1E1E), fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Available Wallet Balance: ৳ %,.2f".format(currentBal), color = Color(0xFF00897B), fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    Text("Enter withdrawal amount (deducted from shared B2B & Personal Wallet):", color = Color(0xFF666666), fontSize = 12.sp)
+
+                    // Agent info card
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8F0F4)),
+                        border = BorderStroke(1.dp, Color(0xFFFFC0D0)),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                            Text("Payout Cash Agent: ${selectedAgent.name}", fontWeight = FontWeight.Bold, color = Color(0xFFC2185B), fontSize = 12.sp)
+                            Text("Payout Method: ${selectedAgent.paymentMethod} • Agent Phone: ${selectedAgent.phone}", color = Color(0xFF333333), fontSize = 11.sp)
+                        }
+                    }
+
                     OutlinedTextField(
                         value = withdrawAmount,
                         onValueChange = { withdrawAmount = it.filter { ch -> ch.isDigit() || ch == '.' } },
-                        label = { Text("Amount (৳ BDT)") },
+                        label = { Text("Withdraw Amount (৳ BDT)") },
                         prefix = { Text("৳ ", fontWeight = FontWeight.Bold, color = Color(0xFFFF2A6D)) },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = Color(0xFFFF2A6D),
@@ -10247,6 +10989,7 @@ fun B2BCashAgentMarketplaceContent(
                         ),
                         modifier = Modifier.fillMaxWidth()
                     )
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
@@ -10271,6 +11014,26 @@ fun B2BCashAgentMarketplaceContent(
                             }
                         }
                     }
+
+                    // Strict Policy Warning Box
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFE0F2FE)),
+                        border = BorderStroke(1.dp, Color(0xFF7DD3FC)),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.Top) {
+                            Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = Color(0xFF0284C7), modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                "উইথড্র রিকোয়েস্টে ব্যালেন্স তাৎক্ষণিক কাটা হবে না। Release অনুমোদন দিলে ওয়ালেট থেকে ব্যালেন্স কেটে ক্যাশ এজেন্টের কাছে যাবে এবং এজেন্ট আপনাকে নগদ/বিকাশে টাকা প্রদান করবে।",
+                                color = Color(0xFF0369A1),
+                                fontSize = 11.sp,
+                                lineHeight = 15.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
                 }
             },
             confirmButton = {
@@ -10280,16 +11043,25 @@ fun B2BCashAgentMarketplaceContent(
                         if (amt > currentBal) {
                             Toast.makeText(context, "Insufficient balance! Available: ৳${currentBal.toInt()}", Toast.LENGTH_SHORT).show()
                         } else if (amt > 0) {
-                            viewModel.withdrawAmount = amt.toString()
-                            viewModel.walletMethod = "B2B Cash Agent"
-                            viewModel.withdrawWallet()
-                            Toast.makeText(context, "Withdrawal of ৳${amt.toInt()} submitted! Synced across B2B & Personal Wallet.", Toast.LENGTH_SHORT).show()
-                            showWithdrawDialog = false
+                            viewModel.createB2BOrder(
+                                agent = selectedAgent,
+                                type = "WITHDRAWAL",
+                                amount = amt,
+                                paymentMethod = selectedAgent.paymentMethod
+                            ) { createdOrder ->
+                                showWithdrawDialog = false
+                                selectedOrderForChat = createdOrder
+                                Toast.makeText(
+                                    context,
+                                    "B2B Withdrawal Order #${createdOrder.orderId} Created! Status: In Escrow. Balance will be debited on release.",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            }
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF2A6D))
                 ) {
-                    Text("Withdraw", fontWeight = FontWeight.Bold)
+                    Text("Confirm Withdrawal & Open Chat", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -10382,7 +11154,11 @@ fun CreateB2BOrderModal(
                     Text("৳${commFee.toInt()} BDT", color = Color(0xFF00E676), fontWeight = FontWeight.Bold, fontSize = 11.sp)
                 }
 
-                Text("Instructions: You will pay directly to the verified cash agent account above and receive real-time escrow verification chat.", color = TextSecondary, fontSize = 10.sp)
+                if (tradeType == "DEPOSIT") {
+                    Text("⚠️ গুরুত্বপূর্ণ নিয়ম: আপনি ক্যাশ এজেন্টের অ্যাকাউন্টে টাকা পাঠিয়ে চ্যাটে প্রুফ আপলোড করবেন। ক্যাশ এজেন্ট রিলিজ না করা পর্যন্ত ব্যালেন্স যোগ হবে না; এজেন্ট রিলিজ করলেই ব্যালেন্স ওয়ালেটে যুক্ত হবে।", color = Color(0xFFFFB74D), fontSize = 11.sp, lineHeight = 15.sp)
+                } else {
+                    Text("⚠️ গুরুত্বপূর্ণ নিয়ম: উইথড্র অর্ডার এসক্রোতে সংরক্ষিত থাকবে। Release অনুমোদন দিলে ওয়ালেট থেকে ব্যালেন্স কেটে ক্যাশ এজেন্টের কাছে যাবে এবং এজেন্ট আপনাকে নগদ/বিকাশে টাকা প্রদান করবে।", color = Color(0xFF64B5F6), fontSize = 11.sp, lineHeight = 15.sp)
+                }
             }
         },
         confirmButton = {
@@ -10419,6 +11195,7 @@ fun B2BOrderDetailAndChatDialog(
     onDismiss: () -> Unit,
     viewModel: AppViewModel
 ) {
+    val context = LocalContext.current
     val liveMessages by viewModel.getB2BChatMessages(order.orderId).collectAsStateWithLifecycle(initialValue = emptyList())
     val allOrders by viewModel.allB2BOrders.collectAsStateWithLifecycle()
     val liveOrder = remember(allOrders, order) {
@@ -10503,6 +11280,49 @@ fun B2BOrderDetailAndChatDialog(
                         if (liveOrder.transactionRef != null) {
                             Text("Submitted Ref: ${liveOrder.transactionRef}", color = Color(0xFF00E676), fontWeight = FontWeight.Bold, fontSize = 11.sp)
                         }
+
+                        // Escrow & Release Status Banner
+                        if (liveOrder.type == "DEPOSIT") {
+                            if (liveOrder.status == "RELEASED") {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color(0xFF00E676).copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                                        .padding(8.dp)
+                                ) {
+                                    Text("✅ RELEASED & ADDED: ৳${liveOrder.amount.toInt()} has been credited to your wallet balance by Cash Agent ${liveOrder.agentName}.", color = Color(0xFF00E676), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color(0xFFFF9800).copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                                        .padding(8.dp)
+                                ) {
+                                    Text("⏳ WAITING FOR CASH AGENT RELEASE: ক্যাশ এজেন্ট রিলিজ না করা পর্যন্ত ওয়ালেটে ব্যালেন্স যোগ হবে না। (Balance will NOT be added until Cash Agent releases).", color = Color(0xFFFF9800), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        } else {
+                            if (liveOrder.status == "RELEASED") {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color(0xFF00E676).copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                                        .padding(8.dp)
+                                ) {
+                                    Text("✅ WITHDRAWAL RELEASED: ৳${liveOrder.amount.toInt()} has been deducted from your wallet and transferred to Cash Agent ${liveOrder.agentName}.", color = Color(0xFF00E676), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color(0xFF2196F3).copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                                        .padding(8.dp)
+                                ) {
+                                    Text("🔒 ESCROW ACTIVE: Release দিলে আপনার ওয়ালেট থেকে ৳${liveOrder.amount.toInt()} কেটে নেওয়া হবে এবং Cash Agent (${liveOrder.agentName})-এর কাছে চলে যাবে।", color = Color(0xFF64B5F6), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -10511,25 +11331,45 @@ fun B2BOrderDetailAndChatDialog(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    if (liveOrder.status == "PENDING_PAYMENT") {
-                        Button(
-                            onClick = { showProofModal = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Submit Payment Proof", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    if (liveOrder.type == "DEPOSIT") {
+                        if (liveOrder.status == "PENDING_PAYMENT") {
+                            Button(
+                                onClick = { showProofModal = true },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Upload Payment Proof", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            }
                         }
-                    }
 
-                    if (liveOrder.status == "PAYMENT_SUBMITTED" || liveOrder.status == "PENDING_PAYMENT") {
-                        Button(
-                            onClick = { viewModel.releaseB2BOrder(liveOrder.orderId) },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Text("Confirm & Release", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        if (liveOrder.status != "RELEASED" && liveOrder.status != "CANCELLED") {
+                            Button(
+                                onClick = {
+                                    viewModel.releaseB2BOrder(liveOrder.orderId)
+                                    Toast.makeText(context, "Cash Agent released ৳${liveOrder.amount.toInt()}! Balance credited to user wallet.", Toast.LENGTH_SHORT).show()
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text("Cash Agent: Release Funds", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            }
+                        }
+                    } else {
+                        // WITHDRAWAL
+                        if (liveOrder.status != "RELEASED" && liveOrder.status != "CANCELLED") {
+                            Button(
+                                onClick = {
+                                    viewModel.releaseB2BOrder(liveOrder.orderId)
+                                    Toast.makeText(context, "Withdrawal Released! ৳${liveOrder.amount.toInt()} debited from wallet and transferred to Cash Agent.", Toast.LENGTH_SHORT).show()
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE91E63)),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1.2f)
+                            ) {
+                                Text("Release (Deduct & Send to Agent)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            }
                         }
                     }
 
@@ -10538,9 +11378,9 @@ fun B2BOrderDetailAndChatDialog(
                             onClick = { showDisputeModal = true },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
                             shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(0.8f)
                         ) {
-                            Text("🚨 Raise Dispute", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            Text("🚨 Dispute", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                         }
                     }
                 }
@@ -10995,6 +11835,642 @@ fun AdminB2BDisputesTab(viewModel: AppViewModel) {
             dismissButton = { TextButton(onClick = { selectedOrderForAdminReview = null }) { Text("Close", color = TextSecondary) } },
             containerColor = DarkSurface
         )
+    }
+}
+
+// ============================================================================
+// USER TO MODEL LIVE LOCATION TRACKING TAB & REAL-TIME GPS ESCORT ENGINE
+// ============================================================================
+
+data class LiveEscortTrackingSession(
+    val sessionId: String,
+    val bookingId: String,
+    val modelName: String,
+    val modelAvatar: String,
+    val modelPhone: String,
+    val modelAddress: String,
+    val modelLat: Double,
+    val modelLng: Double,
+    val userName: String,
+    val userAvatar: String,
+    val userPhone: String,
+    val destinationStudio: String,
+    val userLat: Double,
+    val userLng: Double,
+    val initialDistanceKm: Double,
+    val initialEtaMinutes: Int,
+    val status: String,
+    val speedKmh: Int,
+    val modelBatteryPercent: Int,
+    val userBatteryPercent: Int,
+    val gpsAccuracyMeters: Double,
+    val transportMode: String
+)
+
+@Composable
+fun AdminLiveLocationTrackingTab(viewModel: AppViewModel, onBack: (() -> Unit)? = null) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DarkBg)
+    ) {
+        // Standalone Header
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (onBack != null) {
+                    IconButton(onClick = onBack) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(Color(0xFF00E676).copy(alpha = 0.15f), RoundedCornerShape(10.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = Color(0xFF00E676), modifier = Modifier.size(20.dp))
+                }
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text("User to Model Live Tracking", color = TextPrimary, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                    Text("Real-Time GPS Telemetry & Safety Escort", color = TextSecondary, fontSize = 11.sp)
+                }
+            }
+
+            Box(
+                modifier = Modifier
+                    .background(Color(0xFF00E676).copy(alpha = 0.15f), RoundedCornerShape(20.dp))
+                    .border(1.dp, Color(0xFF00E676).copy(alpha = 0.4f), RoundedCornerShape(20.dp))
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Box(modifier = Modifier.size(6.dp).background(Color(0xFF00E676), CircleShape))
+                    Text("GPS LIVE", color = Color(0xFF00E676), fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                }
+            }
+        }
+
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+            UserToModelLiveTrackingContent(viewModel = viewModel)
+        }
+    }
+}
+
+@Composable
+fun UserToModelLiveTrackingContent(viewModel: AppViewModel) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    val sessions = remember {
+        listOf(
+            LiveEscortTrackingSession(
+                sessionId = "TRK-84920",
+                bookingId = "BK-1024",
+                modelName = "Ananya Sen",
+                modelAvatar = "https://images.unsplash.com/photo-1534528741775-53994a69daeb",
+                modelPhone = "+880 1822-987654",
+                modelAddress = "Gulshan Avenue, near Shooting Club",
+                modelLat = 23.7745,
+                modelLng = 90.4120,
+                userName = "Rahul Verma",
+                userAvatar = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
+                userPhone = "+880 1711-234567",
+                destinationStudio = "Studio Mirage, House 42, Road 11, Banani, Dhaka",
+                userLat = 23.7937,
+                userLng = 90.4066,
+                initialDistanceKm = 2.4,
+                initialEtaMinutes = 7,
+                status = "EN_ROUTE",
+                speedKmh = 28,
+                modelBatteryPercent = 86,
+                userBatteryPercent = 92,
+                gpsAccuracyMeters = 2.5,
+                transportMode = "Car (Uber Ride #849)"
+            ),
+            LiveEscortTrackingSession(
+                sessionId = "TRK-77190",
+                bookingId = "BK-2058",
+                modelName = "Priya Sharma",
+                modelAvatar = "https://images.unsplash.com/photo-1517841905240-472988babdf9",
+                modelPhone = "+880 1733-112233",
+                modelAddress = "Uttara Sector 4, Azampur Intersection",
+                modelLat = 23.8681,
+                modelLng = 90.3984,
+                userName = "Tanvir Ahmed",
+                userAvatar = "https://images.unsplash.com/photo-1570295999919-56ceb5ecca61",
+                userPhone = "+880 1912-334455",
+                destinationStudio = "Radisson Blu Water Garden, Grand Studio 1, Dhaka",
+                userLat = 23.8164,
+                userLng = 90.4074,
+                initialDistanceKm = 5.8,
+                initialEtaMinutes = 14,
+                status = "IN_TRANSIT",
+                speedKmh = 35,
+                modelBatteryPercent = 74,
+                userBatteryPercent = 81,
+                gpsAccuracyMeters = 3.1,
+                transportMode = "Private Studio Escort Car"
+            ),
+            LiveEscortTrackingSession(
+                sessionId = "TRK-61400",
+                bookingId = "BK-3091",
+                modelName = "Meera Kapoor",
+                modelAvatar = "https://images.unsplash.com/photo-1524504388940-b1c1722653e1",
+                modelPhone = "+880 1622-445566",
+                modelAddress = "Arrived at Venue Entrance",
+                modelLat = 23.7927,
+                modelLng = 90.4148,
+                userName = "Imran Hossain",
+                userAvatar = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
+                userPhone = "+880 1819-556677",
+                destinationStudio = "The Westin Dhaka, Ballroom Stage 2, Gulshan 2",
+                userLat = 23.7925,
+                userLng = 90.4150,
+                initialDistanceKm = 0.05,
+                initialEtaMinutes = 0,
+                status = "ARRIVED",
+                speedKmh = 0,
+                modelBatteryPercent = 95,
+                userBatteryPercent = 89,
+                gpsAccuracyMeters = 1.8,
+                transportMode = "At Venue"
+            )
+        )
+    }
+
+    var selectedSessionIdx by remember { mutableIntStateOf(0) }
+    val currentSession = sessions[selectedSessionIdx]
+
+    // Movement Simulation states
+    var simStep by remember(selectedSessionIdx) { mutableIntStateOf(0) }
+    var sosActive by remember { mutableStateOf(false) }
+
+    // Dynamic calculated values based on simulation step
+    val progress = (simStep * 0.25f).coerceAtMost(1.0f)
+    val curDistance = if (progress >= 1.0f) 0.0 else (currentSession.initialDistanceKm * (1.0f - progress)).coerceAtLeast(0.0)
+    val curEta = if (progress >= 1.0f) 0 else ((currentSession.initialEtaMinutes * (1.0f - progress)).toInt()).coerceAtLeast(0)
+    val curSpeed = if (progress >= 1.0f) 0 else if (simStep == 0) currentSession.speedKmh else (currentSession.speedKmh + (simStep % 3) * 4)
+    val isArrived = progress >= 1.0f || currentSession.status == "ARRIVED"
+
+    val telemetryLogs = remember(selectedSessionIdx, simStep) {
+        mutableListOf(
+            "🛰️ [SYSTEM] GPS telemetry sync active: 16 orbital satellites locked (Precision ±${currentSession.gpsAccuracyMeters}m)",
+            "📡 [PING] Model ${currentSession.modelName} ping: Lat ${currentSession.modelLat + progress * 0.015}, Lng ${currentSession.modelLng - progress * 0.005} (Speed: $curSpeed km/h)",
+            "📍 [ROUTING] En-route to ${currentSession.destinationStudio}",
+            "⏱️ [ETA UPDATE] Remaining distance: ${"%.2f".format(curDistance)} km | Est. Arrival: $curEta min(s)",
+            "🛡️ [SECURITY] Geofence active (Radius: 150m) • SOS status: ${if (sosActive) "🚨 EMERGENCY TRIGGERED" else "NORMAL ✓"}"
+        )
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        // 1. Session Picker Chips
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Select Live Booking Tracking Session:", color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    sessions.forEachIndexed { idx, s ->
+                        val isSelected = selectedSessionIdx == idx
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = if (isSelected) PinkHighlight else DarkSurface,
+                            border = BorderStroke(1.dp, if (isSelected) PinkHighlight else PinkBorderSoft),
+                            modifier = Modifier.clickable {
+                                selectedSessionIdx = idx
+                                simStep = 0
+                                sosActive = false
+                            }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .background(if (s.status == "ARRIVED") Color(0xFF00E676) else Color(0xFFFF9800), CircleShape)
+                                )
+                                Column {
+                                    Text(
+                                        "${s.modelName} ↔ ${s.userName}",
+                                        color = if (isSelected) Color.White else TextPrimary,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 11.sp
+                                    )
+                                    Text(
+                                        "#${s.sessionId} • ${s.status}",
+                                        color = if (isSelected) Color.White.copy(alpha = 0.85f) else TextSecondary,
+                                        fontSize = 9.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. High-Tech Tactical Radar Map (Jetpack Compose Canvas)
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0B132B)),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.5.dp, Color(0xFF1E293B)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    // Map Top Bar
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(imageVector = Icons.Default.Radar, contentDescription = null, tint = Color(0xFF00E676), modifier = Modifier.size(16.dp))
+                            Text("LIVE GPS RADAR MAP", color = Color(0xFF00E676), fontWeight = FontWeight.Black, fontSize = 11.sp, letterSpacing = 1.sp)
+                        }
+
+                        // ETA Pill badge
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = if (isArrived) Color(0xFF00E676).copy(alpha = 0.2f) else Color(0xFFFF2A6D).copy(alpha = 0.2f),
+                            border = BorderStroke(1.dp, if (isArrived) Color(0xFF00E676) else Color(0xFFFF2A6D))
+                        ) {
+                            Text(
+                                text = if (isArrived) "🎯 ARRIVED AT VENUE" else "📍 ${"%.1f".format(curDistance)} km • ETA $curEta mins",
+                                color = if (isArrived) Color(0xFF00E676) else Color(0xFFFF2A6D),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
+
+                    // Interactive Canvas Drawing Tactical Radar Visualizer
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(230.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF0A0F1D))
+                    ) {
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            val w = size.width
+                            val h = size.height
+                            val cx = w / 2f
+                            val cy = h / 2f
+
+                            // 1. Tactical Grid Lines
+                            val gridSpacing = 40f
+                            var x = 0f
+                            while (x <= w) {
+                                drawLine(
+                                    color = Color(0xFF1E293B).copy(alpha = 0.4f),
+                                    start = Offset(x, 0f),
+                                    end = Offset(x, h),
+                                    strokeWidth = 1f
+                                )
+                                x += gridSpacing
+                            }
+                            var y = 0f
+                            while (y <= h) {
+                                drawLine(
+                                    color = Color(0xFF1E293B).copy(alpha = 0.4f),
+                                    start = Offset(0f, y),
+                                    end = Offset(w, y),
+                                    strokeWidth = 1f
+                                )
+                                y += gridSpacing
+                            }
+
+                            // 2. Concentric Radar Range Rings
+                            drawCircle(color = Color(0xFF00E676).copy(alpha = 0.12f), radius = 50f, center = Offset(cx, cy), style = Stroke(width = 1.2f))
+                            drawCircle(color = Color(0xFF00E676).copy(alpha = 0.08f), radius = 100f, center = Offset(cx, cy), style = Stroke(width = 1.2f))
+                            drawCircle(color = Color(0xFF00E676).copy(alpha = 0.05f), radius = 160f, center = Offset(cx, cy), style = Stroke(width = 1.2f))
+
+                            // 3. User / Studio Destination Marker (Fixed destination pin)
+                            val destX = cx + w * 0.28f
+                            val destY = cy - h * 0.22f
+
+                            // Model Start Marker
+                            val startX = cx - w * 0.32f
+                            val startY = cy + h * 0.25f
+
+                            // Model Current Simulated Position (interpolated along vector)
+                            val curModelX = startX + (destX - startX) * progress
+                            val curModelY = startY + (destY - startY) * progress
+
+                            // 4. Draw Route Path line (Gradient from Model to Destination)
+                            drawLine(
+                                color = Color(0xFFFF2A6D).copy(alpha = 0.8f),
+                                start = Offset(startX, startY),
+                                end = Offset(destX, destY),
+                                strokeWidth = 3f
+                            )
+
+                            // 5. Draw Pulse rings around Model
+                            drawCircle(color = Color(0xFFFF2A6D).copy(alpha = 0.25f), radius = 22f, center = Offset(curModelX, curModelY))
+                            drawCircle(color = Color(0xFFFF2A6D), radius = 8f, center = Offset(curModelX, curModelY))
+
+                            // 6. Draw Destination Studio Pulse rings
+                            drawCircle(color = Color(0xFF00E676).copy(alpha = 0.25f), radius = 24f, center = Offset(destX, destY))
+                            drawCircle(color = Color(0xFF00E676), radius = 9f, center = Offset(destX, destY))
+                        }
+
+                        // Overlay Markers with Avatars & Labels
+                        // Model Marker Overlay
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomStart)
+                                .padding(start = 16.dp, bottom = 16.dp)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFF1E1E2E).copy(alpha = 0.9f),
+                                border = BorderStroke(1.dp, Color(0xFFFF2A6D))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    SubcomposeAsyncImage(
+                                        model = currentSession.modelAvatar,
+                                        contentDescription = currentSession.modelName,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.size(24.dp).clip(CircleShape)
+                                    )
+                                    Column {
+                                        Text("${currentSession.modelName} (Model)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                                        Text("Speed: $curSpeed km/h • GPS Active", color = Color(0xFFFF2A6D), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+
+                        // User Destination Studio Marker Overlay
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(end = 16.dp, top = 16.dp)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFF1E1E2E).copy(alpha = 0.9f),
+                                border = BorderStroke(1.dp, Color(0xFF00E676))
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    SubcomposeAsyncImage(
+                                        model = currentSession.userAvatar,
+                                        contentDescription = currentSession.userName,
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.size(24.dp).clip(CircleShape)
+                                    )
+                                    Column {
+                                        Text("${currentSession.userName} (Client)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                                        Text("Venue: Studio Mirage", color = Color(0xFF00E676), fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+
+                        // Compass Indicator
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(10.dp)
+                        ) {
+                            Surface(
+                                shape = CircleShape,
+                                color = Color.Black.copy(alpha = 0.6f),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.2f)),
+                                modifier = Modifier.size(28.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Text("N ↑", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Black)
+                                }
+                            }
+                        }
+                    }
+
+                    // Map Simulation Action Controls
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Button(
+                            onClick = {
+                                if (simStep < 4) {
+                                    simStep += 1
+                                    Toast.makeText(context, "GPS Step simulated: Model moving closer (${"%.1f".format(curDistance)} km remaining)", Toast.LENGTH_SHORT).show()
+                                } else {
+                                    Toast.makeText(context, "Model has arrived at destination studio!", Toast.LENGTH_SHORT).show()
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1.2f).height(38.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.DirectionsCar, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(if (isArrived) "Arrived ✓" else "Simulate Step Move", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        }
+
+                        OutlinedButton(
+                            onClick = {
+                                simStep = 0
+                                sosActive = false
+                                Toast.makeText(context, "Tracking route reset to start point.", Toast.LENGTH_SHORT).show()
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            border = BorderStroke(1.dp, Color(0xFF64748B)),
+                            modifier = Modifier.weight(0.9f).height(38.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Reset", color = Color.White, fontSize = 11.sp)
+                        }
+
+                        Button(
+                            onClick = {
+                                sosActive = !sosActive
+                                Toast.makeText(
+                                    context,
+                                    if (sosActive) "🚨 EMERGENCY SOS ACTIVATED: Escort team alerted!" else "SOS Alert Disarmed. Status Normal.",
+                                    Toast.LENGTH_LONG
+                                ).show()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = if (sosActive) Color(0xFFEF4444) else Color(0xFF334155)),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(0.9f).height(38.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.Warning, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(if (sosActive) "SOS ALARM" else "Test SOS", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
+        // 3. User & Model Dual Telemetry Cards
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Model Live Telemetry Card
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, PinkBorderSoft),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            SubcomposeAsyncImage(
+                                model = currentSession.modelAvatar,
+                                contentDescription = currentSession.modelName,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.size(34.dp).clip(CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(currentSession.modelName, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text("MODEL (EN ROUTE)", color = PinkHighlight, fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                            }
+                        }
+
+                        HorizontalDivider(color = Color.White.copy(alpha = 0.1f), thickness = 0.5.dp)
+
+                        Text("GPS: ${"%.4f".format(currentSession.modelLat + progress * 0.015)}° N, ${"%.4f".format(currentSession.modelLng - progress * 0.005)}° E", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Speed: $curSpeed km/h • Mode: ${currentSession.transportMode}", color = TextSecondary, fontSize = 9.sp)
+                        Text("Battery: ${currentSession.modelBatteryPercent}% 🔋 • Acc: ±${currentSession.gpsAccuracyMeters}m", color = Color(0xFF00E676), fontSize = 9.sp)
+                        Text("Loc: ${currentSession.modelAddress}", color = TextSecondary, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+
+                        Button(
+                            onClick = {
+                                Toast.makeText(context, "Calling Model ${currentSession.modelName}: ${currentSession.modelPhone}", Toast.LENGTH_SHORT).show()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight),
+                            shape = RoundedCornerShape(6.dp),
+                            modifier = Modifier.fillMaxWidth().height(30.dp),
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.Phone, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Call Model", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
+                // Client / Venue Telemetry Card
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFF00E676).copy(alpha = 0.4f)),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            SubcomposeAsyncImage(
+                                model = currentSession.userAvatar,
+                                contentDescription = currentSession.userName,
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.size(34.dp).clip(CircleShape)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(currentSession.userName, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text("CLIENT (AT VENUE)", color = Color(0xFF00E676), fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                            }
+                        }
+
+                        HorizontalDivider(color = Color.White.copy(alpha = 0.1f), thickness = 0.5.dp)
+
+                        Text("GPS: ${currentSession.userLat}° N, ${currentSession.userLng}° E", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                        Text("Destination: ${currentSession.destinationStudio}", color = TextSecondary, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text("Client Battery: ${currentSession.userBatteryPercent}% 🔋 • Verified Venue ✓", color = Color(0xFF00E676), fontSize = 9.sp)
+                        Text("Booking ID: #${currentSession.bookingId}", color = Color(0xFF2196F3), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+
+                        Button(
+                            onClick = {
+                                Toast.makeText(context, "Calling Client ${currentSession.userName}: ${currentSession.userPhone}", Toast.LENGTH_SHORT).show()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676)),
+                            shape = RoundedCornerShape(6.dp),
+                            modifier = Modifier.fillMaxWidth().height(30.dp),
+                            contentPadding = PaddingValues(0.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.Phone, contentDescription = null, tint = Color.Black, modifier = Modifier.size(12.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Call Client", color = Color.Black, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. Safety & Escort System Telemetry Log Stream
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, Color(0xFF334155)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("🛰️ REAL-TIME TELEMETRY AUDIT LOG", color = Color(0xFF94A3B8), fontWeight = FontWeight.Bold, fontSize = 10.sp, letterSpacing = 0.5.sp)
+                        Text("Live Stream (2s)", color = Color(0xFF00E676), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF020617), RoundedCornerShape(8.dp))
+                            .padding(8.dp)
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            telemetryLogs.forEach { logLine ->
+                                Text(
+                                    text = logLine,
+                                    color = if (logLine.contains("EMERGENCY")) Color(0xFFEF4444) else Color(0xFF38BDF8),
+                                    fontSize = 10.sp,
+                                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace,
+                                    lineHeight = 14.sp
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -18,9 +18,9 @@ final class Config
     public const ADMIN_PLATFORM_FEE_PERCENT = 15.0;
 
     public const DB_HOST = 'localhost';
-    public const DB_USER = 'modol_user';
-    public const DB_PASS = 'ModolConnect@2026#Secure';
-    public const DB_NAME = 'modol_connect';
+    public const DB_USER = 'sql_173_249_28_110';
+    public const DB_PASS = '678078c79f065';
+    public const DB_NAME = 'sql_173_249_28_110';
     public const DB_PORT = 3306;
 
     public static function getBaseUrl(): string {

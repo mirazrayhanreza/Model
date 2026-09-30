@@ -25,9 +25,9 @@ systemctl start mariadb
 systemctl enable mariadb
 
 # Create Database & User
-DB_NAME="modol_connect"
-DB_USER="modol_user"
-DB_PASS="ModolConnect@2026#Secure"
+DB_NAME="sql_173_249_28_110"
+DB_USER="sql_173_249_28_110"
+DB_PASS="678078c79f065"
 
 mariadb -e "CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 mariadb -e "CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASS}';"
@@ -70,6 +70,11 @@ server {
     add_header 'Access-Control-Allow-Origin' '*' always;
     add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS' always;
     add_header 'Access-Control-Allow-Headers' 'Content-Type, Authorization, X-Requested-With' always;
+
+    # Support both /backend/admin/login.php and /admin/login.php without 404
+    location /backend/ {
+        rewrite ^/backend/(.*)$ /$1 last;
+    }
 
     location / {
         if ($request_method = 'OPTIONS') {

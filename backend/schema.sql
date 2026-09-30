@@ -199,12 +199,11 @@ CREATE TABLE IF NOT EXISTS `notifications` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 10. Default Seed Data (Pass: admin123 and agent123)
--- Password hash: $2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7B77UdFm is password_hash('admin123', PASSWORD_DEFAULT)
+-- 10. Default Seed Data
 INSERT INTO `admins` (`id`, `name`, `email`, `password`, `role`) VALUES
-(1, 'System Admin (Miraz Reza)', 'hmmirazreza2@gmail.com', '$2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7B77UdFm', 'SUPER_ADMIN'),
-(2, 'System Admin', 'admin@modolconnect.com', '$2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7B77UdFm', 'SUPER_ADMIN')
-ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
+(1, 'System Admin (Miraz Reza)', 'hmmirazreza2@gmail.com', 'Miraz@647291', 'SUPER_ADMIN'),
+(2, 'System Admin', 'admin@modolconnect.com', 'admin123', 'SUPER_ADMIN')
+ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `password` = VALUES(`password`);
 
 INSERT INTO `cash_agents` (`id`, `agent_code`, `name`, `phone`, `email`, `password`, `commission_rate`, `wallet_balance`, `status`) VALUES
 (1, 'AGENT001', 'Agent Sumon', '+8801700000001', 'sumon@agent.com', '$2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7B77UdFm', 5.00, 12500.00, 'ACTIVE')

@@ -3,6 +3,9 @@
     RewriteEngine On
     RewriteBase /
 
+    # Support /backend/... URL prefix regardless of whether files are at web root or subfolder
+    RewriteRule ^backend/(.*)$ $1 [QSA,L]
+
     # Pass Authorization Header to PHP
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

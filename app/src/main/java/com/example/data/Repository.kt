@@ -469,20 +469,9 @@ class Repository(private val db: AppDatabase) {
             }
         }
 
-        // Check if there is an active logged-in user
-        val currentUserVal = db.currentUserDao().getCurrentUser().firstOrNull()
-        if (currentUserVal == null) {
-            val user = CurrentUser(
-                id = "user_1",
-                name = "Miraz Reza",
-                role = "USER", // Client mode
-                balance = 1500.0,
-                avatarUrl = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
-                isVerified = true,
-                email = "hmmirazreza2@gmail.com",
-                city = "Dhaka"
-            )
-            db.currentUserDao().insertCurrentUser(user)
+        // Check initial seed data for agents and financial ledger (without auto-logging in any user)
+        val hasAgents = db.paymentAgentDao().getAllPaymentAgents().firstOrNull()
+        if (hasAgents.isNullOrEmpty()) {
 
             // Insert matching wallet transaction
             db.walletDao().insertTransaction(
