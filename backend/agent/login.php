@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_id'] = $agent['id'];
                 $_SESSION['agent_code'] = $agent['agent_code'];
                 $_SESSION['user_name'] = $agent['name'];
-                header('Location: ' . Config::BASE_URL . 'agent/dashboard.php');
+                header('Location: dashboard.php');
                 exit(0);
             } else {
                 $error = 'Invalid agent credentials.';

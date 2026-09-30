@@ -22,6 +22,8 @@ private val DarkColorScheme = darkColorScheme(
     onSurface = TextPrimary,
     surfaceVariant = DarkCard,
     onSurfaceVariant = TextSecondary,
+    outline = PinkBorderSoft,
+    outlineVariant = PinkBorderLight,
     tertiary = StarYellow
 )
 
@@ -36,12 +38,14 @@ private val LightColorScheme = lightColorScheme(
     onSurface = LightTextPrimary,
     surfaceVariant = LightCard,
     onSurfaceVariant = LightTextSecondary,
+    outline = PinkBorderSoft,
+    outlineVariant = PinkBorderLight,
     tertiary = StarYellow
 )
 
 @Composable
 fun MyApplicationTheme(
-    darkTheme: Boolean = true, // Force Dark theme by default for premium dark aesthetic as shown in mockup
+    darkTheme: Boolean = false, // Clean fresh white & hot-pink aesthetic as shown in design mockup
     dynamicColor: Boolean = false, // Disable dynamic colors to preserve our beautiful custom theme!
     content: @Composable () -> Unit,
 ) {

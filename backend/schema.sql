@@ -21,9 +21,31 @@ CREATE TABLE IF NOT EXISTS `cash_agents` (
     `phone` VARCHAR(30) UNIQUE NOT NULL,
     `email` VARCHAR(150) UNIQUE NOT NULL,
     `password` VARCHAR(255) NOT NULL,
+    `country` VARCHAR(50) DEFAULT 'Bangladesh',
+    `city` VARCHAR(100) DEFAULT 'Dhaka',
+    `daily_limit` DECIMAL(12,2) DEFAULT 500000.00,
+    `payment_methods` VARCHAR(255) DEFAULT 'bKash, Nagad, Bank Transfer',
     `commission_rate` DECIMAL(5,2) DEFAULT 5.00,
     `wallet_balance` DECIMAL(12,2) DEFAULT 0.00,
+    `orders_count` INT DEFAULT 0,
+    `rating` DECIMAL(3,2) DEFAULT 5.00,
     `status` ENUM('ACTIVE', 'SUSPENDED') DEFAULT 'ACTIVE',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2.1 Countries and Currencies Table
+CREATE TABLE IF NOT EXISTS `countries_currencies` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `country_code` VARCHAR(10) NOT NULL,
+    `country_name` VARCHAR(100) NOT NULL,
+    `flag` VARCHAR(20) DEFAULT '🌐',
+    `currency_code` VARCHAR(10) NOT NULL,
+    `currency_symbol` VARCHAR(10) NOT NULL,
+    `rate_to_usd` DECIMAL(12,4) NOT NULL DEFAULT 1.0000,
+    `min_deposit` DECIMAL(12,2) DEFAULT 500.00,
+    `min_withdrawal` DECIMAL(12,2) DEFAULT 1000.00,
+    `status` ENUM('Active', 'Inactive') DEFAULT 'Active',
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -35,9 +57,12 @@ CREATE TABLE IF NOT EXISTS `users` (
     `email` VARCHAR(150) UNIQUE NOT NULL,
     `phone` VARCHAR(30) UNIQUE,
     `password` VARCHAR(255) DEFAULT '',
+    `country` VARCHAR(50) DEFAULT 'Bangladesh',
+    `city` VARCHAR(100) DEFAULT 'Dhaka',
     `role` VARCHAR(20) DEFAULT 'USER',
     `avatar_url` VARCHAR(255) DEFAULT NULL,
     `wallet_balance` DECIMAL(12,2) DEFAULT 0.00,
+    `currency` VARCHAR(20) DEFAULT 'BDT (৳)',
     `kyc_status` ENUM('NONE', 'SUBMITTED', 'VERIFIED', 'REJECTED') DEFAULT 'NONE',
     `is_verified` TINYINT(1) DEFAULT 1,
     `status` ENUM('ACTIVE', 'SUSPENDED') DEFAULT 'ACTIVE',

@@ -24,7 +24,25 @@ final class Config
     public const DB_PORT = 3306;
 
     public static function getBaseUrl(): string {
-        return getenv('BASE_URL') ?: self::BASE_URL;
+        if (!empty(getenv('BASE_URL'))) {
+            return rtrim((string)getenv('BASE_URL'), '/') . '/';
+        }
+        if (!empty($_SERVER['HTTP_HOST'])) {
+            $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443)
+                || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+            $scheme = $isHttps ? 'https://' : 'http://';
+            $host = $_SERVER['HTTP_HOST'];
+
+            // Calculate base path from script name
+            $script = $_SERVER['SCRIPT_NAME'] ?? '';
+            $pos = strpos($script, '/backend/');
+            if ($pos !== false) {
+                return $scheme . $host . substr($script, 0, $pos + 9);
+            }
+            return $scheme . $host . '/';
+        }
+        return self::BASE_URL;
     }
 
     public static function getDbHost(): string {

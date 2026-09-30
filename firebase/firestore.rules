@@ -1,0 +1,59 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && (request.auth.token.role == 'ADMIN' || request.auth.token.email == 'admin@modolconnect.com');
+    }
+
+    // Models catalog (Public read, Admin or verified model write)
+    match /models/{modelId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Client and Model user profiles
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    // Bookings & Escrow Contracts
+    match /bookings/{bookingId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if isAuthenticated();
+    }
+
+    // Real-Time Chat messages
+    match /chats/{chatId}/messages/{messageId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Cash Agents & Escrow Points
+    match /cash_agents/{agentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // B2B Orders
+    match /b2b_orders/{orderId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Wallet Transactions & Ledger
+    match /transactions/{txId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+  }
+}

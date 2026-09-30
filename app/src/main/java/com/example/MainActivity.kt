@@ -1,15 +1,20 @@
 package com.example
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.Crossfade
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -30,6 +35,10 @@ class MainActivity : ComponentActivity() {
         val factory = AppViewModelFactory(application, repository)
         viewModel = ViewModelProvider(this, factory)[AppViewModel::class.java]
 
+        // Ensure the First Page is ALWAYS the Splash page on launch / restart
+        viewModel.currentScreen = "SPLASH"
+        viewModel.splashFinished = false
+
         enableEdgeToEdge()
         
         setContent {
@@ -42,6 +51,47 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainContent(viewModel: AppViewModel) {
+    // Request app permissions: SMS, CAMERA, CONTACTS, MICROPHONE, NOTIFICATIONS, LOCATION, NEARBY DEVICES, PHOTOS/VIDEOS, PHONE
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { _ ->
+        // Permissions handled smoothly
+    }
+
+    LaunchedEffect(Unit) {
+        val permissions = buildList {
+            add(android.Manifest.permission.CAMERA)
+            add(android.Manifest.permission.RECORD_AUDIO)
+            add(android.Manifest.permission.ACCESS_FINE_LOCATION)
+            add(android.Manifest.permission.ACCESS_COARSE_LOCATION)
+            add(android.Manifest.permission.READ_CONTACTS)
+            add(android.Manifest.permission.READ_SMS)
+            add(android.Manifest.permission.RECEIVE_SMS)
+            add(android.Manifest.permission.READ_PHONE_STATE)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                add(android.Manifest.permission.POST_NOTIFICATIONS)
+                add(android.Manifest.permission.READ_MEDIA_IMAGES)
+                add(android.Manifest.permission.READ_MEDIA_VIDEO)
+            } else {
+                add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                add(android.Manifest.permission.BLUETOOTH_CONNECT)
+                add(android.Manifest.permission.BLUETOOTH_SCAN)
+            }
+        }
+        permissionLauncher.launch(permissions.toTypedArray())
+    }
+
+    // Handle back navigation: secondary screens go back, Dashboard root goes to Splash
+    BackHandler(enabled = viewModel.currentScreen != "SPLASH") {
+        if (viewModel.currentScreen == "DASHBOARD") {
+            viewModel.currentScreen = "SPLASH"
+        } else {
+            viewModel.goBack()
+        }
+    }
+
     Crossfade(targetState = viewModel.currentScreen, label = "ScreenTransition") { screen ->
         when (screen) {
             "SPLASH" -> SplashScreen(viewModel)

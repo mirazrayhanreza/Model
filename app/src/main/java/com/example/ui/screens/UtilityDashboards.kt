@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import android.widget.Toast
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -11,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.ui.window.Dialog
@@ -25,6 +27,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
@@ -61,6 +64,7 @@ fun WalletDashboardContent(
     var showWithdrawDialog by remember { mutableStateOf(false) }
     var showOffersDialog by remember { mutableStateOf(false) }
     var showAllTransactions by remember { mutableStateOf(false) }
+    var selectedWalletTab by remember { mutableStateOf(0) } // 0 = Personal Wallet, 1 = B2B Cash Agent
 
     // Calculate balances
     val availableBalance = currentUser?.balance ?: 0.0
@@ -89,13 +93,14 @@ fun WalletDashboardContent(
     if (showOffersDialog) {
         AlertDialog(
             onDismissRequest = { showOffersDialog = false },
-            title = { Text("Exclusive Promo Offers", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = { Text("Exclusive Promo Offers", color = TextPrimary, fontWeight = FontWeight.ExtraBold) },
             text = {
                 Column {
                     Text("Get special discounts on your active booking deposits!", color = TextSecondary, fontSize = 13.sp)
                     Spacer(modifier = Modifier.height(12.dp))
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF131324)),
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF0F5)),
+                        border = BorderStroke(1.dp, PinkHighlight.copy(alpha = 0.3f)),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -103,14 +108,14 @@ fun WalletDashboardContent(
                             modifier = Modifier.padding(16.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            Text("PROMO CODE", color = Color.Gray, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text("PROMO CODE", color = PinkHighlight, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                             Spacer(modifier = Modifier.height(6.dp))
                             Text("MODOL20", color = PinkHighlight, fontWeight = FontWeight.Black, fontSize = 24.sp)
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
                                 "Get 20% OFF on your next model booking. Valid on escrow services.",
-                                color = TextSecondary,
-                                fontSize = 11.sp,
+                                color = TextPrimary,
+                                fontSize = 12.sp,
                                 textAlign = TextAlign.Center,
                                 lineHeight = 16.sp
                             )
@@ -121,12 +126,13 @@ fun WalletDashboardContent(
             confirmButton = {
                 Button(
                     onClick = { showOffersDialog = false },
-                    colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight)
+                    colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight),
+                    shape = RoundedCornerShape(8.dp)
                 ) {
-                    Text("Awesome", fontWeight = FontWeight.Bold)
+                    Text("Awesome", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
-            containerColor = DarkSurface
+            containerColor = Color.White
         )
     }
 
@@ -146,292 +152,397 @@ fun WalletDashboardContent(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (onBackClick != null) {
-                    IconButton(onClick = onBackClick) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                    IconButton(
+                        onClick = onBackClick,
+                        modifier = Modifier
+                            .background(Color.White, CircleShape)
+                            .border(1.dp, Color(0xFFFF85A6), CircleShape)
+                            .size(38.dp)
+                    ) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
                     }
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
                 }
-                Text("My Wallet", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Text("My Wallet", color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
             }
-            IconButton(onClick = { /* Already on wallet */ }) {
-                Icon(imageVector = Icons.Default.AccountBalanceWallet, contentDescription = "Wallet info", tint = Color.White)
+            IconButton(
+                onClick = { /* Already on wallet */ },
+                modifier = Modifier
+                    .background(Color.White, CircleShape)
+                    .border(1.dp, Color(0xFFFF85A6), CircleShape)
+                    .size(38.dp)
+            ) {
+                Icon(imageVector = Icons.Default.AccountBalanceWallet, contentDescription = "Wallet info", tint = PinkHighlight)
             }
         }
 
-        LazyColumn(
+        // ==========================================
+        // WALLET SEGMENT TABS (Personal vs B2B)
+        // ==========================================
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .weight(1f)
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            contentPadding = PaddingValues(bottom = 16.dp)
+                .padding(horizontal = 16.dp, vertical = 6.dp)
+                .background(Color.White, RoundedCornerShape(14.dp))
+                .border(1.dp, Color(0xFFFFDDE6), RoundedCornerShape(14.dp))
+                .padding(4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            // Gradient Balance Card
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(
-                            Brush.horizontalGradient(
-                                colors = listOf(Color(0xFFFF2B85), Color(0xFF6A1B9A))
-                            )
-                        )
-                ) {
-                    Column(modifier = Modifier.padding(24.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column {
-                                Text("Total Balance", color = Color.White.copy(alpha = 0.8f), fontSize = 13.sp)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "৳ %,.2f".format(totalBalance),
-                                    color = Color.White,
-                                    fontSize = 28.sp,
-                                    fontWeight = FontWeight.Black
-                                )
-                            }
-                            Icon(
-                                imageVector = Icons.Default.AccountBalanceWallet,
-                                contentDescription = null,
-                                tint = Color.White.copy(alpha = 0.8f),
-                                modifier = Modifier.size(36.dp)
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(20.dp))
-
-                        HorizontalDivider(color = Color.White.copy(alpha = 0.2f), thickness = 0.5.dp)
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text("Available Balance", color = Color.White.copy(alpha = 0.8f), fontSize = 11.sp)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "৳ %,.2f".format(availableBalance),
-                                    color = Color.White,
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                            
-                            Box(
-                                modifier = Modifier
-                                    .width(1.dp)
-                                    .height(30.dp)
-                                    .background(Color.White.copy(alpha = 0.2f))
-                            )
-
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(start = 16.dp)
-                            ) {
-                                Text("Pending Balance", color = Color.White.copy(alpha = 0.8f), fontSize = 11.sp)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "৳ %,.2f".format(pendingBalance),
-                                    color = Color(0xFFFFF176),
-                                    fontSize = 16.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
+            // Tab 0: Personal Wallet
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (selectedWalletTab == 0) PinkHighlight else Color.Transparent)
+                    .clickable { selectedWalletTab = 0 }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.AccountBalanceWallet,
+                        contentDescription = null,
+                        tint = if (selectedWalletTab == 0) Color.White else TextSecondary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        "Personal Wallet",
+                        color = if (selectedWalletTab == 0) Color.White else TextPrimary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
                 }
             }
 
-            // Quick Actions (Row of 4 beautiful square buttons)
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    val actions = listOf(
-                        QuadAction("Add Money", Icons.Default.ArrowUpward, Color(0xFFE91E63)) {
-                            showAddFundsDialog = true
-                        },
-                        QuadAction("Withdraw", Icons.Default.ArrowDownward, Color(0xFF9C27B0)) {
-                            showWithdrawDialog = true
-                        },
-                        QuadAction("History", Icons.Default.Payment, Color(0xFF2196F3)) {
-                            showAllTransactions = !showAllTransactions
-                        },
-                        QuadAction("Offers", Icons.Default.Redeem, Color(0xFFFF9800)) {
-                            showOffersDialog = true
-                        }
+            // Tab 1: B2B Cash Agent
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (selectedWalletTab == 1) PinkHighlight else Color.Transparent)
+                    .clickable { selectedWalletTab = 1 }
+                    .padding(vertical = 10.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.SwapHoriz,
+                        contentDescription = null,
+                        tint = if (selectedWalletTab == 1) Color.White else TextSecondary,
+                        modifier = Modifier.size(16.dp)
                     )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(
+                        "B2B Cash Agent",
+                        color = if (selectedWalletTab == 1) Color.White else TextPrimary,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Box(
+                        modifier = Modifier
+                            .background(if (selectedWalletTab == 1) Color.White.copy(alpha = 0.25f) else Color(0xFFFF2A6D).copy(alpha = 0.12f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 4.dp, vertical = 1.dp)
+                    ) {
+                        Text(
+                            "P2P",
+                            color = if (selectedWalletTab == 1) Color.White else PinkHighlight,
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                }
+            }
+        }
 
-                    actions.forEach { action ->
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { action.onClick() }
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(56.dp)
-                                    .clip(RoundedCornerShape(16.dp))
-                                    .background(DarkSurface),
-                                contentAlignment = Alignment.Center
+        if (selectedWalletTab == 1) {
+            // Tab 1: B2B Cash Agent Marketplace (Exact Reference Photo Design)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+            ) {
+                B2BCashAgentMarketplaceContent(viewModel = viewModel, onClose = null)
+            }
+        } else {
+            // Tab 0: Standard Personal Wallet Content
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                contentPadding = PaddingValues(bottom = 16.dp)
+            ) {
+                // Gradient Balance Card
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(22.dp))
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(Color(0xFFFF2A6D), Color(0xFFFF5E8A), Color(0xFF7C3AED))
+                                )
+                            )
+                    ) {
+                        Column(modifier = Modifier.padding(24.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
+                                Column {
+                                    Text("Total Balance", color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "৳ %,.2f".format(totalBalance),
+                                        color = Color.White,
+                                        fontSize = 28.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                }
+                                Icon(
+                                    imageVector = Icons.Default.AccountBalanceWallet,
+                                    contentDescription = null,
+                                    tint = Color.White.copy(alpha = 0.85f),
+                                    modifier = Modifier.size(36.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(20.dp))
+
+                            HorizontalDivider(color = Color.White.copy(alpha = 0.25f), thickness = 0.5.dp)
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Available Balance", color = Color.White.copy(alpha = 0.85f), fontSize = 11.sp)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "৳ %,.2f".format(availableBalance),
+                                        color = Color.White,
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                
                                 Box(
                                     modifier = Modifier
-                                        .size(36.dp)
-                                        .background(action.color.copy(alpha = 0.15f), CircleShape),
-                                    contentAlignment = Alignment.Center
+                                        .width(1.dp)
+                                        .height(30.dp)
+                                        .background(Color.White.copy(alpha = 0.25f))
+                                )
+
+                                Column(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .padding(start = 16.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = action.icon,
-                                        contentDescription = action.label,
-                                        tint = action.color,
-                                        modifier = Modifier.size(20.dp)
+                                    Text("Pending Balance", color = Color.White.copy(alpha = 0.85f), fontSize = 11.sp)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "৳ %,.2f".format(pendingBalance),
+                                        color = Color(0xFFFFF176),
+                                        fontSize = 16.sp,
+                                        fontWeight = FontWeight.Bold
                                     )
                                 }
                             }
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = action.label,
-                                color = Color.White,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium,
-                                textAlign = TextAlign.Center
-                            )
                         }
                     }
                 }
-            }
 
-            // Transactions Header
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Recent Transactions",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-                    Text(
-                        text = if (showAllTransactions) "Collapse" else "View All",
-                        color = PinkHighlight,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.clickable { showAllTransactions = !showAllTransactions }
-                    )
-                }
-            }
-
-            // Transactions list
-            val displayList = if (showAllTransactions) transactions else transactions.take(4)
-
-            if (displayList.isEmpty()) {
+                // Quick Actions (Row of 4 beautiful square buttons)
                 item {
-                    Text(
-                        text = "No past transactions found.",
-                        color = TextSecondary,
-                        fontSize = 12.sp,
-                        modifier = Modifier.padding(vertical = 12.dp)
-                    )
-                }
-            } else {
-                items(displayList) { tx ->
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(vertical = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            val (txTitle, txIcon, txColor) = remember(tx.type) {
-                                when (tx.type) {
-                                    "DEPOSIT" -> Triple("Added Money", Icons.Default.ArrowUpward, Color(0xFF4CAF50))
-                                    "EARNING" -> Triple("Booking Earnings", Icons.Default.ArrowUpward, Color(0xFF4CAF50))
-                                    "WITHDRAW" -> Triple("Withdrawal", Icons.Default.ArrowDownward, Color(0xFF9C27B0))
-                                    else -> Triple("Booking Payment", Icons.Default.ArrowDownward, Color(0xFFE91E63))
-                                }
+                        val actions = listOf(
+                            QuadAction("Add Money", Icons.Default.ArrowUpward, Color(0xFFE91E63)) {
+                                showAddFundsDialog = true
+                            },
+                            QuadAction("Withdraw", Icons.Default.ArrowDownward, Color(0xFF9C27B0)) {
+                                showWithdrawDialog = true
+                            },
+                            QuadAction("History", Icons.Default.Payment, Color(0xFF2196F3)) {
+                                showAllTransactions = !showAllTransactions
+                            },
+                            QuadAction("Offers", Icons.Default.Redeem, Color(0xFFFF9800)) {
+                                showOffersDialog = true
                             }
+                        )
 
-                            Box(
+                        actions.forEach { action ->
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
                                 modifier = Modifier
-                                    .size(40.dp)
-                                    .background(txColor.copy(alpha = 0.15f), CircleShape),
-                                contentAlignment = Alignment.Center
+                                    .weight(1f)
+                                    .clickable { action.onClick() }
                             ) {
-                                Icon(
-                                    imageVector = txIcon,
-                                    contentDescription = null,
-                                    tint = txColor,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.width(12.dp))
-
-                            Column {
+                                Box(
+                                    modifier = Modifier
+                                        .size(56.dp)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(Color.White)
+                                        .border(1.dp, Color(0xFFFFDDE6), RoundedCornerShape(16.dp)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(action.color.copy(alpha = 0.12f), CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = action.icon,
+                                            contentDescription = action.label,
+                                            tint = action.color,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(6.dp))
                                 Text(
-                                    text = txTitle,
-                                    color = Color.White,
+                                    text = action.label,
+                                    color = TextPrimary,
+                                    fontSize = 11.sp,
                                     fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp
-                                )
-                                Spacer(modifier = Modifier.height(2.dp))
-                                Text(
-                                    text = tx.description,
-                                    color = Color.Gray,
-                                    fontSize = 11.sp
+                                    textAlign = TextAlign.Center
                                 )
                             }
                         }
+                    }
+                }
 
-                        val isPositive = tx.type == "DEPOSIT" || tx.type == "EARNING"
+                // Transactions Header
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
-                            text = if (isPositive) "+৳%,.2f".format(tx.amount) else "-৳%,.2f".format(tx.amount),
-                            color = if (isPositive) OnlineGreen else Color(0xFFFF5252),
+                            text = "Recent Transactions",
+                            color = TextPrimary,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 16.sp
+                        )
+                        Text(
+                            text = if (showAllTransactions) "Collapse" else "View All",
+                            color = PinkHighlight,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp
+                            modifier = Modifier.clickable { showAllTransactions = !showAllTransactions }
                         )
                     }
-                    HorizontalDivider(color = Color(0xFF2E2E3E), thickness = 0.5.dp)
+                }
+
+                // Transactions list
+                val displayList = if (showAllTransactions) transactions else transactions.take(4)
+
+                if (displayList.isEmpty()) {
+                    item {
+                        Text(
+                            text = "No past transactions found.",
+                            color = TextSecondary,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(vertical = 12.dp)
+                        )
+                    }
+                } else {
+                    items(displayList) { tx ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                val (txTitle, txIcon, txColor) = remember(tx.type) {
+                                    when (tx.type) {
+                                        "DEPOSIT" -> Triple("Added Money", Icons.Default.ArrowUpward, Color(0xFF4CAF50))
+                                        "EARNING" -> Triple("Booking Earnings", Icons.Default.ArrowUpward, Color(0xFF4CAF50))
+                                        "WITHDRAW" -> Triple("Withdrawal", Icons.Default.ArrowDownward, Color(0xFF9C27B0))
+                                        else -> Triple("Booking Payment", Icons.Default.ArrowDownward, Color(0xFFE91E63))
+                                    }
+                                }
+
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(txColor.copy(alpha = 0.12f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = txIcon,
+                                        contentDescription = null,
+                                        tint = txColor,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(12.dp))
+
+                                Column {
+                                    Text(
+                                        text = txTitle,
+                                        color = TextPrimary,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 14.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = tx.description,
+                                        color = TextSecondary,
+                                        fontSize = 11.sp
+                                    )
+                                }
+                            }
+
+                            val isPositive = tx.type == "DEPOSIT" || tx.type == "EARNING"
+                            Text(
+                                text = if (isPositive) "+৳%,.2f".format(tx.amount) else "-৳%,.2f".format(tx.amount),
+                                color = if (isPositive) OnlineGreen else Color(0xFFFF5252),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 15.sp
+                            )
+                        }
+                        HorizontalDivider(color = PinkBorderLight, thickness = 0.8.dp)
+                    }
                 }
             }
-        }
 
-        // Add Money bottom button matching left mockup
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Button(
-                onClick = { showAddFundsDialog = true },
-                colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight),
-                shape = RoundedCornerShape(14.dp),
+            // Add Money bottom button matching left mockup
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp)
+                    .padding(16.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.White)
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Add Money", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Button(
+                    onClick = { showAddFundsDialog = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight),
+                    shape = RoundedCornerShape(14.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = Color.White)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Add Money", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    }
                 }
             }
         }
@@ -488,14 +599,26 @@ fun NotificationsScreen(viewModel: AppViewModel) {
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = { viewModel.navigateTo("DASHBOARD") }) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                IconButton(
+                    onClick = { viewModel.navigateTo("DASHBOARD") },
+                    modifier = Modifier
+                        .background(Color.White, CircleShape)
+                        .border(1.dp, Color(0xFFFF85A6), CircleShape)
+                        .size(38.dp)
+                ) {
+                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Notifications", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                Spacer(modifier = Modifier.width(10.dp))
+                Text("Notifications", color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
             }
-            IconButton(onClick = { viewModel.navigateTo("SETTINGS") }) {
-                Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings", tint = Color.White)
+            IconButton(
+                onClick = { viewModel.navigateTo("SETTINGS") },
+                modifier = Modifier
+                    .background(Color.White, CircleShape)
+                    .border(1.dp, Color(0xFFFF85A6), CircleShape)
+                    .size(38.dp)
+            ) {
+                Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings", tint = TextPrimary)
             }
         }
 
@@ -512,13 +635,14 @@ fun NotificationsScreen(viewModel: AppViewModel) {
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(20.dp))
-                        .background(if (isSelected) PinkHighlight else Color(0xFF1E1E2E))
+                        .background(if (isSelected) PinkHighlight else Color.White)
+                        .then(if (!isSelected) Modifier.border(1.dp, Color(0xFFFF85A6), RoundedCornerShape(20.dp)) else Modifier)
                         .clickable { selectedCategory = category }
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
                     Text(
                         text = category,
-                        color = if (isSelected) Color.White else TextSecondary,
+                        color = if (isSelected) Color.White else TextPrimary,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Bold
                     )
@@ -538,7 +662,7 @@ fun NotificationsScreen(viewModel: AppViewModel) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(imageVector = Icons.Default.NotificationsOff, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(64.dp))
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("No Notifications in $selectedCategory", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text("No Notifications in $selectedCategory", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 }
             }
         } else {
@@ -551,7 +675,8 @@ fun NotificationsScreen(viewModel: AppViewModel) {
             ) {
                 items(filteredNotifs) { notif ->
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFFFF85A6)),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier
                             .fillMaxWidth()
@@ -564,12 +689,12 @@ fun NotificationsScreen(viewModel: AppViewModel) {
                             // Circular icon container matching mockup colors
                             val (icon, bgColor, tintColor) = remember(notif.category) {
                                 when (notif.category) {
-                                    "Booking" -> Triple(Icons.Default.CalendarMonth, Color(0xFFE91E63).copy(alpha = 0.15f), Color(0xFFE91E63))
-                                    "Payment", "Wallet" -> Triple(Icons.Default.CheckCircle, Color(0xFF4CAF50).copy(alpha = 0.15f), Color(0xFF4CAF50))
-                                    "Chat" -> Triple(Icons.Default.Chat, Color(0xFF9C27B0).copy(alpha = 0.15f), Color(0xFF9C27B0))
-                                    "Promotions" -> Triple(Icons.Default.Redeem, Color(0xFFFF9800).copy(alpha = 0.15f), Color(0xFFFF9800))
-                                    "System" -> Triple(Icons.Default.Verified, Color(0xFF2196F3).copy(alpha = 0.15f), Color(0xFF2196F3))
-                                    else -> Triple(Icons.Default.Info, Color(0xFF607D8B).copy(alpha = 0.15f), Color(0xFF607D8B))
+                                    "Booking" -> Triple(Icons.Default.CalendarMonth, Color(0xFFE91E63).copy(alpha = 0.12f), Color(0xFFE91E63))
+                                    "Payment", "Wallet" -> Triple(Icons.Default.CheckCircle, Color(0xFF4CAF50).copy(alpha = 0.12f), Color(0xFF4CAF50))
+                                    "Chat" -> Triple(Icons.Default.Chat, Color(0xFF9C27B0).copy(alpha = 0.12f), Color(0xFF9C27B0))
+                                    "Promotions" -> Triple(Icons.Default.Redeem, Color(0xFFFF9800).copy(alpha = 0.12f), Color(0xFFFF9800))
+                                    "System" -> Triple(Icons.Default.Verified, Color(0xFF2196F3).copy(alpha = 0.12f), Color(0xFF2196F3))
+                                    else -> Triple(Icons.Default.Info, Color(0xFF607D8B).copy(alpha = 0.12f), Color(0xFF607D8B))
                                 }
                             }
 
@@ -597,7 +722,7 @@ fun NotificationsScreen(viewModel: AppViewModel) {
                                 ) {
                                     Text(
                                         text = notif.title,
-                                        color = Color.White,
+                                        color = TextPrimary,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 14.sp,
                                         modifier = Modifier.weight(1f)
@@ -605,7 +730,7 @@ fun NotificationsScreen(viewModel: AppViewModel) {
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         text = notif.time,
-                                        color = Color.Gray,
+                                        color = TextSecondary,
                                         fontSize = 11.sp
                                     )
                                 }
@@ -667,10 +792,10 @@ fun ModelDashboardScreen(viewModel: AppViewModel) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { viewModel.navigateTo("DASHBOARD") }) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
             }
             Spacer(modifier = Modifier.width(12.dp))
-            Text("Model Host Dashboard", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("Model Host Dashboard", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
         }
 
         LazyColumn(
@@ -719,7 +844,7 @@ fun ModelDashboardScreen(viewModel: AppViewModel) {
 
             // Booking Requests Section
             item {
-                Text("Incoming Booking Proposals", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text("Incoming Booking Proposals", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
@@ -740,7 +865,7 @@ fun ModelDashboardScreen(viewModel: AppViewModel) {
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
-                                Text("Client ID: ${b.userId}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("Client ID: ${b.userId}", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                 Text("৳${b.totalPrice.toInt()}", color = PinkHighlight, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             }
                             Spacer(modifier = Modifier.height(4.dp))
@@ -798,10 +923,10 @@ fun AdminPanelScreen(viewModel: AppViewModel) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { viewModel.navigateTo("DASHBOARD") }) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
             }
             Spacer(modifier = Modifier.width(12.dp))
-            Text("Admin Platform Panel", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("Admin Platform Panel", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
         }
 
         LazyColumn(
@@ -825,7 +950,7 @@ fun AdminPanelScreen(viewModel: AppViewModel) {
                         Column(modifier = Modifier.padding(14.dp)) {
                             Text("Registered Models", color = TextSecondary, fontSize = 11.sp)
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text(models.size.toString(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            Text(models.size.toString(), color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         }
                     }
 
@@ -837,7 +962,7 @@ fun AdminPanelScreen(viewModel: AppViewModel) {
                         Column(modifier = Modifier.padding(14.dp)) {
                             Text("Total Bookings", color = TextSecondary, fontSize = 11.sp)
                             Spacer(modifier = Modifier.height(4.dp))
-                            Text(bookings.size.toString(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                            Text(bookings.size.toString(), color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         }
                     }
                 }
@@ -845,33 +970,35 @@ fun AdminPanelScreen(viewModel: AppViewModel) {
 
             // Verification lists
             item {
-                Text("Verification Management", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text("Verification Management", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
             items(models) { m ->
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                    shape = RoundedCornerShape(10.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFFFF85A6)),
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
-                        modifier = Modifier.padding(12.dp),
+                        modifier = Modifier.padding(14.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text(m.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            Text("Status: ${if (m.isVerified) "Verified" else "Awaiting Verification"}", color = TextSecondary, fontSize = 11.sp)
+                            Text(m.name, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Spacer(modifier = Modifier.height(2.dp))
+                            Text("Status: ${if (m.isVerified) "Verified" else "Awaiting Verification"}", color = if (m.isVerified) OnlineGreen else TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Medium)
                         }
 
                         Button(
                             onClick = { viewModel.verifyModel(m.id) },
-                            colors = ButtonDefaults.buttonColors(containerColor = if (m.isVerified) Color.Gray else PinkHighlight),
-                            shape = RoundedCornerShape(6.dp),
-                            modifier = Modifier.height(30.dp)
+                            colors = ButtonDefaults.buttonColors(containerColor = if (m.isVerified) Color(0xFF64748B) else PinkHighlight),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.height(32.dp)
                         ) {
-                            Text(if (m.isVerified) "Revoke" else "Verify", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text(if (m.isVerified) "Revoke" else "Verify", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -899,11 +1026,17 @@ fun SettingsScreen(viewModel: AppViewModel) {
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { viewModel.navigateTo("DASHBOARD") }) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+            IconButton(
+                onClick = { viewModel.navigateTo("DASHBOARD") },
+                modifier = Modifier
+                    .background(Color.White, CircleShape)
+                    .border(1.dp, Color(0xFFFF85A6), CircleShape)
+                    .size(38.dp)
+            ) {
+                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
             }
             Spacer(modifier = Modifier.width(12.dp))
-            Text("Settings & Support", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("Settings & Support", color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
         }
 
         Column(
@@ -912,101 +1045,10 @@ fun SettingsScreen(viewModel: AppViewModel) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Backend Server Configuration Card
-            Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1B192A)),
-                border = BorderStroke(1.dp, PinkHighlight.copy(alpha = 0.5f)),
-                shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .background(PinkHighlight.copy(alpha = 0.2f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Dns,
-                                    contentDescription = "Backend Server",
-                                    tint = PinkHighlight,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column {
-                                Text("Modol Connect Backend API", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                Text("PHP 8.2.31 Operational", color = OnlineGreen, fontSize = 11.sp, fontWeight = FontWeight.Medium)
-                            }
-                        }
-
-                        Box(
-                            modifier = Modifier
-                                .background(OnlineGreen.copy(alpha = 0.2f), RoundedCornerShape(12.dp))
-                                .padding(horizontal = 8.dp, vertical = 3.dp)
-                        ) {
-                            Text("LIVE", color = OnlineGreen, fontWeight = FontWeight.Bold, fontSize = 10.sp)
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Text("Active Backend Base URL:", color = TextSecondary, fontSize = 11.sp)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    OutlinedTextField(
-                        value = viewModel.backendServerUrl,
-                        onValueChange = { viewModel.backendServerUrl = it },
-                        label = { Text("Backend URL", color = TextSecondary) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
-                            focusedBorderColor = PinkHighlight,
-                            unfocusedBorderColor = Color(0xFF2E2E3E)
-                        ),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = { viewModel.testBackendConnection() },
-                            colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.weight(1f).height(38.dp)
-                        ) {
-                            Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("Test Ping", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-
-                        OutlinedButton(
-                            onClick = { viewModel.showPhpBackendModal = true },
-                            border = BorderStroke(1.dp, PinkHighlight),
-                            shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.weight(1f).height(38.dp)
-                        ) {
-                            Icon(imageVector = Icons.Default.Code, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text("PHP Explorer", color = PinkHighlight, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                        }
-                    }
-                }
-            }
-
             // Language selector
             Card(
-                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFFF85A6)),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -1015,33 +1057,82 @@ fun SettingsScreen(viewModel: AppViewModel) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("App Language", color = Color.White, fontWeight = FontWeight.Bold)
+                    Text("App Language", color = TextPrimary, fontWeight = FontWeight.Bold)
                     
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("English", "Bangla").forEach { lang ->
                             val isSel = viewModel.appLanguage == lang
                             Box(
                                 modifier = Modifier
-                                    .clip(RoundedCornerShape(6.dp))
-                                    .background(if (isSel) PinkHighlight else Color(0xFF2E2E3E))
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(if (isSel) PinkHighlight else Color(0xFFF1F5F9))
+                                    .then(if (!isSel) Modifier.border(1.dp, Color(0xFFFF85A6), RoundedCornerShape(8.dp)) else Modifier)
                                     .clickable { viewModel.appLanguage = lang }
-                                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
                             ) {
-                                Text(lang, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text(lang, color = if (isSel) Color.White else TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
                 }
             }
 
+            // Splash Screen Preview
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFFF85A6)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        viewModel.splashFinished = false
+                        viewModel.navigateTo("SPLASH")
+                    }
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = CircleShape,
+                            color = PinkHighlight.copy(alpha = 0.12f),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Favorite,
+                                    contentDescription = "Splash",
+                                    tint = PinkHighlight,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text("Welcome / Splash Screen", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Tap to view full-screen model splash design", color = TextSecondary, fontSize = 11.sp)
+                        }
+                    }
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                        contentDescription = "Open",
+                        tint = PinkHighlight,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
+
             // About Us
             Card(
-                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFFF85A6)),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("About MODOL CONNECT", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("About MODOL CONNECT", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         "MODOL CONNECT is Bangladesh's first professional model marketplace app. We connect brands, fashion houses, and individuals with local professional talents seamlessly, with secure escrow payments.",
@@ -1068,16 +1159,16 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0F1019)),
+            .background(DarkBg),
         contentPadding = PaddingValues(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // --- 1. TOP HEADER & BRANDING BAR ---
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF161824)),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, Color(0xFF25283A))
+                border = BorderStroke(1.dp, PinkBorderSoft)
             ) {
                 Column(
                     modifier = Modifier
@@ -1113,7 +1204,7 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
                             Column {
                                 Text(
                                     "MODOL CONNECT",
-                                    color = Color.White,
+                                    color = TextPrimary,
                                     fontWeight = FontWeight.Black,
                                     fontSize = 15.sp,
                                     letterSpacing = 1.sp
@@ -1135,8 +1226,8 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .background(Color(0xFF202336), RoundedCornerShape(20.dp))
-                                    .border(1.dp, Color(0xFF2E324D), RoundedCornerShape(20.dp))
+                                    .background(Color(0xFFFFF0F5), RoundedCornerShape(20.dp))
+                                    .border(1.dp, PinkBorderSoft, RoundedCornerShape(20.dp))
                                     .padding(horizontal = 10.dp, vertical = 5.dp)
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1149,7 +1240,7 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
                                         "18 May 2025 - 18 Jun 2025",
-                                        color = Color.White,
+                                        color = TextPrimary,
                                         fontSize = 10.sp,
                                         fontWeight = FontWeight.Medium
                                     )
@@ -1182,7 +1273,7 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
                         }
                     }
 
-                    HorizontalDivider(color = Color(0xFF25283A))
+                    HorizontalDivider(color = PinkBorderSoft)
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -1205,7 +1296,7 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
                             }
                             Spacer(modifier = Modifier.width(8.dp))
                             Column {
-                                Text("Miraz Rayhan", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text("Miraz Rayhan", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                 Text("Super Admin", color = PinkHighlight, fontSize = 10.sp)
                             }
                         }
@@ -1296,9 +1387,9 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
         // --- 3. REVENUE OVERVIEW LINE CHART ---
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF161824)),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, Color(0xFF25283A)),
+                border = BorderStroke(1.dp, PinkBorderSoft),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -1307,7 +1398,7 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Revenue Overview", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("Revenue Overview", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         Box(
                             modifier = Modifier
                                 .background(Color(0xFF202336), RoundedCornerShape(8.dp))
@@ -1426,9 +1517,9 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 // Booking Status Donut Card
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF161824)),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
                     shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, Color(0xFF25283A)),
+                    border = BorderStroke(1.dp, PinkBorderSoft),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(
@@ -1478,7 +1569,7 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
                                 )
                             }
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("8,965", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                                Text("8,965", color = TextPrimary, fontWeight = FontWeight.Black, fontSize = 16.sp)
                                 Text("Total", color = TextSecondary, fontSize = 10.sp)
                             }
                         }
@@ -1503,13 +1594,13 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
 
                 // Quick Actions Card (6 Buttons Grid as in Screenshot)
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF161824)),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
                     shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, Color(0xFF25283A)),
+                    border = BorderStroke(1.dp, PinkBorderSoft),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("Quick Actions", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("Quick Actions", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1569,9 +1660,9 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
         // --- 5. RECENT BOOKINGS TABLE (EXACT MATCH) ---
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF161824)),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, Color(0xFF25283A)),
+                border = BorderStroke(1.dp, PinkBorderSoft),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -1580,7 +1671,7 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Recent Bookings", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("Recent Bookings", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         Box(
                             modifier = Modifier
                                 .background(PinkHighlight.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
@@ -1624,11 +1715,11 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column(modifier = Modifier.weight(1.1f)) {
-                                Text(bk.id, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                Text(bk.id, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                 Text(bk.dateTime, color = TextSecondary, fontSize = 8.sp)
                             }
                             Column(modifier = Modifier.weight(1.5f)) {
-                                Text(bk.user, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
+                                Text(bk.user, color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
                                 Text("w/ ${bk.model}", color = PinkHighlight, fontSize = 9.sp)
                             }
                             Text(
@@ -1663,9 +1754,9 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
         // --- 6. RECENT CASH COLLECTIONS TABLE (EXACT MATCH) ---
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF161824)),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, Color(0xFF25283A)),
+                border = BorderStroke(1.dp, PinkBorderSoft),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -1674,7 +1765,7 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text("Recent Cash Collections", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("Recent Cash Collections", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         Box(
                             modifier = Modifier
                                 .background(PinkHighlight.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
@@ -1717,10 +1808,10 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Column(modifier = Modifier.weight(1.2f)) {
-                                Text(coll.id, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                Text(coll.id, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                 Text("Ref: ${coll.bookingId}", color = TextSecondary, fontSize = 8.sp)
                             }
-                            Text(coll.agent, color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 11.sp, modifier = Modifier.weight(1.3f))
+                            Text(coll.agent, color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 11.sp, modifier = Modifier.weight(1.3f))
                             Text(
                                 coll.amount,
                                 color = Color.White,
@@ -1755,13 +1846,13 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 // System Overview Card
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF161824)),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
                     shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, Color(0xFF25283A)),
+                    border = BorderStroke(1.dp, PinkBorderSoft),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        Text("System Overview", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("System Overview", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1775,9 +1866,9 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
 
                 // Recent Notifications Card
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF161824)),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
                     shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, Color(0xFF25283A)),
+                    border = BorderStroke(1.dp, PinkBorderSoft),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -1786,7 +1877,7 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Recent Notifications", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Recent Notifications", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             Box(
                                 modifier = Modifier
                                     .background(PinkHighlight.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
@@ -1898,7 +1989,7 @@ private fun SystemOverviewRow(
             Spacer(modifier = Modifier.width(10.dp))
             Text(label, color = TextSecondary, fontSize = 12.sp)
         }
-        Text(value, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+        Text(value, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
     }
 }
 
@@ -1924,7 +2015,7 @@ private fun AdminNotificationItem(
                 Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(13.dp))
             }
             Spacer(modifier = Modifier.width(10.dp))
-            Text(text, color = Color.White, fontSize = 11.sp, maxLines = 1)
+            Text(text, color = TextPrimary, fontSize = 11.sp, maxLines = 1)
         }
         Spacer(modifier = Modifier.width(8.dp))
         Text(time, color = TextSecondary, fontSize = 9.sp)
@@ -1938,7 +2029,7 @@ private fun AdminLegendItemFull(color: Color, label: String, count: String) {
         Spacer(modifier = Modifier.width(6.dp))
         Text(label, color = TextSecondary, fontSize = 11.sp)
         Spacer(modifier = Modifier.width(4.dp))
-        Text(count, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+        Text(count, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 11.sp)
     }
 }
 
@@ -1951,7 +2042,7 @@ private fun QuickActionButtonTile(
     onClick: () -> Unit
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF202336)),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(10.dp),
         modifier = modifier.clickable { onClick() }
     ) {
@@ -1968,7 +2059,7 @@ private fun QuickActionButtonTile(
                 Icon(imageVector = icon, contentDescription = null, tint = color, modifier = Modifier.size(15.dp))
             }
             Spacer(modifier = Modifier.width(8.dp))
-            Text(label, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+            Text(label, color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Medium)
         }
     }
 }
@@ -1984,9 +2075,9 @@ fun AdminMetricCard(
     modifier: Modifier = Modifier
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF161824)),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(14.dp),
-        border = BorderStroke(1.dp, Color(0xFF25283A)),
+        border = BorderStroke(1.dp, PinkBorderSoft),
         modifier = modifier
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
@@ -2006,7 +2097,7 @@ fun AdminMetricCard(
                 }
             }
             Spacer(modifier = Modifier.height(6.dp))
-            Text(value, color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+            Text(value, color = TextPrimary, fontWeight = FontWeight.Black, fontSize = 16.sp)
             Spacer(modifier = Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(imageVector = Icons.Default.ArrowUpward, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(10.dp))
@@ -2050,7 +2141,7 @@ fun QuickActionRow(
             Icon(imageVector = icon, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(12.dp))
         }
         Spacer(modifier = Modifier.width(8.dp))
-        Text(label, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+        Text(label, color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -2066,7 +2157,7 @@ fun RecentNotificationItem(text: String, time: String, color: Color) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
             Box(modifier = Modifier.size(6.dp).background(color, CircleShape))
             Spacer(modifier = Modifier.width(8.dp))
-            Text(text, color = Color.White, fontSize = 11.sp, maxLines = 1)
+            Text(text, color = TextPrimary, fontSize = 11.sp, maxLines = 1)
         }
         Text(time, color = TextSecondary, fontSize = 9.sp)
     }
@@ -2075,35 +2166,134 @@ fun RecentNotificationItem(text: String, time: String, color: Color) {
 // ---------------- USER & MODEL VERIFICATION TAB ----------------
 @Composable
 fun AdminUsersTab(viewModel: AppViewModel) {
+    val context = LocalContext.current
     val models by viewModel.allModels.collectAsStateWithLifecycle()
-    var tabSelected by remember { mutableStateOf(0) } // 0: Models, 1: Clients, 2: Agents
+    val managedUsers = viewModel.managedUsers
+    var tabSelected by remember { mutableStateOf(0) } // 0: Verification Center, 1: All Users, 2: Models, 3: Cash Agents
+    var searchQuery by remember { mutableStateOf("") }
+    var filterStatus by remember { mutableStateOf("ALL") } // "ALL", "PENDING_PHONE", "PENDING_EMAIL", "VERIFIED"
+
+    // Modal state for manual code generation
+    var manualCodeModalUser by remember { mutableStateOf<com.example.viewmodel.ManagedUser?>(null) }
+    var manualCodeType by remember { mutableStateOf("PHONE") } // "PHONE" or "EMAIL"
+    var manualCodeInput by remember { mutableStateOf("${(100000..999999).random()}") }
+
+    // Count pending verifications
+    val pendingPhoneCount = managedUsers.count { !it.isPhoneVerified }
+    val pendingEmailCount = managedUsers.count { !it.isEmailVerified }
+    val totalPendingCount = managedUsers.count { !it.isPhoneVerified || !it.isEmailVerified }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(DarkBg)
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Text("User Management", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-
-        // Sub-tabs
+        // Header Row with Stats
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            listOf("Models (${models.size})", "Clients", "Cash Agents").forEachIndexed { idx, label ->
+            Column {
+                Text("User Verification & Management", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Manual code generation & 1-click verification gateway", color = TextSecondary, fontSize = 11.sp)
+            }
+            Surface(
+                color = if (totalPendingCount > 0) Color(0xFFFEF3C7) else Color(0xFFDCFCE7),
+                shape = RoundedCornerShape(8.dp),
+                border = BorderStroke(1.dp, if (totalPendingCount > 0) Color(0xFFFDE68A) else Color(0xFF86EFAC))
+            ) {
+                Text(
+                    text = if (totalPendingCount > 0) "$totalPendingCount Pending" else "All Verified ✓",
+                    color = if (totalPendingCount > 0) Color(0xFFD97706) else Color(0xFF16A34A),
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                )
+            }
+        }
+
+        // Sub-tabs Row
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            listOf(
+                "Verification Center ($totalPendingCount)" to 0,
+                "All Users (${managedUsers.size})" to 1,
+                "Models (${models.size})" to 2,
+                "Cash Agents" to 3
+            ).forEach { (label, idx) ->
                 val isSel = tabSelected == idx
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(if (isSel) PinkHighlight else DarkSurface)
-                        .clickable { tabSelected = idx }
-                        .padding(vertical = 8.dp),
-                    contentAlignment = Alignment.Center
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (isSel) PinkHighlight else DarkSurface,
+                    border = BorderStroke(1.dp, if (isSel) PinkHighlight else Color(0xFFFF85A6)),
+                    modifier = Modifier.clickable { tabSelected = idx }
                 ) {
-                    Text(label, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(
+                        label,
+                        color = if (isSel) Color.White else TextPrimary,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                    )
+                }
+            }
+        }
+
+        // Search & Filter Bar (for Verification Center and Users)
+        if (tabSelected == 0 || tabSelected == 1) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text("Search by name, phone (+880...), email...", color = TextSecondary, fontSize = 12.sp) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(18.dp)) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = PinkHighlight,
+                    unfocusedBorderColor = Color(0xFFFF85A6),
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary,
+                    focusedContainerColor = DarkSurface,
+                    unfocusedContainerColor = DarkSurface
+                ),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth().height(46.dp),
+                singleLine = true
+            )
+
+            // Filter Chips
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                listOf(
+                    "ALL" to "All (${managedUsers.size})",
+                    "PENDING_PHONE" to "⚠️ Needs Phone ($pendingPhoneCount)",
+                    "PENDING_EMAIL" to "⚠️ Needs Email ($pendingEmailCount)",
+                    "VERIFIED" to "✓ Fully Verified (${managedUsers.count { it.isPhoneVerified && it.isEmailVerified }})"
+                ).forEach { (key, label) ->
+                    val isSel = filterStatus == key
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = if (isSel) Color(0xFF2563EB) else DarkSurface,
+                        border = BorderStroke(1.dp, if (isSel) Color(0xFF2563EB) else Color(0xFFFF85A6)),
+                        modifier = Modifier.clickable { filterStatus = key }
+                    ) {
+                        Text(
+                            label,
+                            color = if (isSel) Color.White else TextSecondary,
+                            fontSize = 10.sp,
+                            fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
                 }
             }
         }
@@ -2112,7 +2302,252 @@ fun AdminUsersTab(viewModel: AppViewModel) {
             modifier = Modifier.fillMaxWidth().weight(1f),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            if (tabSelected == 0) {
+            // Tab 0 & 1: Verification Center / All Users List
+            if (tabSelected == 0 || tabSelected == 1) {
+                val displayUsers = managedUsers.filter { user ->
+                    val matchesSearch = searchQuery.isBlank() ||
+                        user.name.contains(searchQuery, ignoreCase = true) ||
+                        user.phone.contains(searchQuery, ignoreCase = true) ||
+                        user.email.contains(searchQuery, ignoreCase = true)
+
+                    val matchesFilter = when {
+                        tabSelected == 0 -> !user.isPhoneVerified || !user.isEmailVerified // Verification Center shows pending only
+                        filterStatus == "PENDING_PHONE" -> !user.isPhoneVerified
+                        filterStatus == "PENDING_EMAIL" -> !user.isEmailVerified
+                        filterStatus == "VERIFIED" -> user.isPhoneVerified && user.isEmailVerified
+                        else -> true
+                    }
+                    matchesSearch && matchesFilter
+                }
+
+                if (displayUsers.isEmpty()) {
+                    item {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = Color(0xFF00E676), modifier = Modifier.size(36.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("No pending verification requests found", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("All users in this category are up to date and verified.", color = TextSecondary, fontSize = 11.sp)
+                            }
+                        }
+                    }
+                } else {
+                    items(displayUsers) { user ->
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(1.dp, if (!user.isPhoneVerified || !user.isEmailVerified) Color(0xFFFF9800).copy(alpha = 0.5f) else Color(0xFF4CAF50).copy(alpha = 0.3f)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                // Top Row: Avatar, Name, Role badge, ID
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(40.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(0xFF374151))
+                                        ) {
+                                            if (user.avatarUrl.isNotEmpty()) {
+                                                SubcomposeAsyncImage(model = user.avatarUrl, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                                            } else {
+                                                Icon(Icons.Default.Person, contentDescription = null, tint = Color.LightGray, modifier = Modifier.align(Alignment.Center))
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Column {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(user.name, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                                if (user.verifiedByAdmin) {
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text("👑 Admin Approved", color = Color(0xFF00E676), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                            }
+                                            Text("Role: ${user.role} • ID: #${user.id}", color = TextSecondary, fontSize = 10.sp)
+                                        }
+                                    }
+
+                                    // Overall Status Pill
+                                    val isFull = user.isPhoneVerified && user.isEmailVerified
+                                    Box(
+                                        modifier = Modifier
+                                            .background(if (isFull) Color(0xFF16A34A).copy(alpha = 0.2f) else Color(0xFFD97706).copy(alpha = 0.2f), RoundedCornerShape(6.dp))
+                                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                                    ) {
+                                        Text(
+                                            text = if (isFull) "VERIFIED" else "PENDING",
+                                            color = if (isFull) Color(0xFF00E676) else Color(0xFFFFB74D),
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Black
+                                        )
+                                    }
+                                }
+
+                                HorizontalDivider(color = Color.White.copy(alpha = 0.08f), thickness = 0.8.dp)
+
+                                // Contact Status Rows
+                                // 1. Phone
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Phone, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(user.phone, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        if (user.isPhoneVerified) {
+                                            Text("Phone Verified ✓", color = Color(0xFF00E676), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        } else {
+                                            Text("Phone Unverified ⚠️", color = Color(0xFFFF9800), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+
+                                // 2. Email
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.Mail, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(user.email, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                    }
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        if (user.isEmailVerified) {
+                                            Text("Email Verified ✓", color = Color(0xFF00E676), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        } else {
+                                            Text("Email Unverified ⚠️", color = Color(0xFFFF9800), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+
+                                // Active Manual Code Badge if present
+                                if (!user.pendingPhoneOtp.isNullOrEmpty() || !user.pendingEmailOtp.isNullOrEmpty()) {
+                                    Surface(
+                                        color = Color(0xFF2A1B60),
+                                        shape = RoundedCornerShape(8.dp),
+                                        border = BorderStroke(1.dp, PinkHighlight.copy(alpha = 0.5f)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(Icons.Default.VpnKey, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(14.dp))
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = "Active Manual OTP: ${user.pendingPhoneOtp ?: user.pendingEmailOtp}",
+                                                    color = PinkHighlight,
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 11.sp
+                                                )
+                                            }
+                                            TextButton(
+                                                onClick = {
+                                                    val code = user.pendingPhoneOtp ?: user.pendingEmailOtp ?: ""
+                                                    val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                                    clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("OTP", code))
+                                                    Toast.makeText(context, "Code $code copied to clipboard!", Toast.LENGTH_SHORT).show()
+                                                },
+                                                contentPadding = PaddingValues(0.dp)
+                                            ) {
+                                                Text("Copy Code", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
+                                }
+
+                                HorizontalDivider(color = Color.White.copy(alpha = 0.08f), thickness = 0.8.dp)
+
+                                // Action Buttons Row: [🔑 Send Manual Code] [✓ Direct Verify]
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    // Button 1: Send Manual Code
+                                    OutlinedButton(
+                                        onClick = {
+                                            manualCodeModalUser = user
+                                            manualCodeType = if (!user.isPhoneVerified) "PHONE" else "EMAIL"
+                                            manualCodeInput = "${(100000..999999).random()}"
+                                        },
+                                        shape = RoundedCornerShape(8.dp),
+                                        border = BorderStroke(1.dp, PinkHighlight),
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                        modifier = Modifier.weight(1f).height(36.dp)
+                                    ) {
+                                        Icon(Icons.Default.VpnKey, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(14.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text("Send Manual Code", color = PinkHighlight, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+
+                                    // Button 2: Direct Verify
+                                    if (!user.isPhoneVerified || !user.isEmailVerified) {
+                                        Button(
+                                            onClick = {
+                                                val verifyType = when {
+                                                    !user.isPhoneVerified && !user.isEmailVerified -> "BOTH"
+                                                    !user.isPhoneVerified -> "PHONE"
+                                                    else -> "EMAIL"
+                                                }
+                                                viewModel.adminDirectVerifyUser(user.id, verifyType)
+                                                Toast.makeText(context, "${user.name} verified by Admin!", Toast.LENGTH_SHORT).show()
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
+                                            shape = RoundedCornerShape(8.dp),
+                                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                            modifier = Modifier.weight(1f).height(36.dp)
+                                        ) {
+                                            Icon(Icons.Default.Verified, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = when {
+                                                    !user.isPhoneVerified && !user.isEmailVerified -> "Verify Both ✓"
+                                                    !user.isPhoneVerified -> "Verify Phone ✓"
+                                                    else -> "Verify Email ✓"
+                                                },
+                                                color = Color.White,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        }
+                                    } else {
+                                        Surface(
+                                            color = Color(0xFF16A34A).copy(alpha = 0.2f),
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.weight(1f).height(36.dp)
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                Text("Account Active & Verified ✓", color = Color(0xFF00E676), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if (tabSelected == 2) {
+                // Models Tab
                 items(models) { m ->
                     Card(
                         colors = CardDefaults.cardColors(containerColor = DarkSurface),
@@ -2128,13 +2563,13 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                                 Box(
                                     modifier = Modifier
                                         .size(40.dp)
-                                        .background(Color(0xFF2E2E3E), CircleShape)
+                                        .background(Color(0xFFFF85A6), CircleShape)
                                 ) {
                                     Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = Color.LightGray, modifier = Modifier.align(Alignment.Center))
                                 }
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column {
-                                    Text(m.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Text(m.name, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                     Text("Hourly: ৳${m.hourlyRate} • ${m.location}", color = TextSecondary, fontSize = 10.sp)
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Box(modifier = Modifier.size(6.dp).background(if (m.isOnline) OnlineGreen else Color.Gray, CircleShape))
@@ -2155,19 +2590,8 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                         }
                     }
                 }
-            } else if (tabSelected == 1) {
-                item {
-                    Column(
-                        modifier = Modifier.fillMaxWidth().padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(imageVector = Icons.Default.People, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(48.dp))
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text("Client Database Active", color = Color.White, fontWeight = FontWeight.Bold)
-                        Text("12,568 registered users", color = TextSecondary, fontSize = 11.sp, textAlign = TextAlign.Center)
-                    }
-                }
             } else {
+                // Cash Agents Tab
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         listOf("Agent Sumon", "Agent Rafiq", "Agent Arif", "Agent Jibon", "Agent Hasan").forEach { agent ->
@@ -2181,7 +2605,7 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column {
-                                        Text(agent, color = Color.White, fontWeight = FontWeight.Bold)
+                                        Text(agent, color = TextPrimary, fontWeight = FontWeight.Bold)
                                         Text("Commission Earned: ৳12,450", color = TextSecondary, fontSize = 10.sp)
                                     }
                                     Box(
@@ -2198,6 +2622,109 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                 }
             }
         }
+    }
+
+    // Modal: Admin Send Manual Code Dialog
+    if (manualCodeModalUser != null) {
+        val targetUser = manualCodeModalUser!!
+        AlertDialog(
+            onDismissRequest = { manualCodeModalUser = null },
+            containerColor = DarkSurface,
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.VpnKey, contentDescription = null, tint = PinkHighlight)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Generate Manual OTP Code", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = "Issue a manual verification code for ${targetUser.name}. If user reported SMS/Email gateway failure, this code can be entered directly in their profile or provided to them.",
+                        color = TextSecondary,
+                        fontSize = 12.sp
+                    )
+
+                    // Select Target Channel
+                    Text("Target Verification Channel:", color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        listOf("PHONE" to "📱 Phone (${targetUser.phone})", "EMAIL" to "✉️ Email (${targetUser.email})").forEach { (type, label) ->
+                            val isSel = manualCodeType == type
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isSel) PinkHighlight else Color(0xFF374151),
+                                modifier = Modifier.weight(1f).clickable { manualCodeType = type }
+                            ) {
+                                Text(
+                                    label,
+                                    color = Color.White,
+                                    fontSize = 10.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(8.dp),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                    }
+
+                    // Code Input with Randomizer
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = manualCodeInput,
+                            onValueChange = { if (it.length <= 6) manualCodeInput = it },
+                            label = { Text("6-Digit Manual OTP") },
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedTextColor = TextPrimary,
+                                unfocusedTextColor = TextPrimary,
+                                focusedBorderColor = PinkHighlight,
+                                unfocusedBorderColor = Color(0xFFFF85A6)
+                            ),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f),
+                            singleLine = true
+                        )
+                        Button(
+                            onClick = { manualCodeInput = "${(100000..999999).random()}" },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF374151)),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.height(50.dp)
+                        ) {
+                            Text("🎲 New Code", fontSize = 10.sp)
+                        }
+                    }
+
+                    Text(
+                        text = "⚡ Dispatched code is saved to user's profile and active immediately.",
+                        color = Color(0xFF00E676),
+                        fontSize = 10.sp
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val code = viewModel.adminSendManualCode(targetUser.id, manualCodeType, manualCodeInput)
+                        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                        clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("Manual OTP", code))
+                        Toast.makeText(context, "Manual code [$code] issued and copied to clipboard!", Toast.LENGTH_LONG).show()
+                        manualCodeModalUser = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight)
+                ) {
+                    Text("Dispatch Code & Copy ✓", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { manualCodeModalUser = null }) {
+                    Text("Cancel", color = TextSecondary)
+                }
+            }
+        )
     }
 }
 
@@ -2243,7 +2770,7 @@ fun AdminEscrowReviewTab(viewModel: AppViewModel) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column {
-                        Text("💰 Admin Escrow & Proof Verification", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                        Text("💰 Admin Escrow & Proof Verification", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                         Text("Funds held safely until proof inspection", color = TextSecondary, fontSize = 11.sp)
                     }
                     Box(
@@ -2265,7 +2792,7 @@ fun AdminEscrowReviewTab(viewModel: AppViewModel) {
                 ) {
                     Column {
                         Text("Total Escrow Balance", color = TextSecondary, fontSize = 10.sp)
-                        Text("৳${totalEscrowVolume.toInt()}", color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                        Text("৳${totalEscrowVolume.toInt()}", color = TextPrimary, fontWeight = FontWeight.Black, fontSize = 18.sp)
                     }
                     Column {
                         Text("Model Share", color = TextSecondary, fontSize = 10.sp)
@@ -2304,7 +2831,7 @@ fun AdminEscrowReviewTab(viewModel: AppViewModel) {
                         .clickable { selectedFilter = key }
                         .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
-                    Text(label, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text(label, color = if (isSel) Color.White else TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -2340,7 +2867,7 @@ fun AdminEscrowReviewTab(viewModel: AppViewModel) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text("Booking #${booking.id}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text("Booking #${booking.id}", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(booking.serviceType, color = TextSecondary, fontSize = 11.sp)
                                 }
@@ -2374,7 +2901,7 @@ fun AdminEscrowReviewTab(viewModel: AppViewModel) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column {
-                                    Text("Model: ${booking.modelName}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    Text("Model: ${booking.modelName}", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                     Text("Client ID: ${booking.userId}", color = TextSecondary, fontSize = 10.sp)
                                     Text("Location: ${booking.location}", color = TextSecondary, fontSize = 10.sp)
                                 }
@@ -2416,7 +2943,7 @@ fun AdminEscrowReviewTab(viewModel: AppViewModel) {
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text("📸 Service Completion Proof", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                            Text("📸 Service Completion Proof", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                             TextButton(onClick = { showProofDetailsModal = booking }) {
                                                 Text("Inspect All Proofs 🔍", color = PinkHighlight, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                             }
@@ -2478,7 +3005,7 @@ fun AdminEscrowReviewTab(viewModel: AppViewModel) {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .background(Color(0xFF2E2E3E), RoundedCornerShape(8.dp))
+                                            .background(Color(0xFFFF85A6), RoundedCornerShape(8.dp))
                                             .padding(vertical = 8.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
@@ -2498,7 +3025,7 @@ fun AdminEscrowReviewTab(viewModel: AppViewModel) {
         val targetBooking = showReuploadDialog!!
         AlertDialog(
             onDismissRequest = { showReuploadDialog = null },
-            title = { Text("Request Proof Re-upload", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = { Text("Request Proof Re-upload", color = TextPrimary, fontWeight = FontWeight.Bold) },
             text = {
                 Column {
                     Text("Provide reason why the proof photo/video is rejected or incomplete:", color = TextSecondary, fontSize = 12.sp)
@@ -2509,7 +3036,7 @@ fun AdminEscrowReviewTab(viewModel: AppViewModel) {
                         placeholder = { Text("E.g. Selfie photo with client is blurry or missing GPS location tag.", color = Color.Gray) },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                            focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                            focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)
                         ),
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -2542,7 +3069,7 @@ fun AdminEscrowReviewTab(viewModel: AppViewModel) {
         val b = showProofDetailsModal!!
         AlertDialog(
             onDismissRequest = { showProofDetailsModal = null },
-            title = { Text("Inspect Service Proofs - Booking #${b.id}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+            title = { Text("Inspect Service Proofs - Booking #${b.id}", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp) },
             text = {
                 Column(
                     modifier = Modifier.verticalScroll(rememberScrollState()),
@@ -2640,7 +3167,7 @@ fun ProofViewerDialog(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text(title, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 IconButton(onClick = onDismiss) {
                     Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = Color.Gray)
                 }
@@ -2755,7 +3282,7 @@ fun DepositWorkflowDialog(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 // UNIVERSAL 3 PAYMENT GATEWAY BUTTONS - ALWAYS VISIBLE REGARDLESS OF COUNTRY
-                Text("Available Payment Gateways (Universal):", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("Available Payment Gateways (Universal):", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
 
                 // 1. Google Pay
                 val isGPaySelected = selectedTopGateway == "GOOGLE_PAY"
@@ -2770,7 +3297,7 @@ fun DepositWorkflowDialog(
                     colors = CardDefaults.cardColors(
                         containerColor = if (isGPaySelected) Color(0xFF00E676).copy(alpha = 0.15f) else DarkSurface
                     ),
-                    border = BorderStroke(1.5.dp, if (isGPaySelected) Color(0xFF00E676) else Color(0xFF2E2E3E)),
+                    border = BorderStroke(1.5.dp, if (isGPaySelected) Color(0xFF00E676) else Color(0xFFFF85A6)),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
@@ -2791,7 +3318,7 @@ fun DepositWorkflowDialog(
                             }
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                Text("🟢 Google Pay", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("🟢 Google Pay", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                 Text("Automatic Payment Gateway", color = TextSecondary, fontSize = 11.sp)
                             }
                         }
@@ -2820,7 +3347,7 @@ fun DepositWorkflowDialog(
                     colors = CardDefaults.cardColors(
                         containerColor = if (isAlipaySelected) Color(0xFF1E88E5).copy(alpha = 0.15f) else DarkSurface
                     ),
-                    border = BorderStroke(1.5.dp, if (isAlipaySelected) Color(0xFF1E88E5) else Color(0xFF2E2E3E)),
+                    border = BorderStroke(1.5.dp, if (isAlipaySelected) Color(0xFF1E88E5) else Color(0xFFFF85A6)),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
@@ -2841,7 +3368,7 @@ fun DepositWorkflowDialog(
                             }
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                Text("🔵 Alipay", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("🔵 Alipay", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                 Text("Automatic Payment Gateway", color = TextSecondary, fontSize = 11.sp)
                             }
                         }
@@ -2870,7 +3397,7 @@ fun DepositWorkflowDialog(
                     colors = CardDefaults.cardColors(
                         containerColor = if (isCashAgentSelected) PinkHighlight.copy(alpha = 0.15f) else DarkSurface
                     ),
-                    border = BorderStroke(1.5.dp, if (isCashAgentSelected) PinkHighlight else Color(0xFF2E2E3E)),
+                    border = BorderStroke(1.5.dp, if (isCashAgentSelected) PinkHighlight else Color(0xFFFF85A6)),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Row(
@@ -2891,7 +3418,7 @@ fun DepositWorkflowDialog(
                             }
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
-                                Text("👤 Cash Agent", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("👤 Cash Agent", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                 Text("Manual Verification Workflow", color = TextSecondary, fontSize = 11.sp)
                             }
                         }
@@ -2913,7 +3440,7 @@ fun DepositWorkflowDialog(
                 if (selectedTopGateway == "GOOGLE_PAY" || selectedTopGateway == "ALIPAY") {
                     val gwName = if (selectedTopGateway == "GOOGLE_PAY") "Google Pay" else "Alipay"
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("Enter Amount ($gwName Automatic Checkout):", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("Enter Amount ($gwName Automatic Checkout):", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         OutlinedTextField(
                             value = depositAmountInput,
                             onValueChange = { depositAmountInput = it },
@@ -2921,7 +3448,7 @@ fun DepositWorkflowDialog(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)
                             ),
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -2998,7 +3525,7 @@ fun DepositWorkflowDialog(
                         }
 
                         // Step 1: Country
-                        Text("1. Select Country (Cash Agent Network):", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("1. Select Country (Cash Agent Network):", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -3010,7 +3537,7 @@ fun DepositWorkflowDialog(
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(if (isSel) PinkHighlight else Color(0xFF2E2E3E))
+                                        .background(if (isSel) PinkHighlight else Color(0xFFFF85A6))
                                         .clickable {
                                             selectedCountry = c
                                             val filtered = allAgents.filter { it.country.equals(c, ignoreCase = true) }
@@ -3018,13 +3545,13 @@ fun DepositWorkflowDialog(
                                         }
                                         .padding(horizontal = 12.dp, vertical = 6.dp)
                                 ) {
-                                    Text(c, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Text(c, color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
 
                         // Step 2: Verified Agent Selection
-                        Text("2. Select Verified Cash Agent ($selectedCountry):", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("2. Select Verified Cash Agent ($selectedCountry):", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         if (countryAgents.isEmpty()) {
                             Text("No local cash agents currently listed for $selectedCountry. Select 'Bangladesh' or 'China' for active agents.", color = TextSecondary, fontSize = 11.sp)
                         } else {
@@ -3038,7 +3565,7 @@ fun DepositWorkflowDialog(
                                         colors = CardDefaults.cardColors(
                                             containerColor = if (isSel) Color(0xFF1E203E) else Color(0xFF181A26)
                                         ),
-                                        border = BorderStroke(1.dp, if (isSel) PinkHighlight else Color(0xFF2E2E3E)),
+                                        border = BorderStroke(1.dp, if (isSel) PinkHighlight else Color(0xFFFF85A6)),
                                         shape = RoundedCornerShape(10.dp)
                                     ) {
                                         Row(
@@ -3048,7 +3575,7 @@ fun DepositWorkflowDialog(
                                         ) {
                                             Column(modifier = Modifier.weight(1f)) {
                                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                                    Text(agent.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                                    Text(agent.name, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                                     Spacer(modifier = Modifier.width(6.dp))
                                                     Box(
                                                         modifier = Modifier
@@ -3076,7 +3603,7 @@ fun DepositWorkflowDialog(
                         // Step 3: Agent Payment Account Details
                         Card(
                             colors = CardDefaults.cardColors(containerColor = Color(0xFF1E202E)),
-                            border = BorderStroke(1.dp, Color(0xFF2E2E3E)),
+                            border = BorderStroke(1.dp, Color(0xFFFF85A6)),
                             shape = RoundedCornerShape(10.dp)
                         ) {
                             Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -3096,7 +3623,7 @@ fun DepositWorkflowDialog(
                         }
 
                         // Step 4: Amount, Transaction ID & Screenshot Proof
-                        Text("3. Amount, Transaction ID & Screenshot Proof:", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("3. Amount, Transaction ID & Screenshot Proof:", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         OutlinedTextField(
                             value = depositAmountInput,
                             onValueChange = { depositAmountInput = it },
@@ -3104,7 +3631,7 @@ fun DepositWorkflowDialog(
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)
                             ),
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -3115,7 +3642,7 @@ fun DepositWorkflowDialog(
                             label = { Text("Transaction ID / Ref (e.g. TXN100293)", color = TextSecondary) },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)
                             ),
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -3127,7 +3654,7 @@ fun DepositWorkflowDialog(
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(6.dp))
-                                        .background(if (isSel) Color(0xFF2196F3) else Color(0xFF2E2E3E))
+                                        .background(if (isSel) Color(0xFF2196F3) else Color(0xFFFF85A6))
                                         .clickable { selectedProofUrl = url }
                                         .padding(horizontal = 8.dp, vertical = 4.dp)
                                 ) {
@@ -3142,7 +3669,7 @@ fun DepositWorkflowDialog(
                             label = { Text("Note to Admin (Optional)", color = TextSecondary) },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)
                             ),
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -3284,13 +3811,13 @@ fun WithdrawalWorkflowDialog(
                     }
                 }
 
-                Text("Withdrawal Amount (BDT):", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("Withdrawal Amount (BDT):", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 OutlinedTextField(
                     value = withdrawAmountInput,
                     onValueChange = { withdrawAmountInput = it; errorMessage = null },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -3302,7 +3829,7 @@ fun WithdrawalWorkflowDialog(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(if (isSel) PinkHighlight else Color(0xFF2E2E3E))
+                                .background(if (isSel) PinkHighlight else Color(0xFFFF85A6))
                                 .clickable { selectedMethod = m }
                                 .padding(horizontal = 8.dp, vertical = 6.dp)
                         ) {
@@ -3317,7 +3844,7 @@ fun WithdrawalWorkflowDialog(
                     label = { Text("Account / Phone Number", color = TextSecondary) },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -3328,7 +3855,7 @@ fun WithdrawalWorkflowDialog(
                     label = { Text("Account Holder Name", color = TextSecondary) },
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -3402,14 +3929,14 @@ fun AdminCollectionsTab(viewModel: AppViewModel) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text("Admin Ledger & Deposit Verification", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Admin Ledger & Deposit Verification", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Text("Verify transaction IDs & agent accounts before approving balance", color = TextSecondary, fontSize = 11.sp)
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Button(
                     onClick = { activeTab = 0 },
-                    colors = ButtonDefaults.buttonColors(containerColor = if (activeTab == 0) PinkHighlight else Color(0xFF2E2E3E)),
+                    colors = ButtonDefaults.buttonColors(containerColor = if (activeTab == 0) PinkHighlight else Color(0xFFFF85A6)),
                     shape = RoundedCornerShape(8.dp),
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                     modifier = Modifier.height(32.dp)
@@ -3419,7 +3946,7 @@ fun AdminCollectionsTab(viewModel: AppViewModel) {
 
                 Button(
                     onClick = { activeTab = 1 },
-                    colors = ButtonDefaults.buttonColors(containerColor = if (activeTab == 1) PinkHighlight else Color(0xFF2E2E3E)),
+                    colors = ButtonDefaults.buttonColors(containerColor = if (activeTab == 1) PinkHighlight else Color(0xFFFF85A6)),
                     shape = RoundedCornerShape(8.dp),
                     contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                     modifier = Modifier.height(32.dp)
@@ -3455,7 +3982,7 @@ fun AdminCollectionsTab(viewModel: AppViewModel) {
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Column {
-                                        Text("Deposit #${dep.id}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                        Text("Deposit #${dep.id}", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                         Text("User: ${dep.userName} (${dep.userId})", color = TextSecondary, fontSize = 11.sp)
                                     }
 
@@ -3483,7 +4010,7 @@ fun AdminCollectionsTab(viewModel: AppViewModel) {
                                 ) {
                                     Column {
                                         Text("Payment Agent", color = TextSecondary, fontSize = 10.sp)
-                                        Text("${dep.agentName} • ${dep.country}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                        Text("${dep.agentName} • ${dep.country}", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                         Text("Method: ${dep.paymentMethod}", color = TextSecondary, fontSize = 10.sp)
                                     }
 
@@ -3503,7 +4030,7 @@ fun AdminCollectionsTab(viewModel: AppViewModel) {
                                 ) {
                                     Column {
                                         Text("Transaction ID:", color = TextSecondary, fontSize = 10.sp)
-                                        Text(dep.transactionId, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                        Text(dep.transactionId, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                     }
 
                                     Button(
@@ -3526,7 +4053,7 @@ fun AdminCollectionsTab(viewModel: AppViewModel) {
                                         placeholder = { Text("Admin Note / Agent Ledger Cross-check note...", color = Color.Gray, fontSize = 10.sp) },
                                         colors = OutlinedTextFieldDefaults.colors(
                                             focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                            focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                            focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)
                                         ),
                                         modifier = Modifier.fillMaxWidth()
                                     )
@@ -3702,7 +4229,7 @@ fun AdminCashAgentsTab(viewModel: AppViewModel) {
             ) {
                 Column(modifier = Modifier.padding(10.dp)) {
                     Text("Total Cash Agents", color = TextSecondary, fontSize = 10.sp)
-                    Text("${agents.size}", color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                    Text("${agents.size}", color = TextPrimary, fontWeight = FontWeight.Black, fontSize = 18.sp)
                 }
             }
 
@@ -3735,7 +4262,7 @@ fun AdminCashAgentsTab(viewModel: AppViewModel) {
             leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(18.dp)) },
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)
             ),
             modifier = Modifier.fillMaxWidth()
         )
@@ -3751,7 +4278,7 @@ fun AdminCashAgentsTab(viewModel: AppViewModel) {
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(if (isSel) PinkHighlight else Color(0xFF2E2E3E))
+                        .background(if (isSel) PinkHighlight else Color(0xFFFF85A6))
                         .clickable { selectedCountryFilter = country }
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
@@ -3783,7 +4310,7 @@ fun AdminCashAgentsTab(viewModel: AppViewModel) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(agent.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text(agent.name, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Box(
                                         modifier = Modifier
@@ -3817,7 +4344,7 @@ fun AdminCashAgentsTab(viewModel: AppViewModel) {
                             ) {
                                 Column {
                                     Text("Country / Region: ${agent.country}", color = TextSecondary, fontSize = 11.sp)
-                                    Text("Channel: ${agent.paymentMethod}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                    Text("Channel: ${agent.paymentMethod}", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                     Text("Account: ${agent.accountNumber}", color = PinkHighlight, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                     if (agent.accountHolder.isNotEmpty()) {
                                         Text("Holder: ${agent.accountHolder}", color = TextSecondary, fontSize = 11.sp)
@@ -3858,7 +4385,7 @@ fun AdminCashAgentsTab(viewModel: AppViewModel) {
 
                                     Button(
                                         onClick = { editingAgent = agent },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E2E3E)),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF85A6)),
                                         shape = RoundedCornerShape(6.dp),
                                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
                                         modifier = Modifier.height(28.dp)
@@ -3933,7 +4460,7 @@ fun AddOrEditCashAgentModal(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(if (agent == null) "Add Cash Agent" else "Edit Cash Agent Configuration", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text(if (agent == null) "Add Cash Agent" else "Edit Cash Agent Configuration", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         },
         text = {
             Column(
@@ -3946,7 +4473,7 @@ fun AddOrEditCashAgentModal(
                     value = name,
                     onValueChange = { name = it },
                     label = { Text("Agent Full / Outlet Name", color = TextSecondary) },
-                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -3955,7 +4482,7 @@ fun AddOrEditCashAgentModal(
                         value = agentCode,
                         onValueChange = { agentCode = it },
                         label = { Text("Agent Code", color = TextSecondary) },
-                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)),
                         modifier = Modifier.weight(1f)
                     )
 
@@ -3963,7 +4490,7 @@ fun AddOrEditCashAgentModal(
                         value = phone,
                         onValueChange = { phone = it },
                         label = { Text("Phone Contact", color = TextSecondary) },
-                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -3980,7 +4507,7 @@ fun AddOrEditCashAgentModal(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(if (isSel) PinkHighlight else Color(0xFF2E2E3E))
+                                .background(if (isSel) PinkHighlight else Color(0xFFFF85A6))
                                 .clickable { country = c }
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
@@ -4001,7 +4528,7 @@ fun AddOrEditCashAgentModal(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(if (isSel) Color(0xFF2196F3) else Color(0xFF2E2E3E))
+                                .background(if (isSel) Color(0xFF2196F3) else Color(0xFFFF85A6))
                                 .clickable { paymentMethod = m }
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
@@ -4014,7 +4541,7 @@ fun AddOrEditCashAgentModal(
                     value = accountNumber,
                     onValueChange = { accountNumber = it },
                     label = { Text("Account Number / Wallet ID", color = TextSecondary) },
-                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -4022,7 +4549,7 @@ fun AddOrEditCashAgentModal(
                     value = accountHolder,
                     onValueChange = { accountHolder = it },
                     label = { Text("Account Holder Name", color = TextSecondary) },
-                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                    colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)),
                     modifier = Modifier.fillMaxWidth()
                 )
 
@@ -4032,7 +4559,7 @@ fun AddOrEditCashAgentModal(
                         onValueChange = { commissionRateInput = it },
                         label = { Text("Comm %", color = TextSecondary) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)),
                         modifier = Modifier.weight(1f)
                     )
 
@@ -4041,7 +4568,7 @@ fun AddOrEditCashAgentModal(
                         onValueChange = { minLimitInput = it },
                         label = { Text("Min Limit", color = TextSecondary) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)),
                         modifier = Modifier.weight(1f)
                     )
 
@@ -4050,7 +4577,7 @@ fun AddOrEditCashAgentModal(
                         onValueChange = { maxLimitInput = it },
                         label = { Text("Max Limit", color = TextSecondary) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)),
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -4062,7 +4589,7 @@ fun AddOrEditCashAgentModal(
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
-                                .background(if (isSel) PinkHighlight else Color(0xFF2E2E3E))
+                                .background(if (isSel) PinkHighlight else Color(0xFFFF85A6))
                                 .clickable { verificationStatus = st }
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
@@ -4120,7 +4647,7 @@ fun AdminWalletsTab(viewModel: AppViewModel) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Wallet & Withdrawal Approvals", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Text("Wallet & Withdrawal Approvals", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
 
         Card(
             colors = CardDefaults.cardColors(containerColor = DarkSurface),
@@ -4132,7 +4659,7 @@ fun AdminWalletsTab(viewModel: AppViewModel) {
             ) {
                 Column {
                     Text("Total Withdrawal Requests", color = TextSecondary, fontSize = 11.sp)
-                    Text("${withdrawals.size} Requests", color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                    Text("${withdrawals.size} Requests", color = TextPrimary, fontWeight = FontWeight.Black, fontSize = 18.sp)
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Text("Pending Payout Volume", color = TextSecondary, fontSize = 11.sp)
@@ -4164,7 +4691,7 @@ fun AdminWalletsTab(viewModel: AppViewModel) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column {
-                                    Text("Withdrawal #${wd.id}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Text("Withdrawal #${wd.id}", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                     Text("Applicant: ${wd.applicantName} (${wd.applicantRole})", color = TextSecondary, fontSize = 10.sp)
                                 }
 
@@ -4190,7 +4717,7 @@ fun AdminWalletsTab(viewModel: AppViewModel) {
                             ) {
                                 Column {
                                     Text("Channel: ${wd.paymentMethod}", color = TextSecondary, fontSize = 10.sp)
-                                    Text("Account: ${wd.accountNumber} (${wd.accountHolder})", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                    Text("Account: ${wd.accountNumber} (${wd.accountHolder})", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                                 }
                                 Column(horizontalAlignment = Alignment.End) {
                                     Text("৳${wd.amount.toInt()}", color = PinkHighlight, fontWeight = FontWeight.Black, fontSize = 16.sp)
@@ -4265,14 +4792,14 @@ fun AdminSettingsTab(viewModel: AppViewModel) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("System Settings", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Text("System Settings", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
 
         Card(
             colors = CardDefaults.cardColors(containerColor = DarkSurface),
             shape = RoundedCornerShape(12.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Commission Rates", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text("Commission Rates", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 
                 Column {
                     Text("Client Marketplace Fee (%)", color = TextSecondary, fontSize = 11.sp)
@@ -4297,7 +4824,7 @@ fun AdminSettingsTab(viewModel: AppViewModel) {
                 ) {
                     Column {
                         Text("Cash Agent Collection Fee", color = TextSecondary, fontSize = 11.sp)
-                        Text("5% per collection", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("5% per collection", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     }
                     Button(
                         onClick = { viewModel.addNotification("Settings Saved", "Global marketplace fee adjusted to $feePercentage%", "System") },
@@ -4315,12 +4842,12 @@ fun AdminSettingsTab(viewModel: AppViewModel) {
             shape = RoundedCornerShape(12.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Database Backup", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text("Database Backup", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 Text("Initiate full backup of all SQLite & server models.", color = TextSecondary, fontSize = 11.sp)
                 Spacer(modifier = Modifier.height(4.dp))
                 Button(
                     onClick = { viewModel.addNotification("Backup Success", "Full DB dump saved locally.", "System") },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E2E3E)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF85A6)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text("Trigger Database Backup", fontSize = 11.sp)
@@ -4337,20 +4864,52 @@ fun AdminSettingsTab(viewModel: AppViewModel) {
 
 @Composable
 fun CashAgentDashboardTab(viewModel: AppViewModel) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val collections by viewModel.cashCollections.collectAsStateWithLifecycle()
+    val allOrders by viewModel.allB2BOrders.collectAsStateWithLifecycle()
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+
+    var isAgentOnline by remember { mutableStateOf(true) }
+    var selectedFilter by remember { mutableStateOf("ALL") }
+    var selectedOrderForChat by remember { mutableStateOf<B2BOrder?>(null) }
+    var showAddFloatDialog by remember { mutableStateOf(false) }
+    var showAccountQrDialog by remember { mutableStateOf(false) }
+    var orderToRelease by remember { mutableStateOf<B2BOrder?>(null) }
+
     val pendingCount = collections.count { it.status == "PENDING" }
     val paidCount = collections.count { it.status == "PAID" }
     val totalCollected = collections.filter { it.status == "PAID" }.sumOf { it.amount }
-    val commissionEarned = totalCollected * (viewModel.agentCommissionRate / 100.0)
+    val commissionEarned = totalCollected * (viewModel.agentCommissionRate / 100.0) + 6250.0
+
+    val activeB2BOrders = remember(allOrders) {
+        allOrders.filter { it.status != "RELEASED" && it.status != "CANCELLED" }
+    }
+    val escrowLockedTotal = remember(activeB2BOrders) {
+        activeB2BOrders.sumOf { it.amount }
+    }
+    val completedCount = remember(allOrders) {
+        allOrders.count { it.status == "RELEASED" }
+    }
+
+    val filteredOrders = remember(allOrders, selectedFilter) {
+        when (selectedFilter) {
+            "DEPOSIT" -> allOrders.filter { it.type == "DEPOSIT" }
+            "WITHDRAWAL" -> allOrders.filter { it.type == "WITHDRAWAL" }
+            "ESCROW" -> allOrders.filter { it.status == "PENDING_PAYMENT" || it.status == "PAYMENT_SUBMITTED" }
+            "COMPLETED" -> allOrders.filter { it.status == "RELEASED" }
+            else -> allOrders
+        }
+    }
 
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .background(DarkBg),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // Welcome Header
+        // 1. Top Bar Header & Online Status Switcher
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -4358,59 +4917,601 @@ fun CashAgentDashboardTab(viewModel: AppViewModel) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("Assalamu Alaikum,", color = TextSecondary, fontSize = 11.sp)
-                    Text("Agent Sumon", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("MODOL CONNECT", color = PinkHighlight, fontWeight = FontWeight.Black, fontSize = 13.sp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .background(Color(0xFF00E676).copy(alpha = 0.18f), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text("B2B P2P ESCROW", color = Color(0xFF00E676), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    Text("B2B Cash Agent Platform", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                 }
-                Box(
-                    modifier = Modifier
-                        .background(Color(0xFF2196F3).copy(alpha = 0.15f), RoundedCornerShape(10.dp))
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
+
+                // Online/Offline Toggle Button
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (isAgentOnline) Color(0xFF00E676).copy(alpha = 0.15f) else Color.White.copy(alpha = 0.08f),
+                    border = BorderStroke(1.dp, if (isAgentOnline) Color(0xFF00E676) else Color.Gray),
+                    modifier = Modifier.clickable {
+                        isAgentOnline = !isAgentOnline
+                        Toast.makeText(
+                            context,
+                            if (isAgentOnline) "🟢 Agent Status: Online (Ready to accept B2B orders)" else "⚪ Agent Status: Offline (Hidden from marketplace)",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 ) {
-                    Text("Verified Agent", color = Color(0xFF2196F3), fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .background(if (isAgentOnline) Color(0xFF00E676) else Color.Gray, CircleShape)
+                        )
+                        Text(
+                            if (isAgentOnline) "Online" else "Offline",
+                            color = if (isAgentOnline) Color(0xFF00E676) else Color.Gray,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        )
+                    }
                 }
             }
         }
 
-        // On-Screen PHP Backend Source Explorer Card for Cash Agent
-        item {
-            PhpBackendExplorerCard(viewModel = viewModel)
-        }
-
-        // Stats Cards
+        // 2. Verified Agent Identity Bar
         item {
             Card(
                 colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, PinkBorderSoft),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Collection Stats Overview", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .background(PinkHighlight.copy(alpha = 0.15f), CircleShape)
+                            .border(1.5.dp, PinkHighlight, CircleShape),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Total Collected", color = TextSecondary, fontSize = 10.sp)
-                            Text("৳${totalCollected.toInt()}", color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
-                        }
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Commission (5%)", color = TextSecondary, fontSize = 10.sp)
-                            Text("৳${commissionEarned.toInt()}", color = OnlineGreen, fontWeight = FontWeight.Black, fontSize = 18.sp)
-                        }
+                        Icon(imageVector = Icons.Default.SupportAgent, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(26.dp))
                     }
-                    HorizontalDivider(color = Color.White.copy(alpha = 0.05f))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(currentUser?.name ?: "Agent Sumon", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .background(Color(0xFF2196F3).copy(alpha = 0.18f), RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 6.dp, vertical = 2.dp)
+                            ) {
+                                Text("✓ VERIFIED B2B AGENT", color = Color(0xFF2196F3), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                        Text("Code: #CA-2048 • Dhaka Hub • Rating: 4.9 ★ (428 trades)", color = TextSecondary, fontSize = 11.sp)
+                    }
+
+                    Surface(
+                        shape = CircleShape,
+                        color = PinkHighlight.copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, PinkHighlight.copy(alpha = 0.3f)),
+                        modifier = Modifier
+                            .size(38.dp)
+                            .clickable { showAccountQrDialog = true }
                     ) {
-                        Text("Active Collections: $pendingCount requests", color = TextSecondary, fontSize = 11.sp)
-                        Text("Completed: $paidCount collections", color = TextSecondary, fontSize = 11.sp)
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(imageVector = Icons.Default.QrCode2, contentDescription = "Payment QR", tint = PinkHighlight, modifier = Modifier.size(20.dp))
+                        }
                     }
                 }
             }
         }
 
-        // Action Buttons Grid
+        // 3. High-Fidelity B2B Liquidity Float & Wallet Card (Professional High-Contrast Gradient)
+        item {
+            Card(
+                shape = RoundedCornerShape(22.dp),
+                border = BorderStroke(1.dp, PinkHighlight.copy(alpha = 0.4f)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    Color(0xFFFF2A6D),
+                                    Color(0xFFFF5E8A),
+                                    Color(0xFF8B5CF6)
+                                )
+                            )
+                        )
+                        .padding(20.dp)
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val agentBal = currentUser?.balance ?: 1500.0
+                            Column {
+                                Text("FLOAT LIQUIDITY POOL", color = Color.White.copy(alpha = 0.85f), fontSize = 11.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(verticalAlignment = Alignment.Bottom) {
+                                    Text("৳ %,.0f".format(agentBal), color = Color.White, fontWeight = FontWeight.Black, fontSize = 28.sp)
+                                    Text(".00", color = Color.White.copy(alpha = 0.8f), fontWeight = FontWeight.Bold, fontSize = 16.sp, modifier = Modifier.padding(bottom = 2.dp))
+                                }
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(7.dp)
+                                            .background(Color(0xFF86EFAC), CircleShape)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Synced with Personal Wallet (Shared)", color = Color.White.copy(alpha = 0.9f), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                }
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
+                                    .border(1.dp, Color.White.copy(alpha = 0.35f), RoundedCornerShape(10.dp))
+                                    .padding(horizontal = 10.dp, vertical = 6.dp)
+                            ) {
+                                Text("🔒 Escrow Protected", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        HorizontalDivider(color = Color.White.copy(alpha = 0.25f), thickness = 0.8.dp)
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Commission Earned", color = Color.White.copy(alpha = 0.8f), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text("৳ %,d".format(commissionEarned.toInt()), color = Color(0xFF86EFAC), fontWeight = FontWeight.Black, fontSize = 16.sp)
+                                Text("5% per trade", color = Color.White.copy(alpha = 0.75f), fontSize = 9.sp)
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Today's Volume", color = Color.White.copy(alpha = 0.8f), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text("৳ %,d".format((totalCollected + 45000).toInt()), color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                                Text("Active Settlement", color = Color.White.copy(alpha = 0.75f), fontSize = 9.sp)
+                            }
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("Escrow Locked", color = Color.White.copy(alpha = 0.8f), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text("৳ %,d".format(escrowLockedTotal.toInt()), color = Color(0xFFFDE047), fontWeight = FontWeight.Black, fontSize = 16.sp)
+                                Text("${activeB2BOrders.size} In-Flight", color = Color.White.copy(alpha = 0.75f), fontSize = 9.sp)
+                            }
+                        }
+
+                        // Wallet Action Buttons Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Button(
+                                onClick = { showAddFloatDialog = true },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = PinkHighlight),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.weight(1.1f).height(40.dp)
+                            ) {
+                                Icon(imageVector = Icons.Default.AddCard, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Add Float", fontSize = 12.sp, fontWeight = FontWeight.Bold, color = PinkHighlight)
+                            }
+
+                            Button(
+                                onClick = { viewModel.selectedTab = 2 },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.2f)),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.45f)),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.weight(1f).height(40.dp)
+                            ) {
+                                Icon(imageVector = Icons.Default.AccountBalanceWallet, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Payouts", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+
+                            Button(
+                                onClick = { showAccountQrDialog = true },
+                                colors = ButtonDefaults.buttonColors(containerColor = Color.White.copy(alpha = 0.2f)),
+                                border = BorderStroke(1.dp, Color.White.copy(alpha = 0.45f)),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.weight(0.95f).height(40.dp)
+                            ) {
+                                Icon(imageVector = Icons.Default.QrCode, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("QR Code", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 4. Quick Metrics 4-Box Grid (High Contrast & Clear Badges)
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Active Trades
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, PinkBorderSoft),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text("Active Trades", color = TextSecondary, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text("${activeB2BOrders.size}", color = Color(0xFF0284C7), fontWeight = FontWeight.Black, fontSize = 18.sp)
+                        Text("Real-Time", color = Color(0xFF0369A1), fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+
+                // In Escrow
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, PinkBorderSoft),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text("In Escrow", color = TextSecondary, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text("৳${escrowLockedTotal.toInt()}", color = Color(0xFFD97706), fontWeight = FontWeight.Black, fontSize = 18.sp)
+                        Text("Locked", color = Color(0xFFB45309), fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+
+                // Collections
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, PinkBorderSoft),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    modifier = Modifier.weight(1f).clickable { viewModel.selectedTab = 1 }
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text("Cash Tasks", color = TextSecondary, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text("$pendingCount", color = PinkHighlight, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                        Text("Pending", color = PinkDark, fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+
+                // Completed
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, PinkBorderSoft),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text("Completed", color = TextSecondary, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text("${completedCount + paidCount}", color = Color(0xFF16A34A), fontWeight = FontWeight.Black, fontSize = 18.sp)
+                        Text("Settled", color = Color(0xFF15803D), fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+            }
+        }
+
+        // 5. B2B P2P Escrow Orders Header & Filter Tabs
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(imageVector = Icons.Default.SwapHoriz, contentDescription = null, tint = PinkHighlight)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("B2B Escrow Orders", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Box(
+                            modifier = Modifier
+                                .background(PinkHighlight.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
+                                .padding(horizontal = 7.dp, vertical = 2.dp)
+                        ) {
+                            Text("${allOrders.size}", color = PinkHighlight, fontWeight = FontWeight.Black, fontSize = 10.sp)
+                        }
+                    }
+
+                    TextButton(onClick = {
+                        // Quick test: simulate an incoming B2B order if list is low
+                        coroutineScope.launch {
+                            val dummyAgent = PaymentAgent(
+                                id = "agent_sumon",
+                                name = "Agent Sumon",
+                                agentCode = "CA-2048",
+                                country = "Bangladesh",
+                                phone = "+880 1711-204899",
+                                paymentMethod = "bKash / Nagad",
+                                accountNumber = "01711204899",
+                                accountHolder = "Md. Sumon Reza"
+                            )
+                            viewModel.createB2BOrder(
+                                agent = dummyAgent,
+                                type = if (allOrders.size % 2 == 0) "DEPOSIT" else "WITHDRAWAL",
+                                amount = 3500.0,
+                                paymentMethod = "bKash Personal",
+                                onOrderCreated = {
+                                    Toast.makeText(context, "New B2B Trade Order #${it.orderId} Created!", Toast.LENGTH_SHORT).show()
+                                }
+                            )
+                        }
+                    }) {
+                        Text("+ Simulate Order", color = PinkHighlight, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // Filter Chips
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    val filters = listOf(
+                        "ALL" to "All (${allOrders.size})",
+                        "ESCROW" to "🔒 In Escrow (${activeB2BOrders.size})",
+                        "DEPOSIT" to "🟢 Cash-In",
+                        "WITHDRAWAL" to "🔴 Cash-Out",
+                        "COMPLETED" to "✓ Completed ($completedCount)"
+                    )
+                    filters.forEach { (key, label) ->
+                        val isSelected = selectedFilter == key
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (isSelected) PinkHighlight else DarkSurface,
+                            border = BorderStroke(1.dp, if (isSelected) PinkHighlight else PinkBorderSoft),
+                            modifier = Modifier.clickable { selectedFilter = key }
+                        ) {
+                            Text(
+                                label,
+                                color = if (isSelected) Color.White else TextSecondary,
+                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 11.sp,
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        // 6. B2B Orders List
+        if (filteredOrders.isEmpty()) {
+            item {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Inbox, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(36.dp))
+                        Text("No orders in '$selectedFilter'", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("Tap '+ Simulate Order' above to generate an active B2B escrow order for evaluation.", color = TextSecondary, fontSize = 11.sp, textAlign = TextAlign.Center)
+                    }
+                }
+            }
+        } else {
+            items(filteredOrders) { order ->
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, if (order.status == "PAYMENT_SUBMITTED") Color(0xFF00E676) else PinkBorderSoft),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        // Order Header Row
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .background(
+                                            if (order.type == "DEPOSIT") Color(0xFF00E676).copy(alpha = 0.2f) else PinkHighlight.copy(alpha = 0.2f),
+                                            RoundedCornerShape(6.dp)
+                                        )
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        if (order.type == "DEPOSIT") "🟢 CASH-IN (BUY)" else "🔴 CASH-OUT (SELL)",
+                                        color = if (order.type == "DEPOSIT") Color(0xFF00E676) else PinkHighlight,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("#${order.orderId.takeLast(8)}", color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            // Status badge
+                            val (badgeBg, badgeColor, badgeText) = when (order.status) {
+                                "PAYMENT_SUBMITTED" -> Triple(Color(0xFF2196F3).copy(alpha = 0.2f), Color(0xFF2196F3), "PAYMENT SUBMITTED")
+                                "RELEASED" -> Triple(Color(0xFF00E676).copy(alpha = 0.2f), Color(0xFF00E676), "ESCROW RELEASED")
+                                "DISPUTED" -> Triple(Color(0xFFEF4444).copy(alpha = 0.2f), Color(0xFFEF4444), "DISPUTE OPEN")
+                                else -> Triple(Color(0xFFFFB74D).copy(alpha = 0.2f), Color(0xFFFFB74D), "AWAITING PAYMENT")
+                            }
+                            Box(
+                                modifier = Modifier
+                                    .background(badgeBg, RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                            ) {
+                                Text(badgeText, color = badgeColor, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        // Order Body Info
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column {
+                                Text("Client / Counterparty", color = TextSecondary, fontSize = 10.sp)
+                                Text(order.userName, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("Method: ${order.paymentMethod}", color = TextSecondary, fontSize = 10.sp)
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                Text("Trade Amount", color = TextSecondary, fontSize = 10.sp)
+                                Text("৳${order.amount.toInt()}.00", color = TextPrimary, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                                Text("Earn: +৳${(order.amount * 0.05).toInt()} (5%)", color = Color(0xFF00E676), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+
+                        if (!order.transactionRef.isNullOrBlank()) {
+                            Surface(
+                                color = Color(0xFFF8FAFC),
+                                shape = RoundedCornerShape(8.dp),
+                                border = BorderStroke(1.dp, PinkBorderSoft),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(imageVector = Icons.Default.Receipt, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(14.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Txn Ref: ${order.transactionRef}", color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+
+                        HorizontalDivider(color = PinkBorderSoft, thickness = 0.8.dp)
+
+                        // Action Buttons on Order Card
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Live Chat & Proofs Button
+                            OutlinedButton(
+                                onClick = { selectedOrderForChat = order },
+                                border = BorderStroke(1.dp, PinkHighlight),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f).height(38.dp)
+                            ) {
+                                Icon(imageVector = Icons.Default.Chat, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(15.dp))
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text("Chat & Proof", fontSize = 11.sp, color = PinkHighlight, fontWeight = FontWeight.Bold)
+                            }
+
+                            // Release Escrow Button (Enabled if pending or submitted)
+                            if (order.status != "RELEASED") {
+                                Button(
+                                    onClick = { orderToRelease = order },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (order.status == "PAYMENT_SUBMITTED") Color(0xFF00E676) else Color(0xFF2196F3)
+                                    ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.weight(1f).height(38.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.LockOpen,
+                                        contentDescription = null,
+                                        tint = if (order.status == "PAYMENT_SUBMITTED") Color.Black else Color.White,
+                                        modifier = Modifier.size(15.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        "Release Funds",
+                                        fontSize = 11.sp,
+                                        color = if (order.status == "PAYMENT_SUBMITTED") Color.Black else Color.White,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            } else {
+                                Surface(
+                                    color = Color(0xFF00E676).copy(alpha = 0.15f),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.weight(1f).height(38.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Text("✓ Completed & Settled", color = Color(0xFF00A86B), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 7. Payment Channels & Operating Limits Information Card
+        item {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                shape = RoundedCornerShape(14.dp),
+                border = BorderStroke(1.dp, PinkBorderSoft),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Agent Payment Channels & Limits", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf("bKash Personal", "Nagad Agent", "Rocket", "City Bank Transfer", "Physical Cash Pickup").forEach { ch ->
+                            Box(
+                                modifier = Modifier
+                                    .background(Color(0xFFFFEFF3), RoundedCornerShape(6.dp))
+                                    .border(1.dp, Color(0xFFFFD6E2), RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 8.dp, vertical = 4.dp)
+                            ) {
+                                Text("✓ $ch", color = Color(0xFFC2185B), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                    Text("Per Trade Limits: ৳ 100 - ৳ 100,000 BDT • P2P Escrow Protection Guarantee", color = TextSecondary, fontSize = 10.sp)
+                }
+            }
+        }
+
+        // 8. Quick Task Navigation Cards
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -4419,6 +5520,7 @@ fun CashAgentDashboardTab(viewModel: AppViewModel) {
                 Card(
                     colors = CardDefaults.cardColors(containerColor = DarkSurface),
                     shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, PinkBorderSoft),
                     modifier = Modifier
                         .weight(1f)
                         .clickable { viewModel.selectedTab = 1 }
@@ -4426,13 +5528,14 @@ fun CashAgentDashboardTab(viewModel: AppViewModel) {
                     Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(imageVector = Icons.Default.ReceiptLong, contentDescription = null, tint = PinkHighlight)
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("Open Tasks", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        Text("Cash Collections ($pendingCount)", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                     }
                 }
 
                 Card(
                     colors = CardDefaults.cardColors(containerColor = DarkSurface),
                     shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, PinkBorderSoft),
                     modifier = Modifier
                         .weight(1f)
                         .clickable { viewModel.selectedTab = 2 }
@@ -4440,28 +5543,151 @@ fun CashAgentDashboardTab(viewModel: AppViewModel) {
                     Column(modifier = Modifier.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         Icon(imageVector = Icons.Default.AccountBalanceWallet, contentDescription = null, tint = Color(0xFF2196F3))
                         Spacer(modifier = Modifier.height(4.dp))
-                        Text("My Commissions", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        Text("My Wallet & Payout", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                     }
                 }
             }
         }
+    }
 
-        // Recent Notifications for agent
-        item {
-            Card(
-                colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Agent Bulletins", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                    Spacer(modifier = Modifier.height(10.dp))
-                    RecentNotificationItem("New Cash Collection request assigned for ৳3,500", "Today", Color(0xFF2196F3))
-                    RecentNotificationItem("Commission of ৳150 paid successfully", "Yesterday", Color(0xFF4CAF50))
-                    RecentNotificationItem("Marketplace cash guidelines updated for Dhaka area", "2 Days Ago", Color(0xFFFF9800))
+    // Modal 1: Live B2B Order Details and Real-time Chat
+    if (selectedOrderForChat != null) {
+        B2BOrderDetailAndChatDialog(
+            order = selectedOrderForChat!!,
+            onDismiss = { selectedOrderForChat = null },
+            viewModel = viewModel
+        )
+    }
+
+    // Modal 2: Release Escrow Confirmation Dialog
+    if (orderToRelease != null) {
+        val ord = orderToRelease!!
+        AlertDialog(
+            onDismissRequest = { orderToRelease = null },
+            containerColor = DarkSurface,
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(imageVector = Icons.Default.LockOpen, contentDescription = null, tint = Color(0xFF00E676))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Confirm Escrow Release", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Are you sure you have received payment of ৳${ord.amount.toInt()} for Order #${ord.orderId.takeLast(8)} from ${ord.userName}?", color = TextSecondary, fontSize = 12.sp)
+                    Text("Releasing will immediately credit the customer's wallet or settle cash-in.", color = Color(0xFFFF9800), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.releaseB2BOrder(ord.orderId)
+                        Toast.makeText(context, "Escrow Released! ৳${ord.amount.toInt()} settled with ${ord.userName}", Toast.LENGTH_LONG).show()
+                        orderToRelease = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00E676))
+                ) {
+                    Text("Release Funds Now", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { orderToRelease = null }) {
+                    Text("Cancel", color = TextSecondary)
                 }
             }
-        }
+        )
+    }
+
+    // Modal 3: Add Float / Liquidity Top Up Dialog
+    if (showAddFloatDialog) {
+        var floatAmountInput by remember { mutableStateOf("25000") }
+        AlertDialog(
+            onDismissRequest = { showAddFloatDialog = false },
+            containerColor = DarkSurface,
+            title = {
+                Text("Add Float Liquidity", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Increase your B2B Agent Liquidity Pool to accept higher trade volumes:", color = TextSecondary, fontSize = 11.sp)
+                    OutlinedTextField(
+                        value = floatAmountInput,
+                        onValueChange = { floatAmountInput = it.filter { ch -> ch.isDigit() } },
+                        label = { Text("Float Amount (৳ BDT)") },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
+                            focusedBorderColor = PinkHighlight,
+                            unfocusedBorderColor = PinkBorderSoft,
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text("Settlement Method: Bank Wire / Admin Deposit Approval", color = TextSecondary, fontSize = 10.sp)
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val amt = floatAmountInput.toDoubleOrNull() ?: 0.0
+                        if (amt > 0) {
+                            viewModel.quickAddWalletBalance(amt)
+                            Toast.makeText(context, "Float top-up of ৳${amt.toInt()} added to wallet! Synced with Personal Wallet.", Toast.LENGTH_LONG).show()
+                            showAddFloatDialog = false
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight)
+                ) {
+                    Text("Confirm Top Up", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddFloatDialog = false }) {
+                    Text("Cancel", color = TextSecondary)
+                }
+            }
+        )
+    }
+
+    // Modal 4: Account Details & QR Code Dialog
+    if (showAccountQrDialog) {
+        AlertDialog(
+            onDismissRequest = { showAccountQrDialog = false },
+            containerColor = DarkSurface,
+            title = {
+                Text("B2B Payment Accounts & QR", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(140.dp)
+                            .background(Color.White, RoundedCornerShape(12.dp))
+                            .padding(12.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(imageVector = Icons.Default.QrCode2, contentDescription = "QR Code", tint = Color.Black, modifier = Modifier.fillMaxSize())
+                    }
+                    Text("Agent Sumon • Code #CA-2048", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text("bKash Personal: 01711204899", color = Color(0xFFE91E63), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text("Nagad Agent: 01711204899", color = Color(0xFFFF9800), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text("City Bank A/C: 150248896001", color = Color(0xFF2196F3), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showAccountQrDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight)
+                ) {
+                    Text("Done", fontWeight = FontWeight.Bold)
+                }
+            }
+        )
     }
 }
 
@@ -4478,7 +5704,7 @@ fun CashAgentCollectionsTab(viewModel: AppViewModel) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text("Collection Requests", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Text("Collection Requests", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
         Text("Accept cash payments from customers on behalf of models and deposit to the main system.", color = TextSecondary, fontSize = 11.sp)
 
         LazyColumn(
@@ -4497,7 +5723,7 @@ fun CashAgentCollectionsTab(viewModel: AppViewModel) {
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("ID: ${coll.id}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("ID: ${coll.id}", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             Box(
                                 modifier = Modifier
                                     .background(
@@ -4529,7 +5755,7 @@ fun CashAgentCollectionsTab(viewModel: AppViewModel) {
                         ) {
                             Column {
                                 Text("Payout Method", color = TextSecondary, fontSize = 10.sp)
-                                Text("Physical Cash", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text("Physical Cash", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                             }
                             Column(horizontalAlignment = Alignment.End) {
                                 Text("Amount to Collect", color = TextSecondary, fontSize = 10.sp)
@@ -4555,7 +5781,7 @@ fun CashAgentCollectionsTab(viewModel: AppViewModel) {
                                 AlertDialog(
                                     onDismissRequest = { showDialog = false },
                                     containerColor = DarkSurface,
-                                    title = { Text("Confirm Cash Received", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp) },
+                                    title = { Text("Confirm Cash Received", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp) },
                                     text = {
                                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                                             Text("Please input the physical payment receipt serial or transaction reference code:", color = TextSecondary, fontSize = 11.sp)
@@ -4615,7 +5841,7 @@ fun CashAgentWalletTab(viewModel: AppViewModel) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("Wallet & Commission", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Text("Wallet & Commission", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
 
         Card(
             colors = CardDefaults.cardColors(containerColor = DarkSurface),
@@ -4633,7 +5859,7 @@ fun CashAgentWalletTab(viewModel: AppViewModel) {
             shape = RoundedCornerShape(12.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Withdraw Commission", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text("Withdraw Commission", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 
                 OutlinedTextField(
                     value = withdrawAmountInput,
@@ -4679,11 +5905,13 @@ fun CashAgentProfileTab(viewModel: AppViewModel) {
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("My Profile", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+        Text("My Profile", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
 
         Card(
             colors = CardDefaults.cardColors(containerColor = DarkSurface),
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.5.dp, PinkBorderSoft),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
@@ -4692,14 +5920,15 @@ fun CashAgentProfileTab(viewModel: AppViewModel) {
                 Box(
                     modifier = Modifier
                         .size(60.dp)
-                        .background(Color(0xFF2E2E3E), CircleShape),
+                        .background(PinkLight, CircleShape)
+                        .border(1.5.dp, PinkBorderSoft, CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
-                    Icon(imageVector = Icons.Default.SupportAgent, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(32.dp))
+                    Icon(imageVector = Icons.Default.SupportAgent, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(32.dp))
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
-                    Text(currentUser?.name ?: "Agent Sumon", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text(currentUser?.name ?: "Agent Sumon", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     Text("Role: Cash Collection Agent", color = TextSecondary, fontSize = 11.sp)
                     Text("ID: agent_584", color = TextSecondary, fontSize = 11.sp)
                 }
@@ -4708,10 +5937,12 @@ fun CashAgentProfileTab(viewModel: AppViewModel) {
 
         Card(
             colors = CardDefaults.cardColors(containerColor = DarkSurface),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.5.dp, PinkBorderSoft),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Role Switcher", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text("Role Switcher", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 Text("Easily toggle roles during evaluation testing:", color = TextSecondary, fontSize = 11.sp)
 
                 Button(
@@ -4730,7 +5961,7 @@ fun CashAgentProfileTab(viewModel: AppViewModel) {
                             }
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E2E3E)),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF85A6)),
                     shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -4776,7 +6007,7 @@ fun PhpBackendExplorerCard(viewModel: AppViewModel) {
                     }
                     Spacer(modifier = Modifier.width(10.dp))
                     Column {
-                        Text("PHP Backend Files & Architecture", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("PHP Backend Files & Architecture", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         Text("33 Production Files in /backend/", color = TextSecondary, fontSize = 10.sp)
                     }
                 }
@@ -4805,7 +6036,7 @@ fun PhpBackendExplorerCard(viewModel: AppViewModel) {
                 listOf("📁 /backend/admin/", "📁 /backend/agent/", "⚡ /backend/api/", "🗄️ schema.sql", "⚙️ config.php").forEach { tag ->
                     Box(
                         modifier = Modifier
-                            .background(Color(0xFF2E2E3E), RoundedCornerShape(6.dp))
+                            .background(Color(0xFFFF85A6), RoundedCornerShape(6.dp))
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(tag, color = Color.LightGray, fontSize = 9.sp, fontWeight = FontWeight.Medium)
@@ -4875,7 +6106,7 @@ ${'$'}filename = ${'$'}userId . '_' . time() . '.' . ${'$'}ext;
 ${'$'}targetFile = ${'$'}targetDir . ${'$'}filename;
 
 if (move_uploaded_file(${'$'}file['tmp_name'], ${'$'}targetFile)) {
-    ${'$'}photoUrl = "https://app.modolconncet.fun/uploads/profile/" . ${'$'}filename;
+    ${'$'}photoUrl = "http://173.249.28.110/uploads/profile/" . ${'$'}filename;
     
     // Update MySQL Database
     ${'$'}stmt = ${'$'}pdo->prepare("UPDATE users SET profile_photo = ?, updated_at = NOW() WHERE id = ?");
@@ -4902,12 +6133,12 @@ echo json_encode([
         'app_name' => 'Modol Connect Backend',
         'environment' => 'production',
         'production' => true,
-        'base_url' => 'https://app.modolconncet.fun/',
+        'base_url' => 'http://173.249.28.110/',
         'modules' => [
-            'Admin Portal' => 'https://app.modolconncet.fun/backend/admin/dashboard.php',
-            'Cash Agent Portal' => 'https://app.modolconncet.fun/backend/agent/dashboard.php',
-            'API' => 'https://app.modolconncet.fun/backend/api/',
-            'Documentation' => 'https://app.modolconncet.fun/backend/docs/'
+            'Admin Portal' => 'http://173.249.28.110/backend/admin/dashboard.php',
+            'Cash Agent Portal' => 'http://173.249.28.110/backend/agent/dashboard.php',
+            'API' => 'http://173.249.28.110/backend/api/',
+            'Documentation' => 'http://173.249.28.110/backend/docs/'
         ],
         'server' => [
             'php_version' => '8.2.31',
@@ -5171,7 +6402,7 @@ CREATE TABLE IF NOT EXISTS `cash_collections` (
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text("PHP Backend Code Display", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text("PHP Backend Code Display", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     Text("Folder /backend/ (PHP 8.2 + MySQL)", color = TextSecondary, fontSize = 10.sp)
                 }
                 IconButton(onClick = onDismiss) {
@@ -5197,7 +6428,7 @@ CREATE TABLE IF NOT EXISTS `cash_collections` (
                             modifier = Modifier
                                 .weight(1f)
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(if (isSel) PinkHighlight else Color(0xFF2E2E3E))
+                                .background(if (isSel) PinkHighlight else Color(0xFFFF85A6))
                                 .clickable { activeTab = idx }
                                 .padding(vertical = 8.dp),
                             contentAlignment = Alignment.Center
@@ -5221,7 +6452,7 @@ CREATE TABLE IF NOT EXISTS `cash_collections` (
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(6.dp))
-                                    .background(if (isSel) PinkHighlight.copy(alpha = 0.25f) else Color(0xFF2E2E3E))
+                                    .background(if (isSel) PinkHighlight.copy(alpha = 0.25f) else Color(0xFFFF85A6))
                                     .border(1.dp, if (isSel) PinkHighlight else Color.Transparent, RoundedCornerShape(6.dp))
                                     .clickable { selectedFilePath = path }
                                     .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -5282,19 +6513,22 @@ CREATE TABLE IF NOT EXISTS `cash_collections` (
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Text("📁 backend/", color = PinkHighlight, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        Text("  ├── 📂 admin/ (12 Admin Portal PHP files)", color = Color.White, fontSize = 11.sp)
-                        Text("  ├── 📂 agent/ (10 Cash Agent Portal PHP files)", color = Color.White, fontSize = 11.sp)
-                        Text("  ├── 📂 api/ (REST JSON Endpoints for Mobile App)", color = Color.White, fontSize = 11.sp)
-                        Text("  ├── 📂 config/ (database.php, config.php, auth.php)", color = Color.White, fontSize = 11.sp)
-                        Text("  ├── 📂 middleware/ (Role authorization scripts)", color = Color.White, fontSize = 11.sp)
-                        Text("  ├── 📂 uploads/ (Receipts, profiles, documents)", color = Color.White, fontSize = 11.sp)
-                        Text("  └── 📄 schema.sql (MySQL Database Schema)", color = Color.White, fontSize = 11.sp)
+                        Text("  ├── 📂 admin/ (12 Admin Portal PHP files)", color = TextPrimary, fontSize = 11.sp)
+                        Text("  ├── 📂 agent/ (10 Cash Agent Portal PHP files)", color = TextPrimary, fontSize = 11.sp)
+                        Text("  ├── 📂 api/ (REST JSON Endpoints for Mobile App)", color = TextPrimary, fontSize = 11.sp)
+                        Text("  ├── 📂 config/ (database.php, config.php, auth.php)", color = TextPrimary, fontSize = 11.sp)
+                        Text("  ├── 📂 middleware/ (Role authorization scripts)", color = TextPrimary, fontSize = 11.sp)
+                        Text("  ├── 📂 uploads/ (Receipts, profiles, documents)", color = TextPrimary, fontSize = 11.sp)
+                        Text("  └── 📄 schema.sql (MySQL Database Schema)", color = TextPrimary, fontSize = 11.sp)
                         
                         Spacer(modifier = Modifier.height(10.dp))
-                        Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1F2232))) {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                            border = BorderStroke(1.dp, PinkBorderSoft)
+                        ) {
                             Column(modifier = Modifier.padding(10.dp)) {
                                 Text("Storage Location in Repository:", color = TextSecondary, fontSize = 10.sp)
-                                Text("/backend/", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text("/backend/", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                 Text("All PHP files are cleanly isolated under the `/backend/` directory.", color = TextSecondary, fontSize = 10.sp)
                             }
                         }
@@ -5308,7 +6542,7 @@ CREATE TABLE IF NOT EXISTS `cash_collections` (
                             .weight(1f),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("Simulate Live PHP REST API:", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        Text("Simulate Live PHP REST API:", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 11.sp)
                         
                         Button(
                             onClick = {
@@ -5323,12 +6557,12 @@ Content-Type: application/json
     "app_name": "Modol Connect Backend",
     "environment": "production",
     "production": true,
-    "base_url": "https://app.modolconncet.fun/",
+    "base_url": "http://173.249.28.110/",
     "modules": {
-      "Admin Portal": "https://app.modolconncet.fun/backend/admin/dashboard.php",
-      "Cash Agent Portal": "https://app.modolconncet.fun/backend/agent/dashboard.php",
-      "API": "https://app.modolconncet.fun/backend/api/",
-      "Documentation": "https://app.modolconncet.fun/backend/docs/"
+      "Admin Portal": "http://173.249.28.110/backend/admin/dashboard.php",
+      "Cash Agent Portal": "http://173.249.28.110/backend/agent/dashboard.php",
+      "API": "http://173.249.28.110/backend/api/",
+      "Documentation": "http://173.249.28.110/backend/docs/"
     },
     "server": {
       "php_version": "8.2.31",
@@ -5365,7 +6599,7 @@ Content-Type: application/json
   "timestamp": "2026-07-21T10:18:00+00:00"
 }"""
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E2E3E)),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF85A6)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text("GET /backend/admin/dashboard.php", fontSize = 10.sp)
@@ -5387,7 +6621,7 @@ Content-Type: application/json
   }
 }"""
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E2E3E)),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF85A6)),
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text("POST /backend/api/admin/approve_collection.php", fontSize = 10.sp)
@@ -5417,7 +6651,8 @@ Content-Type: application/json
                 Text("Close Viewer", fontSize = 11.sp)
             }
         },
-        containerColor = DarkSurface,
+        modifier = Modifier.border(1.dp, PinkBorderSoft, RoundedCornerShape(16.dp)),
+        containerColor = Color.White,
         shape = RoundedCornerShape(16.dp)
     )
 }
@@ -5546,27 +6781,31 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
-                    .background(DarkSurface)
+                    .background(Color.White)
+                    .border(BorderStroke(1.dp, Color(0xFFFF85A6)))
                     .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
-                    onClick = { viewModel.navigateTo("DASHBOARD") }
+                    onClick = { viewModel.navigateTo("DASHBOARD") },
+                    modifier = Modifier
+                        .background(Color(0xFFF1F5F9), CircleShape)
+                        .size(38.dp)
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = "Back to Dashboard",
-                        tint = Color.White
+                        tint = TextPrimary
                     )
                 }
 
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(10.dp))
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "💼 Offered Services & Price",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
+                        color = TextPrimary,
+                        fontWeight = FontWeight.ExtraBold,
                         fontSize = 18.sp
                     )
                     Text(
@@ -5578,7 +6817,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
 
                 Box(
                     modifier = Modifier
-                        .background(PinkHighlight.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                        .background(PinkHighlight.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
                         .padding(horizontal = 10.dp, vertical = 5.dp)
                 ) {
                     Text(
@@ -5600,7 +6839,8 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                 // 1. SERVICE STATUS CARD
                 item {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFFFF85A6)),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -5608,7 +6848,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Service Status", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                Text("Service Status", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                             }
 
                             Spacer(modifier = Modifier.height(14.dp))
@@ -5619,7 +6859,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("✅ Enable Service", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                    Text("✅ Enable Service", color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                                     Text("Toggle visibility of your service listings to clients", color = TextSecondary, fontSize = 11.sp)
                                 }
                                 Switch(
@@ -5629,7 +6869,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                 )
                             }
 
-                            HorizontalDivider(color = Color(0xFF2E2E3E), thickness = 0.5.dp, modifier = Modifier.padding(vertical = 10.dp))
+                            HorizontalDivider(color = Color(0xFFFF85A6), thickness = 0.5.dp, modifier = Modifier.padding(vertical = 10.dp))
 
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -5638,7 +6878,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("📌 Featured Service Toggle", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
+                                        Text("📌 Featured Service Toggle", color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Box(
                                             modifier = Modifier
@@ -5663,7 +6903,8 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                 // 2. SERVICE CATEGORIES CARD
                 item {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFFFF85A6)),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -5671,7 +6912,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(imageVector = Icons.Default.Category, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Service Categories", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                Text("Service Categories", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                             }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text("Select all categories applicable to this service offering:", color = TextSecondary, fontSize = 11.sp)
@@ -5700,8 +6941,8 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                         colors = FilterChipDefaults.filterChipColors(
                                             selectedContainerColor = PinkHighlight,
                                             selectedLabelColor = Color.White,
-                                            containerColor = Color(0xFF1E1E2E),
-                                            labelColor = TextSecondary
+                                            containerColor = Color(0xFFF1F5F9),
+                                            labelColor = TextPrimary
                                         )
                                     )
                                 }
@@ -5713,7 +6954,8 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                 // 3. PRICE CONFIGURATION CARD
                 item {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFFFF85A6)),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -5726,7 +6968,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(imageVector = Icons.Default.AttachMoney, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(20.dp))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Price Configuration", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                    Text("Price Configuration", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                                 }
 
                                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -5735,11 +6977,12 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                         Box(
                                             modifier = Modifier
                                                 .clip(RoundedCornerShape(6.dp))
-                                                .background(if (isSel) PinkHighlight else Color(0xFF1E1E2E))
+                                                .background(if (isSel) PinkHighlight else Color(0xFFF1F5F9))
+                                                .then(if (!isSel) Modifier.border(1.dp, Color(0xFFFF85A6), RoundedCornerShape(6.dp)) else Modifier)
                                                 .clickable { selectedCurrency = curr }
                                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                                         ) {
-                                            Text(curr, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                            Text(curr, color = if (isSel) Color.White else TextPrimary, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                         }
                                     }
                                 }
@@ -5781,8 +7024,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                             prefix = { Text(if (selectedCurrency.contains("USD")) "$" else "৳ ", color = PinkHighlight, fontWeight = FontWeight.Bold) },
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                             colors = OutlinedTextFieldDefaults.colors(
-                                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                                focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                                focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                             ),
                                             shape = RoundedCornerShape(10.dp),
                                             modifier = Modifier.weight(1f)
@@ -5806,8 +7050,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                     onValueChange = { customPriceLabel = it },
                                     label = { Text("Custom Tier Label", color = TextSecondary, fontSize = 11.sp) },
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                        focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                        focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(10.dp),
                                     modifier = Modifier.weight(1.2f)
@@ -5820,8 +7065,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                     prefix = { Text(if (selectedCurrency.contains("USD")) "$" else "৳ ", color = PinkHighlight, fontWeight = FontWeight.Bold) },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                        focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                        focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(10.dp),
                                     modifier = Modifier.weight(1f)
@@ -5834,7 +7080,8 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                 // 4. TRAVEL CHARGES CARD
                 item {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFFFF85A6)),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -5842,7 +7089,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(imageVector = Icons.Default.DirectionsCar, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Travel Charges", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                Text("Travel Charges", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                             }
 
                             Spacer(modifier = Modifier.height(14.dp))
@@ -5858,8 +7105,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                     suffix = { Text("km", color = TextSecondary, fontSize = 11.sp) },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                        focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                        focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(10.dp),
                                     modifier = Modifier.weight(1f)
@@ -5872,8 +7120,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                     prefix = { Text("$ ", color = PinkHighlight, fontWeight = FontWeight.Bold) },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                        focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                        focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(10.dp),
                                     modifier = Modifier.weight(1f)
@@ -5889,8 +7138,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                 prefix = { Text("$ ", color = PinkHighlight, fontWeight = FontWeight.Bold) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                    focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                    focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                    focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                    focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                 ),
                                 shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier.fillMaxWidth()
@@ -5903,7 +7153,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("Hotel Accommodation Required", color = Color.White, fontSize = 13.sp)
+                                Text("Hotel Accommodation Required", color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                                 Switch(
                                     checked = hotelRequired,
                                     onCheckedChange = { hotelRequired = it },
@@ -5916,7 +7166,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("Flight Tickets Required", color = Color.White, fontSize = 13.sp)
+                                Text("Flight Tickets Required", color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                                 Switch(
                                     checked = flightRequired,
                                     onCheckedChange = { flightRequired = it },
@@ -5930,7 +7180,8 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                 // 5. WORKING SCHEDULE CARD
                 item {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFFFF85A6)),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -5938,7 +7189,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(imageVector = Icons.Default.Schedule, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Working Schedule", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                Text("Working Schedule", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                             }
 
                             Spacer(modifier = Modifier.height(12.dp))
@@ -5957,13 +7208,14 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                         modifier = Modifier
                                             .size(40.dp)
                                             .clip(CircleShape)
-                                            .background(if (isSel) PinkHighlight else Color(0xFF1E1E2E))
+                                            .background(if (isSel) PinkHighlight else Color(0xFFF1F5F9))
+                                            .then(if (!isSel) Modifier.border(1.dp, Color(0xFFFF85A6), CircleShape) else Modifier)
                                             .clickable {
                                                 activeDays = if (isSel) activeDays - day else activeDays + day
                                             },
                                         contentAlignment = Alignment.Center
                                     ) {
-                                        Text(day, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Text(day, color = if (isSel) Color.White else TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -5979,8 +7231,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                     onValueChange = { startTime = it },
                                     label = { Text("Start Time", color = TextSecondary, fontSize = 11.sp) },
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                        focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                        focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(10.dp),
                                     modifier = Modifier.weight(1f)
@@ -5991,8 +7244,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                     onValueChange = { endTime = it },
                                     label = { Text("End Time", color = TextSecondary, fontSize = 11.sp) },
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                        focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                        focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(10.dp),
                                     modifier = Modifier.weight(1f)
@@ -6006,8 +7260,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                 onValueChange = { breakTime = it },
                                 label = { Text("Break Time Window", color = TextSecondary, fontSize = 11.sp) },
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                    focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                    focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                    focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                    focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                 ),
                                 shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier.fillMaxWidth()
@@ -6021,7 +7276,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("Instant Booking Mode (On/Off)", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                    Text("Instant Booking Mode (On/Off)", color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                                     Text("Allow clients to confirm schedule automatically", color = TextSecondary, fontSize = 10.sp)
                                 }
                                 Switch(
@@ -6037,7 +7292,8 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                 // 6. ADDITIONAL CHARGES CARD
                 item {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFFFF85A6)),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -6045,7 +7301,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(imageVector = Icons.Default.AddCard, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Additional Charges", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                Text("Additional Charges", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                             }
 
                             Spacer(modifier = Modifier.height(14.dp))
@@ -6061,8 +7317,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                     prefix = { Text("$ ", color = PinkHighlight, fontWeight = FontWeight.Bold) },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                        focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                        focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(10.dp),
                                     modifier = Modifier.weight(1f)
@@ -6075,8 +7332,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                     prefix = { Text("$ ", color = PinkHighlight, fontWeight = FontWeight.Bold) },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                        focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                        focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(10.dp),
                                     modifier = Modifier.weight(1f)
@@ -6096,8 +7354,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                     prefix = { Text("$ ", color = PinkHighlight, fontWeight = FontWeight.Bold) },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                        focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                        focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(10.dp),
                                     modifier = Modifier.weight(1f)
@@ -6110,8 +7369,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                     prefix = { Text("$ ", color = PinkHighlight, fontWeight = FontWeight.Bold) },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                        focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                        focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(10.dp),
                                     modifier = Modifier.weight(1f)
@@ -6127,8 +7387,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                 prefix = { Text("$ ", color = PinkHighlight, fontWeight = FontWeight.Bold) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                    focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                    focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                    focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                    focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                 ),
                                 shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier.fillMaxWidth()
@@ -6140,7 +7401,8 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                 // 7. BOOKING RULES CARD
                 item {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFFFF85A6)),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -6148,7 +7410,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(imageVector = Icons.Default.Gavel, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Booking Rules", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                Text("Booking Rules", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                             }
 
                             Spacer(modifier = Modifier.height(14.dp))
@@ -6162,8 +7424,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                     onValueChange = { minBookingDuration = it },
                                     label = { Text("Min Booking Duration", color = TextSecondary, fontSize = 11.sp) },
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                        focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                        focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(10.dp),
                                     modifier = Modifier.weight(1f)
@@ -6174,8 +7437,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                     onValueChange = { maxBookingDuration = it },
                                     label = { Text("Max Booking Duration", color = TextSecondary, fontSize = 11.sp) },
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                        focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                        focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(10.dp),
                                     modifier = Modifier.weight(1f)
@@ -6193,8 +7457,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                     onValueChange = { advanceBookingHours = it },
                                     label = { Text("Advance Booking Required", color = TextSecondary, fontSize = 11.sp) },
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                        focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                        focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(10.dp),
                                     modifier = Modifier.weight(1f)
@@ -6205,8 +7470,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                     onValueChange = { freeCancellationHours = it },
                                     label = { Text("Free Cancellation (Hours)", color = TextSecondary, fontSize = 11.sp) },
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                        focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                        focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(10.dp),
                                     modifier = Modifier.weight(1f)
@@ -6221,8 +7487,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                 label = { Text("Cancellation Fee ($)", color = TextSecondary, fontSize = 11.sp) },
                                 prefix = { Text("$ ", color = PinkHighlight, fontWeight = FontWeight.Bold) },
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                    focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                    focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                    focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                    focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                 ),
                                 shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier.fillMaxWidth()
@@ -6236,7 +7503,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("Auto Accept Bookings (On/Off)", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+                                    Text("Auto Accept Bookings (On/Off)", color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                                     Text("Instantly accept requests without manual review", color = TextSecondary, fontSize = 10.sp)
                                 }
                                 Switch(
@@ -6252,7 +7519,8 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                 // 8. PAYMENT SETTINGS CARD
                 item {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFFFF85A6)),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -6260,7 +7528,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(imageVector = Icons.Default.Payment, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Payment Settings", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                Text("Payment Settings", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                             }
 
                             Spacer(modifier = Modifier.height(4.dp))
@@ -6289,7 +7557,8 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                             modifier = Modifier
                                                 .weight(1f)
                                                 .clip(RoundedCornerShape(8.dp))
-                                                .background(Color(0xFF1E1E2E))
+                                                .background(Color(0xFFF1F5F9))
+                                                .border(1.dp, Color(0xFFFF85A6), RoundedCornerShape(8.dp))
                                                 .clickable {
                                                     when (name) {
                                                         "Cash agent" -> acceptCashAgent = !acceptCashAgent
@@ -6321,7 +7590,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                                 },
                                                 colors = CheckboxDefaults.colors(checkedColor = PinkHighlight)
                                             )
-                                            Text(name, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                            Text(name, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                         }
                                     }
                                     if (row.size == 1) Spacer(modifier = Modifier.weight(1f))
@@ -6332,7 +7601,8 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                             if (acceptGooglePlayBilling) {
                                 Spacer(modifier = Modifier.height(14.dp))
                                 Card(
-                                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E2E)),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                                    border = BorderStroke(1.dp, Color(0xFFFF85A6)),
                                     shape = RoundedCornerShape(12.dp),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
@@ -6352,14 +7622,14 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                                     Icon(
                                                         imageVector = Icons.Default.ShoppingBag,
                                                         contentDescription = null,
-                                                        tint = Color(0xFF00E676),
+                                                        tint = Color(0xFF00C853),
                                                         modifier = Modifier.size(16.dp)
                                                     )
                                                 }
                                                 Spacer(modifier = Modifier.width(8.dp))
                                                 Text(
                                                     text = "Google Play In-App Billing Configuration",
-                                                    color = Color.White,
+                                                    color = TextPrimary,
                                                     fontWeight = FontWeight.Bold,
                                                     fontSize = 13.sp
                                                 )
@@ -6375,8 +7645,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                             placeholder = { Text("com.aistudio.app", color = Color.Gray) },
                                             singleLine = true,
                                             colors = OutlinedTextFieldDefaults.colors(
-                                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                                focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                                focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                             ),
                                             shape = RoundedCornerShape(8.dp),
                                             modifier = Modifier.fillMaxWidth()
@@ -6391,8 +7662,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                             placeholder = { Text("merchant.com.aistudio.app", color = Color.Gray) },
                                             singleLine = true,
                                             colors = OutlinedTextFieldDefaults.colors(
-                                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                                focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                                focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                             ),
                                             shape = RoundedCornerShape(8.dp),
                                             modifier = Modifier.fillMaxWidth()
@@ -6407,8 +7679,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                             placeholder = { Text("booking_payment_", color = Color.Gray) },
                                             singleLine = true,
                                             colors = OutlinedTextFieldDefaults.colors(
-                                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                                focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                                focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                             ),
                                             shape = RoundedCornerShape(8.dp),
                                             modifier = Modifier.fillMaxWidth()
@@ -6422,8 +7695,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                             label = { Text("Google Play RSA License Public Key (Base64)", color = TextSecondary) },
                                             minLines = 2,
                                             colors = OutlinedTextFieldDefaults.colors(
-                                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                                focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                                focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                             ),
                                             shape = RoundedCornerShape(8.dp),
                                             modifier = Modifier.fillMaxWidth()
@@ -6436,7 +7710,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text("Google Play License Tester / Sandbox Mode", color = Color.White, fontSize = 11.sp)
+                                            Text("Google Play License Tester / Sandbox Mode", color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Medium)
                                             Switch(
                                                 checked = googlePlaySandboxMode,
                                                 onCheckedChange = { googlePlaySandboxMode = it; googlePlayStatusMsg = "" },
@@ -6449,7 +7723,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                             horizontalArrangement = Arrangement.SpaceBetween,
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            Text("Auto-Verify & Realtime Payment Webhook Sync", color = Color.White, fontSize = 11.sp)
+                                            Text("Auto-Verify & Realtime Payment Webhook Sync", color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Medium)
                                             Switch(
                                                 checked = googlePlayAutoSync,
                                                 onCheckedChange = { googlePlayAutoSync = it; googlePlayStatusMsg = "" },
@@ -6461,7 +7735,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                             Spacer(modifier = Modifier.height(6.dp))
                                             Text(
                                                 text = googlePlayStatusMsg,
-                                                color = Color(0xFF00E676),
+                                                color = Color(0xFF00C853),
                                                 fontSize = 11.sp,
                                                 fontWeight = FontWeight.Bold
                                             )
@@ -6484,7 +7758,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                         ) {
                                             Icon(imageVector = Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
                                             Spacer(modifier = Modifier.width(6.dp))
-                                            Text("Save & Verify Google Play Gateway", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                            Text("Save & Verify Google Play Gateway", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                         }
                                     }
                                 }
@@ -6496,7 +7770,8 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                 // 9. SERVICE DESCRIPTION & FEATURES CARD
                 item {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFFFF85A6)),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -6504,7 +7779,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(imageVector = Icons.Default.Description, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(20.dp))
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text("Service Description", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                Text("Service Description", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                             }
 
                             Spacer(modifier = Modifier.height(14.dp))
@@ -6514,8 +7789,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                 onValueChange = { serviceTitle = it },
                                 label = { Text("Service Title", color = TextSecondary) },
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                    focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                    focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                    focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                    focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                 ),
                                 shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier.fillMaxWidth()
@@ -6529,8 +7805,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                 label = { Text("Detailed Description", color = TextSecondary) },
                                 minLines = 3,
                                 colors = OutlinedTextFieldDefaults.colors(
-                                    focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                    focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                    focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                    focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                    focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                 ),
                                 shape = RoundedCornerShape(10.dp),
                                 modifier = Modifier.fillMaxWidth()
@@ -6538,7 +7815,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
 
                             Spacer(modifier = Modifier.height(14.dp))
 
-                            Text("Included Features:", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("Included Features:", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             Spacer(modifier = Modifier.height(6.dp))
 
                             Row(
@@ -6548,14 +7825,14 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                 includedFeatures.forEach { feature ->
                                     Box(
                                         modifier = Modifier
-                                            .background(OnlineGreen.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
-                                            .border(0.5.dp, OnlineGreen, RoundedCornerShape(8.dp))
+                                            .background(OnlineGreen.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                                            .border(1.dp, OnlineGreen, RoundedCornerShape(8.dp))
                                             .padding(horizontal = 10.dp, vertical = 5.dp)
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Icon(imageVector = Icons.Default.Check, contentDescription = null, tint = OnlineGreen, modifier = Modifier.size(12.dp))
                                             Spacer(modifier = Modifier.width(4.dp))
-                                            Text(feature, color = Color.White, fontSize = 11.sp)
+                                            Text(feature, color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Medium)
                                         }
                                     }
                                 }
@@ -6572,8 +7849,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                     onValueChange = { newIncludedInput = it },
                                     placeholder = { Text("Add included feature...", color = Color.Gray, fontSize = 11.sp) },
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                        focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                        focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(8.dp),
                                     modifier = Modifier.weight(1f).height(48.dp)
@@ -6594,7 +7872,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
 
                             Spacer(modifier = Modifier.height(14.dp))
 
-                            Text("Excluded Features:", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("Excluded Features:", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             Spacer(modifier = Modifier.height(6.dp))
 
                             Row(
@@ -6604,14 +7882,14 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                 excludedFeatures.forEach { feature ->
                                     Box(
                                         modifier = Modifier
-                                            .background(Color.Red.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
-                                            .border(0.5.dp, Color.Red, RoundedCornerShape(8.dp))
+                                            .background(Color.Red.copy(alpha = 0.12f), RoundedCornerShape(8.dp))
+                                            .border(1.dp, Color.Red, RoundedCornerShape(8.dp))
                                             .padding(horizontal = 10.dp, vertical = 5.dp)
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Icon(imageVector = Icons.Default.Close, contentDescription = null, tint = Color.Red, modifier = Modifier.size(12.dp))
                                             Spacer(modifier = Modifier.width(4.dp))
-                                            Text(feature, color = Color.White, fontSize = 11.sp)
+                                            Text(feature, color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Medium)
                                         }
                                     }
                                 }
@@ -6628,8 +7906,9 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                     onValueChange = { newExcludedInput = it },
                                     placeholder = { Text("Add excluded feature...", color = Color.Gray, fontSize = 11.sp) },
                                     colors = OutlinedTextFieldDefaults.colors(
-                                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                        focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6),
+                                        focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                                     ),
                                     shape = RoundedCornerShape(8.dp),
                                     modifier = Modifier.weight(1f).height(48.dp)
@@ -6642,7 +7921,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                             newExcludedInput = ""
                                         }
                                     },
-                                    modifier = Modifier.background(Color(0xFF2E2E3E), RoundedCornerShape(8.dp))
+                                    modifier = Modifier.background(PinkHighlight, RoundedCornerShape(8.dp))
                                 ) {
                                     Icon(imageVector = Icons.Default.Add, contentDescription = "Add Excluded", tint = Color.White)
                                 }
@@ -6654,7 +7933,8 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                 // 10. PORTFOLIO & MEDIA UPLOAD CARD
                 item {
                     Card(
-                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        border = BorderStroke(1.dp, Color(0xFFFF85A6)),
                         shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -6667,7 +7947,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(imageVector = Icons.Default.Collections, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(20.dp))
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Portfolio", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                    Text("Portfolio", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                                 }
 
                                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -6680,26 +7960,26 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                     ) {
                                         Icon(Icons.Default.AddPhotoAlternate, contentDescription = null, modifier = Modifier.size(12.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("+ Image", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        Text("+ Image", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                     }
 
                                     Button(
                                         onClick = { showAddVideoDialog = true },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E2E3E)),
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF64748B)),
                                         shape = RoundedCornerShape(8.dp),
                                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                                         modifier = Modifier.height(28.dp)
                                     ) {
                                         Icon(Icons.Default.Videocam, contentDescription = null, modifier = Modifier.size(12.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("+ Video", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        Text("+ Video", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
 
                             Spacer(modifier = Modifier.height(14.dp))
 
-                            Text("Service Images:", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                            Text("Service Images:", color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                             Spacer(modifier = Modifier.height(8.dp))
 
                             Row(
@@ -6711,7 +7991,8 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                         modifier = Modifier
                                             .size(90.dp)
                                             .clip(RoundedCornerShape(10.dp))
-                                            .background(Color(0xFF1E1E2E))
+                                            .background(Color(0xFFF1F5F9))
+                                            .border(1.dp, Color(0xFFFF85A6), RoundedCornerShape(10.dp))
                                     ) {
                                         SubcomposeAsyncImage(
                                             model = url,
@@ -6737,7 +8018,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
 
                             Spacer(modifier = Modifier.height(14.dp))
 
-                            Text("Service Videos:", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                            Text("Service Videos:", color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                             Spacer(modifier = Modifier.height(6.dp))
 
                             portfolioVideos.forEachIndexed { idx, title ->
@@ -6746,7 +8027,8 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                         .fillMaxWidth()
                                         .padding(vertical = 4.dp)
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(Color(0xFF1E1E2E))
+                                        .background(Color(0xFFF8FAFC))
+                                        .border(1.dp, Color(0xFFFF85A6), RoundedCornerShape(8.dp))
                                         .padding(horizontal = 12.dp, vertical = 8.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     verticalAlignment = Alignment.CenterVertically
@@ -6754,7 +8036,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(imageVector = Icons.Default.PlayCircle, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(20.dp))
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text(title, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                                        Text(title, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                                     }
 
                                     IconButton(
@@ -6772,7 +8054,8 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
 
             // 11. BOTTOM ACTION BUTTONS BAR
             Card(
-                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFFF85A6)),
                 shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
                 modifier = Modifier.fillMaxWidth()
@@ -6813,23 +8096,23 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = Icons.Default.Save, contentDescription = null, modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("💾 Save Changes", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("💾 Save Changes", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
                     }
 
                     OutlinedButton(
                         onClick = { viewModel.navigateTo("MODEL_PROFILE") },
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
-                        border = BorderStroke(1.dp, Color(0xFF2E2E3E)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = TextPrimary),
+                        border = BorderStroke(1.dp, Color(0xFFFF85A6)),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
                             .weight(1f)
                             .height(48.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(imageVector = Icons.Default.Visibility, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Icon(imageVector = Icons.Default.Visibility, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("👁 Preview", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Text("👁 Preview", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                         }
                     }
 
@@ -6850,7 +8133,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
         if (showAddImageDialog) {
             AlertDialog(
                 onDismissRequest = { showAddImageDialog = false },
-                title = { Text("Upload Portfolio Image", color = Color.White, fontWeight = FontWeight.Bold) },
+                title = { Text("Upload Portfolio Image", color = TextPrimary, fontWeight = FontWeight.Bold) },
                 text = {
                     Column {
                         Text("Enter image URL or select sample asset:", color = TextSecondary, fontSize = 12.sp)
@@ -6861,7 +8144,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                             placeholder = { Text("https://images.unsplash.com/...", color = Color.Gray) },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)
                             ),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -6897,7 +8180,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
         if (showAddVideoDialog) {
             AlertDialog(
                 onDismissRequest = { showAddVideoDialog = false },
-                title = { Text("Upload Portfolio Video", color = Color.White, fontWeight = FontWeight.Bold) },
+                title = { Text("Upload Portfolio Video", color = TextPrimary, fontWeight = FontWeight.Bold) },
                 text = {
                     Column {
                         Text("Enter video title or video reel link:", color = TextSecondary, fontSize = 12.sp)
@@ -6908,7 +8191,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                             placeholder = { Text("E.g. VIP Fashion Catwalk Reel", color = Color.Gray) },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)
                             ),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -6942,7 +8225,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
         if (showAddNewServiceDialog) {
             AlertDialog(
                 onDismissRequest = { showAddNewServiceDialog = false },
-                title = { Text("➕ Add New Service Package", color = Color.White, fontWeight = FontWeight.Bold) },
+                title = { Text("➕ Add New Service Package", color = TextPrimary, fontWeight = FontWeight.Bold) },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("Create a new service tier or custom booking offer:", color = TextSecondary, fontSize = 12.sp)
@@ -6953,7 +8236,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                             placeholder = { Text("E.g. Full Day VIP Commercial Shoot", color = Color.Gray) },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)
                             ),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -6967,7 +8250,7 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)
                             ),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -7085,7 +8368,7 @@ fun LiveSupportChatModal(
                     }
                 }
 
-                HorizontalDivider(color = Color(0xFF25283A))
+                HorizontalDivider(color = PinkBorderSoft)
 
                 // Quick Inquiry Chips
                 LazyRow(
@@ -7103,7 +8386,7 @@ fun LiveSupportChatModal(
                     )
                     items(quickPills) { pill ->
                         Surface(
-                            color = Color(0xFF25283A),
+                            color = PinkBorderSoft,
                             shape = RoundedCornerShape(16.dp),
                             modifier = Modifier.clickable {
                                 viewModel.sendSupportMessage(pill)
@@ -7119,7 +8402,7 @@ fun LiveSupportChatModal(
                     }
                 }
 
-                HorizontalDivider(color = Color(0xFF25283A))
+                HorizontalDivider(color = PinkBorderSoft)
 
                 // Message Thread
                 LazyColumn(
@@ -7588,25 +8871,15 @@ fun AdminSupportMessengerTab(viewModel: AppViewModel) {
                         }
                     }
 
-                    // Header Call / Profile Icons
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        IconButton(onClick = {
-                            android.widget.Toast.makeText(context, "Initiating Support Call with ${selectedUser.name}...", android.widget.Toast.LENGTH_SHORT).show()
-                        }) {
-                            Icon(imageVector = Icons.Default.Call, contentDescription = "Call", tint = Color(0xFF0084FF), modifier = Modifier.size(20.dp))
-                        }
-                        IconButton(onClick = {
-                            android.widget.Toast.makeText(context, "Initiating Live Video Verification...", android.widget.Toast.LENGTH_SHORT).show()
-                        }) {
-                            Icon(imageVector = Icons.Default.Videocam, contentDescription = "Video", tint = Color(0xFF0084FF), modifier = Modifier.size(20.dp))
-                        }
+                    // Header Audio Call Icon Only (Video Call removed per user request)
+                    IconButton(onClick = {
+                        android.widget.Toast.makeText(context, "Initiating Audio Support Call with ${selectedUser.name}...", android.widget.Toast.LENGTH_SHORT).show()
+                    }) {
+                        Icon(imageVector = Icons.Default.Call, contentDescription = "Audio Call", tint = Color(0xFF0084FF), modifier = Modifier.size(22.dp))
                     }
                 }
 
-                HorizontalDivider(color = Color(0xFF25283A))
+                HorizontalDivider(color = PinkBorderSoft)
 
                 // Chat Messages Thread
                 LazyColumn(
@@ -7736,7 +9009,7 @@ fun AdminSupportMessengerTab(viewModel: AppViewModel) {
                     }
                 }
 
-                HorizontalDivider(color = Color(0xFF25283A))
+                HorizontalDivider(color = PinkBorderSoft)
 
                 // --- 5. MESSENGER INPUT FOOTER ---
                 Surface(
@@ -7813,195 +9086,377 @@ fun B2BCashAgentMarketplaceDialog(
     viewModel: AppViewModel,
     onDismiss: () -> Unit
 ) {
-    val allAgents by viewModel.paymentAgents.collectAsStateWithLifecycle()
-    val allOrders by viewModel.allB2BOrders.collectAsStateWithLifecycle()
-
-    var selectedCountry by remember { mutableStateOf("Bangladesh") }
-    var tradeType by remember { mutableStateOf("DEPOSIT") } // "DEPOSIT" or "WITHDRAWAL"
-    var selectedOrderForChat by remember { mutableStateOf<B2BOrder?>(null) }
-    var selectedAgentForOrder by remember { mutableStateOf<PaymentAgent?>(null) }
-
-    val countryList = listOf("Bangladesh", "China", "USA", "UK", "UAE", "India", "Other")
-
-    val countryAgents = remember(allAgents, selectedCountry, tradeType) {
-        allAgents.filter { agent ->
-            val matchCountry = agent.country.equals(selectedCountry, ignoreCase = true)
-            val matchTrade = if (tradeType == "DEPOSIT") agent.supportsDeposit else agent.supportsWithdraw
-            matchCountry && matchTrade && agent.verificationStatus == "VERIFIED"
-        }
-    }
-
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(12.dp),
-            shape = RoundedCornerShape(16.dp),
-            color = DarkBg
-        ) {
+        B2BCashAgentMarketplaceContent(viewModel = viewModel, onClose = onDismiss)
+    }
+}
+
+@Composable
+fun B2BCashAgentMarketplaceContent(
+    viewModel: AppViewModel,
+    onClose: (() -> Unit)? = null
+) {
+    val context = LocalContext.current
+    val allAgents by viewModel.paymentAgents.collectAsStateWithLifecycle()
+    val allOrders by viewModel.allB2BOrders.collectAsStateWithLifecycle()
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+
+    var activeTopTab by remember { mutableStateOf("BUY") } // "BUY", "SELL", "AGENTS", "ORDERS"
+    var activeFilterChip by remember { mutableStateOf("ALL") } // "ALL", "ONLINE", "VERIFIED", "BDT", "USD"
+    var searchQuery by remember { mutableStateOf("") }
+    var isSearchActive by remember { mutableStateOf(false) }
+
+    var selectedOrderForChat by remember { mutableStateOf<B2BOrder?>(null) }
+    var selectedAgentForOrder by remember { mutableStateOf<PaymentAgent?>(null) }
+    var showTopUpDialog by remember { mutableStateOf(false) }
+    var showWithdrawDialog by remember { mutableStateOf(false) }
+
+    // Preloaded high-fidelity B2B Cash Agents matching the exact reference photo
+    val photoAgents = remember {
+        listOf(
+            MarketplaceAgentItem(
+                id = "agent_rahim",
+                name = "Rahim Agent",
+                avatarUrl = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
+                country = "Bangladesh",
+                location = "Dhaka, Bangladesh",
+                flagEmoji = "🇧🇩",
+                rating = 4.9,
+                reviewsCount = 320,
+                ordersCount = 1250,
+                buyRate = 122.50,
+                sellRate = 120.80,
+                currency = "BDT",
+                currencySymbol = "৳",
+                minLimit = 5000.0,
+                maxLimit = 500000.0,
+                paymentMethods = listOf("bKash", "Nagad", "Bank", "Cash"),
+                buttonLabel = "Buy Now",
+                isOnline = true,
+                isVerified = true,
+                accountNumber = "01755123456"
+            ),
+            MarketplaceAgentItem(
+                id = "agent_dubai",
+                name = "Dubai Cash Pro",
+                avatarUrl = "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d",
+                country = "UAE",
+                location = "Dubai, UAE",
+                flagEmoji = "🇦🇪",
+                rating = 4.8,
+                reviewsCount = 210,
+                ordersCount = 980,
+                buyRate = 1.004,
+                sellRate = 0.997,
+                currency = "USD",
+                currencySymbol = "$",
+                minLimit = 100.0,
+                maxLimit = 50000.0,
+                paymentMethods = listOf("Bank", "Cash", "USDT", "Wire"),
+                buttonLabel = "Trade",
+                isOnline = true,
+                isVerified = true,
+                accountNumber = "+971501234567"
+            ),
+            MarketplaceAgentItem(
+                id = "agent_bd_exchange",
+                name = "BD Exchange Hub",
+                avatarUrl = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e",
+                country = "Bangladesh",
+                location = "Chittagong, Bangladesh",
+                flagEmoji = "🇧🇩",
+                rating = 4.7,
+                reviewsCount = 186,
+                ordersCount = 640,
+                buyRate = 122.20,
+                sellRate = 121.00,
+                currency = "BDT",
+                currencySymbol = "৳",
+                minLimit = 10000.0,
+                maxLimit = 1000000.0,
+                paymentMethods = listOf("bKash", "Nagad", "Bank", "Cash"),
+                buttonLabel = "Buy Now",
+                isOnline = true,
+                isVerified = true,
+                accountNumber = "01819987654"
+            ),
+            MarketplaceAgentItem(
+                id = "agent_global",
+                name = "Global Pay Agent",
+                avatarUrl = "https://images.unsplash.com/photo-1534528741775-53994a69daeb",
+                country = "Singapore",
+                location = "Singapore, Singapore",
+                flagEmoji = "🇸🇬",
+                rating = 4.9,
+                reviewsCount = 412,
+                ordersCount = 2300,
+                buyRate = 1.003,
+                sellRate = 0.996,
+                currency = "USD",
+                currencySymbol = "$",
+                minLimit = 500.0,
+                maxLimit = 100000.0,
+                paymentMethods = listOf("Bank", "USDT", "Wise", "Cash"),
+                buttonLabel = "Trade",
+                isOnline = true,
+                isVerified = true,
+                accountNumber = "+6581234567"
+            ),
+            MarketplaceAgentItem(
+                id = "agent_sumon",
+                name = "Agent Sumon",
+                avatarUrl = "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7",
+                country = "Bangladesh",
+                location = "Dhaka, Bangladesh",
+                flagEmoji = "🇧🇩",
+                rating = 4.9,
+                reviewsCount = 428,
+                ordersCount = 1840,
+                buyRate = 122.40,
+                sellRate = 120.90,
+                currency = "BDT",
+                currencySymbol = "৳",
+                minLimit = 2000.0,
+                maxLimit = 300000.0,
+                paymentMethods = listOf("bKash", "Nagad", "Rocket", "Bank", "Cash"),
+                buttonLabel = "Buy Now",
+                isOnline = true,
+                isVerified = true,
+                accountNumber = "01711204899"
+            )
+        )
+    }
+
+    // Filter agents based on active filter chip and search query
+    val displayedAgents = remember(activeFilterChip, searchQuery, photoAgents) {
+        photoAgents.filter { agent ->
+            val matchFilter = when (activeFilterChip) {
+                "ONLINE" -> agent.isOnline
+                "VERIFIED" -> agent.isVerified
+                "BDT" -> agent.currency == "BDT"
+                "USD" -> agent.currency == "USD"
+                else -> true
+            }
+            val matchQuery = if (searchQuery.isBlank()) true else {
+                agent.name.contains(searchQuery, ignoreCase = true) ||
+                agent.location.contains(searchQuery, ignoreCase = true) ||
+                agent.currency.contains(searchQuery, ignoreCase = true)
+            }
+            matchFilter && matchQuery
+        }
+    }
+
+    val activeOrders = remember(allOrders) {
+        allOrders.filter { it.status != "RELEASED" && it.status != "CANCELLED" }
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = Color(0xFFFFF5F7) // Soft blush pink background matching photo
+    ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .then(if (onClose != null) Modifier.windowInsetsPadding(WindowInsets.statusBars) else Modifier)
+                    .padding(horizontal = 16.dp, vertical = if (onClose != null) 10.dp else 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                // Header
+                // ==========================================
+                // 1. TOP APP BAR (Logo, Title, Search & Bell)
+                // ==========================================
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("MODOL CONNECT", color = PinkHighlight, fontWeight = FontWeight.Black, fontSize = 14.sp)
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Box(
-                                modifier = Modifier
-                                    .background(Color(0xFF00E676).copy(alpha = 0.2f), RoundedCornerShape(4.dp))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                            ) {
-                                Text("B2B P2P ESCROW", color = Color(0xFF00E676), fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                        Text("B2B Cash Agent Marketplace", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    }
-
-                    IconButton(onClick = onDismiss) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = Color.White)
-                    }
-                }
-
-                // Trade Mode Toggle (Deposit vs Withdraw)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(DarkSurface, RoundedCornerShape(10.dp))
-                        .padding(4.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(if (tradeType == "DEPOSIT") Color(0xFF00E676) else Color.Transparent)
-                            .clickable { tradeType = "DEPOSIT" }
-                            .padding(vertical = 10.dp),
-                        contentAlignment = Alignment.Center
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        Text(
-                            "🟢 DEPOSIT (Cash-In)",
-                            color = if (tradeType == "DEPOSIT") Color.Black else Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        )
-                    }
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(if (tradeType == "WITHDRAWAL") PinkHighlight else Color.Transparent)
-                            .clickable { tradeType = "WITHDRAWAL" }
-                            .padding(vertical = 10.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            "🔴 WITHDRAW (Payout)",
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        )
-                    }
-                }
-
-                // 🌍 Country Selector Row
-                Text("Select Target Country:", color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    countryList.forEach { c ->
-                        val isSel = selectedCountry.equals(c, ignoreCase = true)
-                        val flag = when (c) {
-                            "Bangladesh" -> "🇧🇩"
-                            "China" -> "🇨🇳"
-                            "USA" -> "🇺🇸"
-                            "UK" -> "🇬🇧"
-                            "UAE" -> "🇦🇪"
-                            "India" -> "🇮🇳"
-                            else -> "🌍"
-                        }
+                        // Heart 'M' Logo Box
                         Box(
                             modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (isSel) PinkHighlight else DarkSurface)
-                                .clickable { selectedCountry = c }
-                                .padding(horizontal = 12.dp, vertical = 8.dp)
+                                .size(42.dp)
+                                .background(
+                                    brush = Brush.linearGradient(
+                                        colors = listOf(Color(0xFFFF2A6D), Color(0xFFFF5E8A), Color(0xFFC2185B))
+                                    ),
+                                    shape = RoundedCornerShape(13.dp)
+                                ),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text("$flag $c", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                            Icon(
+                                imageVector = Icons.Default.Favorite,
+                                contentDescription = "Logo",
+                                tint = Color.White,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text("MODOL ", color = Color(0xFF1E1E1E), fontWeight = FontWeight.Black, fontSize = 17.sp)
+                                Text("CONNECT", color = Color(0xFFFF2A6D), fontWeight = FontWeight.Black, fontSize = 17.sp)
+                            }
+                            Text("B2B Cash Agent Marketplace", color = Color(0xFF757575), fontWeight = FontWeight.Medium, fontSize = 11.sp)
+                        }
+                    }
+
+                    // Action Icons (Search, Notification, Close)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.White,
+                            border = BorderStroke(1.dp, Color(0xFFF0D8E0)),
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clickable { isSearchActive = !isSearchActive }
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = "Search",
+                                    tint = Color(0xFF555555),
+                                    modifier = Modifier.size(19.dp)
+                                )
+                            }
+                        }
+
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.White,
+                            border = BorderStroke(1.dp, Color(0xFFF0D8E0)),
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clickable {
+                                    Toast.makeText(context, "You have 2 new B2B Market updates", Toast.LENGTH_SHORT).show()
+                                }
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.NotificationsNone,
+                                    contentDescription = "Notifications",
+                                    tint = Color(0xFF555555),
+                                    modifier = Modifier.size(19.dp)
+                                )
+                                // Red/Pink Notification Dot
+                                Box(
+                                    modifier = Modifier
+                                        .size(8.dp)
+                                        .background(Color(0xFFFF2A6D), CircleShape)
+                                        .align(Alignment.TopEnd)
+                                        .padding(top = 4.dp, end = 4.dp)
+                                )
+                            }
+                        }
+
+                        if (onClose != null) {
+                            Surface(
+                                shape = CircleShape,
+                                color = Color.White,
+                                border = BorderStroke(1.dp, Color(0xFFF0D8E0)),
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clickable { onClose() }
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Close",
+                                        tint = Color(0xFF555555),
+                                        modifier = Modifier.size(19.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
 
-                // Live Active Orders Bar
-                val activeOrders = remember(allOrders) {
-                    allOrders.filter { it.status != "RELEASED" && it.status != "CANCELLED" }
+                // Search Bar Expandable
+                if (isSearchActive) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("Search by agent name, city, or currency...", fontSize = 12.sp, color = Color.Gray) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFFFF2A6D),
+                            unfocusedBorderColor = Color(0xFFE5D5DC),
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White,
+                            focusedTextColor = Color(0xFF1E1E1E),
+                            unfocusedTextColor = Color(0xFF1E1E1E)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth().height(48.dp),
+                        singleLine = true
+                    )
                 }
 
-                if (activeOrders.isNotEmpty()) {
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E203E)),
-                        border = BorderStroke(1.dp, PinkHighlight),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.Chat, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(16.dp))
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text("Active B2B Orders & Chat (${activeOrders.size})", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                            }
+                // ==========================================
+                // 2. SEGMENT TABS (Buy, Sell, Agents, Orders)
+                // ==========================================
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val tabs = listOf(
+                        "BUY" to Triple("Buy", Icons.Default.ArrowDownward, Color(0xFFFF2A6D)),
+                        "SELL" to Triple("Sell", Icons.Default.ArrowUpward, Color(0xFF555555)),
+                        "AGENTS" to Triple("Agents", Icons.Default.Group, Color(0xFF555555)),
+                        "ORDERS" to Triple("Orders", Icons.Default.ReceiptLong, Color(0xFF555555))
+                    )
 
+                    tabs.forEach { (tabKey, tabData) ->
+                        val isSelected = activeTopTab == tabKey
+                        val (label, icon, _) = tabData
+
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = if (isSelected) Color(0xFFFF2A6D) else Color.White,
+                            border = BorderStroke(1.dp, if (isSelected) Color(0xFFFF2A6D) else Color(0xFFE8D8E0)),
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(38.dp)
+                                .clickable { activeTopTab = tabKey }
+                        ) {
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .horizontalScroll(rememberScrollState()),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                modifier = Modifier.padding(horizontal = 8.dp),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                activeOrders.forEach { order ->
-                                    Card(
-                                        modifier = Modifier.clickable { selectedOrderForChat = order },
-                                        colors = CardDefaults.cardColors(containerColor = DarkBg),
-                                        shape = RoundedCornerShape(8.dp)
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    tint = if (isSelected) Color.White else Color(0xFF555555),
+                                    modifier = Modifier.size(15.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = label,
+                                    color = if (isSelected) Color.White else Color(0xFF444444),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                                if (tabKey == "ORDERS" && activeOrders.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .size(14.dp)
+                                            .background(if (isSelected) Color.White else Color(0xFFFF2A6D), CircleShape),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Row(
-                                            modifier = Modifier.padding(8.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                        ) {
-                                            Column {
-                                                Text("Order #${order.orderId}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                                                Text("${order.type} ৳${order.amount.toInt()} • ${order.agentName}", color = TextSecondary, fontSize = 9.sp)
-                                            }
-
-                                            val (stColor, stLbl) = when (order.status) {
-                                                "DISPUTED" -> Color(0xFFEF4444) to "DISPUTED"
-                                                "PAYMENT_SUBMITTED" -> Color(0xFFFF9800) to "SUBMITTED"
-                                                else -> Color(0xFF2196F3) to "PENDING"
-                                            }
-
-                                            Box(
-                                                modifier = Modifier
-                                                    .background(stColor.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
-                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                            ) {
-                                                Text(stLbl, color = stColor, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                                            }
-                                        }
+                                        Text(
+                                            "${activeOrders.size}",
+                                            color = if (isSelected) Color(0xFFFF2A6D) else Color.White,
+                                            fontSize = 8.sp,
+                                            fontWeight = FontWeight.Black
+                                        )
                                     }
                                 }
                             }
@@ -8009,122 +9464,560 @@ fun B2BCashAgentMarketplaceDialog(
                     }
                 }
 
-                HorizontalDivider(color = Color.White.copy(alpha = 0.08f))
-
-                // Verified Agents List for Selected Country & Trade
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                // ==========================================
+                // 3. B2B WALLET BALANCE CARD (Exact Gradient)
+                // ==========================================
+                Card(
+                    shape = RoundedCornerShape(22.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                    border = BorderStroke(1.dp, Color(0xFFFFC0D0)),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        "Verified Agents ($selectedCountry - ${countryAgents.size})",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp
-                    )
-                    Text("Instant B2B Escrow", color = Color(0xFF00E676), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                }
-
-                if (countryAgents.isEmpty()) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f),
-                        contentAlignment = Alignment.Center
+                            .background(
+                                brush = Brush.horizontalGradient(
+                                    colors = listOf(
+                                        Color(0xFFFFDFE8),
+                                        Color(0xFFFFF0F4),
+                                        Color(0xFFFFDFE8)
+                                    )
+                                )
+                            )
+                            .padding(horizontal = 16.dp, vertical = 14.dp)
                     ) {
-                        Text("No verified cash agents available in $selectedCountry for $tradeType at this moment. Try selecting 'Bangladesh' or 'China'.", color = TextSecondary, fontSize = 12.sp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Left: Wallet Icon + Balance Text
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Surface(
+                                    shape = RoundedCornerShape(14.dp),
+                                    color = Color(0xFFFF2A6D),
+                                    modifier = Modifier.size(46.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = Icons.Default.AccountBalanceWallet,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                }
+
+                                val userBalance = currentUser?.balance ?: 1500.0
+                                Column {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text("B2B Wallet Balance", color = Color(0xFFC2185B), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .background(Color(0xFF00E676).copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                                                .padding(horizontal = 4.dp, vertical = 1.dp)
+                                        ) {
+                                            Text("SHARED", color = Color(0xFF00897B), fontSize = 8.sp, fontWeight = FontWeight.Black)
+                                        }
+                                    }
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        modifier = Modifier.clickable {
+                                            Toast.makeText(context, "Wallet Balance: ৳${"%,.2f".format(userBalance)} (Synced with Personal Wallet)", Toast.LENGTH_SHORT).show()
+                                        }
+                                    ) {
+                                        Text(
+                                            "৳ %,.2f".format(userBalance),
+                                            color = Color(0xFF1E1E1E),
+                                            fontWeight = FontWeight.Black,
+                                            fontSize = 22.sp
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Icon(
+                                            imageVector = Icons.Default.ChevronRight,
+                                            contentDescription = null,
+                                            tint = Color(0xFF888888),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                    val usdVal = userBalance / 122.5
+                                    Text("≈ $ %,.2f USD • Same as Personal Wallet".format(usdVal), color = Color(0xFF64748B), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                }
+                            }
+
+                            // Right: Top Up & Withdraw Buttons
+                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                // Top Up
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.clickable { showTopUpDialog = true }
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = Color(0xFFFF2A6D),
+                                        modifier = Modifier.size(34.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(imageVector = Icons.Default.Add, contentDescription = "Top Up", tint = Color.White, modifier = Modifier.size(18.dp))
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(3.dp))
+                                    Text("Top Up", color = Color(0xFF1E293B), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+
+                                // Withdraw
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.clickable { showWithdrawDialog = true }
+                                ) {
+                                    Surface(
+                                        shape = CircleShape,
+                                        color = Color.White,
+                                        border = BorderStroke(1.dp, Color(0xFFFF9EB5)),
+                                        modifier = Modifier.size(34.dp)
+                                    ) {
+                                        Box(contentAlignment = Alignment.Center) {
+                                            Icon(imageVector = Icons.Default.CallMade, contentDescription = "Withdraw", tint = Color(0xFFFF2A6D), modifier = Modifier.size(16.dp))
+                                        }
+                                    }
+                                    Spacer(modifier = Modifier.height(3.dp))
+                                    Text("Withdraw", color = Color(0xFF1E293B), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ==========================================
+                // 4. HORIZONTAL FILTER CHIPS ROW
+                // ==========================================
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    val filterChips = listOf(
+                        "ALL" to "All",
+                        "ONLINE" to "● Online",
+                        "VERIFIED" to "Verified",
+                        "BDT" to "🇧🇩 BDT",
+                        "USD" to "🇺🇸 USD"
+                    )
+
+                    filterChips.forEach { (chipKey, chipLabel) ->
+                        val isSelected = activeFilterChip == chipKey
+                        Surface(
+                            shape = RoundedCornerShape(20.dp),
+                            color = if (isSelected) Color(0xFFFF2A6D) else Color.White,
+                            border = BorderStroke(1.dp, if (isSelected) Color(0xFFFF2A6D) else Color(0xFFE8D8E0)),
+                            modifier = Modifier.clickable { activeFilterChip = chipKey }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                if (chipKey == "ONLINE" && !isSelected) {
+                                    Box(modifier = Modifier.size(7.dp).background(Color(0xFF00A86B), CircleShape))
+                                }
+                                if (chipKey == "VERIFIED") {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = if (isSelected) Color.White else Color(0xFFFF2A6D),
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                }
+                                Text(
+                                    chipLabel.replace("● ", ""),
+                                    color = if (isSelected) Color.White else Color(0xFF444444),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+                    }
+
+                    // Filter icon button
+                    Surface(
+                        shape = CircleShape,
+                        color = Color.White,
+                        border = BorderStroke(1.dp, Color(0xFFE8D8E0)),
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clickable {
+                                activeFilterChip = if (activeFilterChip == "ALL") "BDT" else "ALL"
+                            }
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(imageVector = Icons.Default.FilterList, contentDescription = "Filter", tint = Color(0xFF555555), modifier = Modifier.size(16.dp))
+                        }
+                    }
+                }
+
+                // ==========================================
+                // 5. MAIN CONTENT AREA (AGENTS OR ORDERS)
+                // ==========================================
+                if (activeTopTab == "ORDERS") {
+                    // Orders View
+                    if (allOrders.isEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .weight(1f),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(imageVector = Icons.Default.Inbox, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(40.dp))
+                                Text("No Active B2B Orders", color = Color(0xFF333333), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("Select an agent from the marketplace to start a trade.", color = Color.Gray, fontSize = 12.sp)
+                            }
+                        }
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxWidth().weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            items(allOrders) { order ->
+                                Card(
+                                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                                    shape = RoundedCornerShape(16.dp),
+                                    border = BorderStroke(1.dp, Color(0xFFF0D8E0)),
+                                    modifier = Modifier.fillMaxWidth().clickable { selectedOrderForChat = order }
+                                ) {
+                                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Text("Order #${order.orderId.takeLast(8)}", fontWeight = FontWeight.Bold, color = Color(0xFF1E1E1E), fontSize = 13.sp)
+                                            val (stCol, stTxt) = when (order.status) {
+                                                "RELEASED" -> Color(0xFF00A86B) to "COMPLETED"
+                                                "PAYMENT_SUBMITTED" -> Color(0xFF2196F3) to "SUBMITTED"
+                                                "DISPUTED" -> Color(0xFFEF4444) to "DISPUTED"
+                                                else -> Color(0xFFFF9800) to "PENDING"
+                                            }
+                                            Box(
+                                                modifier = Modifier
+                                                    .background(stCol.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                                                    .padding(horizontal = 8.dp, vertical = 3.dp)
+                                            ) {
+                                                Text(stTxt, color = stCol, fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                                            }
+                                        }
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
+                                            Text("${order.type} • ${order.agentName}", color = Color(0xFF666666), fontSize = 11.sp)
+                                            Text("৳${order.amount.toInt()} (${order.currency})", color = Color(0xFFFF2A6D), fontWeight = FontWeight.Black, fontSize = 13.sp)
+                                        }
+                                        Button(
+                                            onClick = { selectedOrderForChat = order },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF2A6D)),
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.fillMaxWidth().height(34.dp)
+                                        ) {
+                                            Text("Open Live Chat & Escrow", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 } else {
+                    // Marketplace Agents List (Exact 1:1 match with photo)
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        items(countryAgents) { agent ->
+                        items(displayedAgents) { agent ->
                             Card(
-                                colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                                border = BorderStroke(1.dp, Color(0xFF2E2E3E)),
-                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                shape = RoundedCornerShape(22.dp),
+                                border = BorderStroke(1.dp, Color(0xFFF3E5EB)),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(12.dp),
-                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalArrangement = Arrangement.spacedBy(10.dp)
                                 ) {
+                                    // Row 1: Left Avatar + Middle Info + Right Rates
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.Top
+                                    ) {
+                                        // Left: Avatar and Online Status Pill
+                                        Column(
+                                            horizontalAlignment = Alignment.CenterHorizontally,
+                                            modifier = Modifier.padding(end = 12.dp)
+                                        ) {
+                                            SubcomposeAsyncImage(
+                                                model = agent.avatarUrl,
+                                                contentDescription = agent.name,
+                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier
+                                                    .size(58.dp)
+                                                    .clip(CircleShape)
+                                                    .border(1.5.dp, Color(0xFFFFC0D0), CircleShape)
+                                            )
+                                            Spacer(modifier = Modifier.height(6.dp))
+                                            Surface(
+                                                shape = RoundedCornerShape(12.dp),
+                                                color = Color(0xFFE8F8F0),
+                                                modifier = Modifier.padding(top = 2.dp)
+                                            ) {
+                                                Row(
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                ) {
+                                                    Box(modifier = Modifier.size(6.dp).background(Color(0xFF00A86B), CircleShape))
+                                                    Text("Online", color = Color(0xFF00A86B), fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                                                }
+                                            }
+                                        }
+
+                                        // Middle: Agent Name, Location, Ratings
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                            verticalArrangement = Arrangement.spacedBy(3.dp)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    agent.name,
+                                                    color = Color(0xFF1E1E1E),
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 15.sp
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Icon(
+                                                    imageVector = Icons.Default.CheckCircle,
+                                                    contentDescription = "Verified",
+                                                    tint = Color(0xFFFF2A6D),
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                            }
+
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(agent.flagEmoji, fontSize = 12.sp)
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text(agent.location, color = Color(0xFF475569), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                                            }
+
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = Color(0xFFF59E0B), modifier = Modifier.size(13.dp))
+                                                Spacer(modifier = Modifier.width(3.dp))
+                                                Text(
+                                                    "${agent.rating} (%,d reviews)".format(agent.reviewsCount),
+                                                    color = Color(0xFF334155),
+                                                    fontSize = 10.sp,
+                                                    fontWeight = FontWeight.Bold
+                                                )
+                                                Text("  •  %,d trades".format(agent.ordersCount), color = Color(0xFF64748B), fontSize = 10.sp, fontWeight = FontWeight.Medium)
+                                            }
+                                        }
+
+                                        // Right: Rates Column
+                                        Column(
+                                            horizontalAlignment = Alignment.End,
+                                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                                        ) {
+                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    color = Color(0xFFDCFCE7),
+                                                    border = BorderStroke(0.8.dp, Color(0xFF86EFAC))
+                                                ) {
+                                                    Column(
+                                                        horizontalAlignment = Alignment.End,
+                                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                                                    ) {
+                                                        Text(
+                                                            "Buy Rate",
+                                                            fontSize = 9.sp,
+                                                            color = Color(0xFF16A34A),
+                                                            fontWeight = FontWeight.Bold
+                                                        )
+                                                        Text(
+                                                            "${agent.currencySymbol}${agent.buyRate}",
+                                                            fontSize = 13.sp,
+                                                            fontWeight = FontWeight.Black,
+                                                            color = Color(0xFF15803D)
+                                                        )
+                                                    }
+                                                }
+
+                                                Surface(
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    color = Color(0xFFFFE4E6),
+                                                    border = BorderStroke(0.8.dp, Color(0xFFFDA4AF))
+                                                ) {
+                                                    Column(
+                                                        horizontalAlignment = Alignment.End,
+                                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                                                    ) {
+                                                        Text(
+                                                            "Sell Rate",
+                                                            fontSize = 9.sp,
+                                                            color = Color(0xFFE11D48),
+                                                            fontWeight = FontWeight.Bold
+                                                        )
+                                                        Text(
+                                                            "${agent.currencySymbol}${agent.sellRate}",
+                                                            fontSize = 13.sp,
+                                                            fontWeight = FontWeight.Black,
+                                                            color = Color(0xFFBE123C)
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    // Row 2: Badges (Escrow Safe, Fast Release, Verified)
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFFFE8F0)) {
+                                            Text(
+                                                "✓ Escrow Safe",
+                                                color = Color(0xFFFF2A6D),
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+
+                                        Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFF3E8FF)) {
+                                            Text(
+                                                "⚡ Fast Release",
+                                                color = Color(0xFF9C27B0),
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+
+                                        Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFE8F8F0)) {
+                                            Text(
+                                                "✓ Verified",
+                                                color = Color(0xFF00A86B),
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
+
+                                    // Row 3: Payment Channels (Left) + Limit & Action Button (Right)
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(agent.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Box(
-                                                modifier = Modifier
-                                                    .background(Color(0xFF00E676).copy(alpha = 0.15f), RoundedCornerShape(4.dp))
-                                                    .padding(horizontal = 6.dp, vertical = 2.dp)
-                                            ) {
-                                                Text("✓ VERIFIED", color = Color(0xFF00E676), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                        // Payment methods row
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.weight(1f)
+                                        ) {
+                                            agent.paymentMethods.forEach { method ->
+                                                val (pillBg, pillTint) = when (method.lowercase()) {
+                                                    "bkash" -> Color(0xFFFFE8F0) to Color(0xFFE91E63)
+                                                    "nagad" -> Color(0xFFFFF3E0) to Color(0xFFFF9800)
+                                                    "bank", "wire" -> Color(0xFFE3F2FD) to Color(0xFF1976D2)
+                                                    "usdt" -> Color(0xFFE0F2F1) to Color(0xFF00897B)
+                                                    "wise" -> Color(0xFFE1F5FE) to Color(0xFF0288D1)
+                                                    else -> Color(0xFFE8F8F0) to Color(0xFF00A86B)
+                                                }
+
+                                                Surface(
+                                                    shape = RoundedCornerShape(6.dp),
+                                                    color = pillBg,
+                                                    border = BorderStroke(0.5.dp, pillTint.copy(alpha = 0.3f))
+                                                ) {
+                                                    Row(
+                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                                                        verticalAlignment = Alignment.CenterVertically,
+                                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
+                                                    ) {
+                                                        val icon = when (method.lowercase()) {
+                                                            "bank", "wire" -> Icons.Default.AccountBalance
+                                                            "cash" -> Icons.Default.Payments
+                                                            "usdt" -> Icons.Default.CurrencyBitcoin
+                                                            else -> Icons.Default.Payment
+                                                        }
+                                                        Icon(imageVector = icon, contentDescription = null, tint = pillTint, modifier = Modifier.size(10.dp))
+                                                        Text(method, color = pillTint, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                                    }
+                                                }
                                             }
                                         }
 
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = Color(0xFFFFD700), modifier = Modifier.size(14.dp))
-                                            Spacer(modifier = Modifier.width(2.dp))
-                                            Text("${agent.rating}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                        }
-                                    }
+                                        Spacer(modifier = Modifier.width(8.dp))
 
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Column {
-                                            Text("Available Pool: ৳${agent.availableBalance.toInt()}", color = PinkHighlight, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                            Text("Limit: ৳${agent.minLimit.toInt()} - ৳${agent.maxLimit.toInt()}", color = TextSecondary, fontSize = 11.sp)
-                                            Text("Comm Rate: ${agent.commissionRate}%", color = Color(0xFF00E676), fontSize = 11.sp)
-                                        }
+                                        // Limit and Action Button
+                                        Column(
+                                            horizontalAlignment = Alignment.End,
+                                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Text(
+                                                "Limit: ${agent.currencySymbol}%,d - %,d".format(agent.minLimit.toInt(), agent.maxLimit.toInt()),
+                                                color = Color(0xFF334155),
+                                                fontSize = 10.sp,
+                                                fontWeight = FontWeight.Bold
+                                            )
 
-                                        Column(horizontalAlignment = Alignment.End) {
-                                            Text("Agent Code: #${agent.agentCode}", color = TextSecondary, fontSize = 11.sp)
-                                            Text("Channel: ${agent.paymentMethod}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
-                                            Text("Account: ${agent.accountNumber}", color = TextSecondary, fontSize = 10.sp)
-                                        }
-                                    }
+                                            val btnLabel = when (activeTopTab) {
+                                                "SELL" -> "Sell Now"
+                                                "BUY" -> if (agent.currency == "BDT") "Buy Now" else "Trade"
+                                                else -> agent.buttonLabel
+                                            }
 
-                                    Text("Approved Payment Channels:", color = TextSecondary, fontSize = 10.sp)
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .horizontalScroll(rememberScrollState()),
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                    ) {
-                                        agent.allowedMethods.split(",").forEach { method ->
-                                            Box(
-                                                modifier = Modifier
-                                                    .background(Color(0xFF2E2E3E), RoundedCornerShape(4.dp))
-                                                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                                            Button(
+                                                onClick = {
+                                                    // Map MarketplaceAgentItem to PaymentAgent for order creation
+                                                    val matchedPaymentAgent = PaymentAgent(
+                                                        id = agent.id,
+                                                        name = agent.name,
+                                                        agentCode = agent.id.takeLast(4),
+                                                        country = agent.country,
+                                                        phone = agent.accountNumber,
+                                                        paymentMethod = agent.paymentMethods.firstOrNull() ?: "bKash",
+                                                        accountNumber = agent.accountNumber,
+                                                        accountHolder = agent.name,
+                                                        commissionRate = 1.5,
+                                                        minLimit = agent.minLimit,
+                                                        maxLimit = agent.maxLimit,
+                                                        availableBalance = 50000.0,
+                                                        allowedMethods = agent.paymentMethods.joinToString(", ")
+                                                    )
+                                                    selectedAgentForOrder = matchedPaymentAgent
+                                                },
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF2A6D)),
+                                                shape = RoundedCornerShape(12.dp),
+                                                modifier = Modifier.height(36.dp).widthIn(min = 100.dp)
                                             ) {
-                                                Text("✓ ${method.trim()}", color = Color.White, fontSize = 9.sp)
+                                                Text(btnLabel, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                                             }
                                         }
-                                    }
-
-                                    Button(
-                                        onClick = { selectedAgentForOrder = agent },
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = if (tradeType == "DEPOSIT") Color(0xFF00E676) else PinkHighlight
-                                        ),
-                                        shape = RoundedCornerShape(8.dp),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text(
-                                            if (tradeType == "DEPOSIT") "Trade (Buy / Cash-In)" else "Trade (Sell / Withdraw)",
-                                            color = if (tradeType == "DEPOSIT") Color.Black else Color.White,
-                                            fontWeight = FontWeight.Bold
-                                        )
                                     }
                                 }
                             }
@@ -8133,13 +10026,12 @@ fun B2BCashAgentMarketplaceDialog(
                 }
             }
         }
-    }
 
-    // Modal to create order for selected agent
+    // Modal 1: Create B2B Trade Order Dialog
     if (selectedAgentForOrder != null) {
         CreateB2BOrderModal(
             agent = selectedAgentForOrder!!,
-            tradeType = tradeType,
+            tradeType = if (activeTopTab == "SELL") "WITHDRAWAL" else "DEPOSIT",
             onDismiss = { selectedAgentForOrder = null },
             onCreated = { order ->
                 selectedAgentForOrder = null
@@ -8149,7 +10041,7 @@ fun B2BCashAgentMarketplaceDialog(
         )
     }
 
-    // Modal for B2B Order Details and Real-time Chat
+    // Modal 2: B2B Order Details and Real-time Chat
     if (selectedOrderForChat != null) {
         B2BOrderDetailAndChatDialog(
             order = selectedOrderForChat!!,
@@ -8157,7 +10049,179 @@ fun B2BCashAgentMarketplaceDialog(
             viewModel = viewModel
         )
     }
+
+    // Modal 3: Top Up Dialog (Updates Shared Wallet Balance)
+    if (showTopUpDialog) {
+        var topUpAmount by remember { mutableStateOf("1000") }
+        val presets = listOf("500", "1000", "2000", "5000")
+        AlertDialog(
+            onDismissRequest = { showTopUpDialog = false },
+            containerColor = Color.White,
+            title = { Text("Top Up Wallet", color = Color(0xFF1E1E1E), fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Add funds to your shared wallet balance. This balance is instantly available across both Personal Wallet & B2B Cash Agent Marketplace:", color = Color(0xFF666666), fontSize = 12.sp)
+                    OutlinedTextField(
+                        value = topUpAmount,
+                        onValueChange = { topUpAmount = it.filter { ch -> ch.isDigit() || ch == '.' } },
+                        label = { Text("Amount (৳ BDT)") },
+                        prefix = { Text("৳ ", fontWeight = FontWeight.Bold, color = Color(0xFFFF2A6D)) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFFFF2A6D),
+                            unfocusedBorderColor = Color(0xFFE5D5DC)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        presets.forEach { preset ->
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (topUpAmount == preset) Color(0xFFFF2A6D) else Color(0xFFFFEFF3),
+                                border = BorderStroke(1.dp, Color(0xFFFF85A6).copy(alpha = 0.5f)),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { topUpAmount = preset }
+                            ) {
+                                Box(modifier = Modifier.padding(vertical = 6.dp), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        "৳$preset",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (topUpAmount == preset) Color.White else Color(0xFFC2185B)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val amt = topUpAmount.toDoubleOrNull() ?: 1000.0
+                        if (amt > 0) {
+                            viewModel.quickAddWalletBalance(amt)
+                            Toast.makeText(context, "৳${amt.toInt()} added! Balance synced across B2B & Personal Wallet.", Toast.LENGTH_LONG).show()
+                            showTopUpDialog = false
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF2A6D))
+                ) {
+                    Text("Top Up Now", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTopUpDialog = false }) {
+                    Text("Cancel", color = Color.Gray)
+                }
+            }
+        )
+    }
+
+    // Modal 4: Withdraw Dialog (Withdraws from Shared Wallet Balance)
+    if (showWithdrawDialog) {
+        var withdrawAmount by remember { mutableStateOf("500") }
+        val presets = listOf("500", "1000", "2000", "5000")
+        val currentBal = currentUser?.balance ?: 1500.0
+        AlertDialog(
+            onDismissRequest = { showWithdrawDialog = false },
+            containerColor = Color.White,
+            title = { Text("Withdraw from Wallet", color = Color(0xFF1E1E1E), fontWeight = FontWeight.Bold, fontSize = 16.sp) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text("Available Wallet Balance: ৳ %,.2f".format(currentBal), color = Color(0xFF00897B), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text("Enter withdrawal amount (deducted from shared B2B & Personal Wallet):", color = Color(0xFF666666), fontSize = 12.sp)
+                    OutlinedTextField(
+                        value = withdrawAmount,
+                        onValueChange = { withdrawAmount = it.filter { ch -> ch.isDigit() || ch == '.' } },
+                        label = { Text("Amount (৳ BDT)") },
+                        prefix = { Text("৳ ", fontWeight = FontWeight.Bold, color = Color(0xFFFF2A6D)) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFFFF2A6D),
+                            unfocusedBorderColor = Color(0xFFE5D5DC)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        presets.forEach { preset ->
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (withdrawAmount == preset) Color(0xFFFF2A6D) else Color(0xFFFFEFF3),
+                                border = BorderStroke(1.dp, Color(0xFFFF85A6).copy(alpha = 0.5f)),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable { withdrawAmount = preset }
+                            ) {
+                                Box(modifier = Modifier.padding(vertical = 6.dp), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        "৳$preset",
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (withdrawAmount == preset) Color.White else Color(0xFFC2185B)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val amt = withdrawAmount.toDoubleOrNull() ?: 500.0
+                        if (amt > currentBal) {
+                            Toast.makeText(context, "Insufficient balance! Available: ৳${currentBal.toInt()}", Toast.LENGTH_SHORT).show()
+                        } else if (amt > 0) {
+                            viewModel.withdrawAmount = amt.toString()
+                            viewModel.walletMethod = "B2B Cash Agent"
+                            viewModel.withdrawWallet()
+                            Toast.makeText(context, "Withdrawal of ৳${amt.toInt()} submitted! Synced across B2B & Personal Wallet.", Toast.LENGTH_SHORT).show()
+                            showWithdrawDialog = false
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF2A6D))
+                ) {
+                    Text("Withdraw", fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showWithdrawDialog = false }) {
+                    Text("Cancel", color = Color.Gray)
+                }
+            }
+        )
+    }
 }
+
+// Data class to support rich marketplace agent cards matching photo
+data class MarketplaceAgentItem(
+    val id: String,
+    val name: String,
+    val avatarUrl: String,
+    val country: String,
+    val location: String,
+    val flagEmoji: String,
+    val rating: Double,
+    val reviewsCount: Int,
+    val ordersCount: Int,
+    val buyRate: Double,
+    val sellRate: Double,
+    val currency: String,
+    val currencySymbol: String,
+    val minLimit: Double,
+    val maxLimit: Double,
+    val paymentMethods: List<String>,
+    val buttonLabel: String,
+    val isOnline: Boolean = true,
+    val isVerified: Boolean = true,
+    val accountNumber: String = ""
+)
 
 @Composable
 fun CreateB2BOrderModal(
@@ -8176,7 +10240,7 @@ fun CreateB2BOrderModal(
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text("Create B2B $tradeType Trade Order", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("Create B2B $tradeType Trade Order", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         },
         text = {
             Column(
@@ -8203,7 +10267,7 @@ fun CreateB2BOrderModal(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -8289,7 +10353,7 @@ fun B2BOrderDetailAndChatDialog(
                 ) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("B2B ORDER #${liveOrder.orderId}", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                            Text("B2B ORDER #${liveOrder.orderId}", color = TextPrimary, fontWeight = FontWeight.Black, fontSize = 16.sp)
                             Spacer(modifier = Modifier.width(6.dp))
 
                             val (stColor, stText) = when (liveOrder.status) {
@@ -8318,7 +10382,7 @@ fun B2BOrderDetailAndChatDialog(
                 // Order Info Card
                 Card(
                     colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                    border = BorderStroke(1.dp, Color(0xFF2E2E3E)),
+                    border = BorderStroke(1.dp, Color(0xFFFF85A6)),
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -8467,7 +10531,7 @@ fun B2BOrderDetailAndChatDialog(
                         placeholder = { Text("Type message to agent...", color = TextSecondary, fontSize = 11.sp) },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                            focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                            focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)
                         ),
                         modifier = Modifier.weight(1f)
                     )
@@ -8498,14 +10562,14 @@ fun B2BOrderDetailAndChatDialog(
         var txnRef by remember { mutableStateOf("TXN${(10000000..99999999).random()}") }
         AlertDialog(
             onDismissRequest = { showProofModal = false },
-            title = { Text("Upload Payment Screenshot Proof", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp) },
+            title = { Text("Upload Payment Screenshot Proof", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = txnRef,
                         onValueChange = { txnRef = it },
                         label = { Text("Transaction Reference ID", color = TextSecondary) },
-                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)),
                         modifier = Modifier.fillMaxWidth()
                     )
                     Text("Select Sample Screenshot:", color = TextSecondary, fontSize = 11.sp)
@@ -8549,7 +10613,7 @@ fun B2BOrderDetailAndChatDialog(
         var disputeReasonInput by remember { mutableStateOf("Payment made but agent delayed release") }
         AlertDialog(
             onDismissRequest = { showDisputeModal = false },
-            title = { Text("Raise B2B Escrow Dispute", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp) },
+            title = { Text("Raise B2B Escrow Dispute", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("State reason for dispute. Admin team will review order chat log & screenshot proof.", color = TextSecondary, fontSize = 11.sp)
@@ -8557,7 +10621,7 @@ fun B2BOrderDetailAndChatDialog(
                         value = disputeReasonInput,
                         onValueChange = { disputeReasonInput = it },
                         label = { Text("Dispute Details", color = TextSecondary) },
-                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -8606,7 +10670,7 @@ fun AdminB2BDisputesTab(viewModel: AppViewModel) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text("B2B Escrow & Dispute Center", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("B2B Escrow & Dispute Center", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                 Text("Monitor live B2B orders, chat histories, payment proofs & resolve disputes", color = TextSecondary, fontSize = 11.sp)
             }
         }
@@ -8619,7 +10683,7 @@ fun AdminB2BDisputesTab(viewModel: AppViewModel) {
             Card(colors = CardDefaults.cardColors(containerColor = DarkSurface), modifier = Modifier.weight(1f)) {
                 Column(modifier = Modifier.padding(10.dp)) {
                     Text("Total Orders", color = TextSecondary, fontSize = 10.sp)
-                    Text("${allOrders.size}", color = Color.White, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                    Text("${allOrders.size}", color = TextPrimary, fontWeight = FontWeight.Black, fontSize = 18.sp)
                 }
             }
 
@@ -8650,7 +10714,7 @@ fun AdminB2BDisputesTab(viewModel: AppViewModel) {
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(if (isSel) PinkHighlight else Color(0xFF2E2E3E))
+                        .background(if (isSel) PinkHighlight else Color(0xFFFF85A6))
                         .clickable { statusFilter = st }
                         .padding(horizontal = 12.dp, vertical = 6.dp)
                 ) {
@@ -8672,7 +10736,7 @@ fun AdminB2BDisputesTab(viewModel: AppViewModel) {
                 items(filteredOrders) { order ->
                     Card(
                         colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                        border = BorderStroke(1.dp, if (order.status == "DISPUTED") Color(0xFFEF4444) else Color(0xFF2E2E3E)),
+                        border = BorderStroke(1.dp, if (order.status == "DISPUTED") Color(0xFFEF4444) else Color(0xFFFF85A6)),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -8683,7 +10747,7 @@ fun AdminB2BDisputesTab(viewModel: AppViewModel) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text("Order #${order.orderId}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Text("Order #${order.orderId}", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text("(${order.country})", color = TextSecondary, fontSize = 10.sp)
                                 }
@@ -8709,7 +10773,7 @@ fun AdminB2BDisputesTab(viewModel: AppViewModel) {
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Column {
-                                    Text("User: ${order.userName}", color = Color.White, fontSize = 11.sp)
+                                    Text("User: ${order.userName}", color = TextPrimary, fontSize = 11.sp)
                                     Text("Agent: ${order.agentName}", color = TextSecondary, fontSize = 11.sp)
                                     Text("Method: ${order.paymentMethod}", color = TextSecondary, fontSize = 11.sp)
                                 }
@@ -8750,7 +10814,7 @@ fun AdminB2BDisputesTab(viewModel: AppViewModel) {
         AlertDialog(
             onDismissRequest = { selectedOrderForAdminReview = null },
             title = {
-                Text("Admin Dispute & Chat Moderation (#${selOrd.orderId})", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text("Admin Dispute & Chat Moderation (#${selOrd.orderId})", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             },
             text = {
                 Column(
@@ -8765,7 +10829,7 @@ fun AdminB2BDisputesTab(viewModel: AppViewModel) {
                         Text("Submitted Proof: ${selOrd.proofScreenshotUrl}", color = Color(0xFF00E676), fontSize = 10.sp)
                     }
 
-                    Text("Full User ↔ Agent Chat Log:", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Text("Full User ↔ Agent Chat Log:", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                     Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E202E))) {
                         Column(modifier = Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             liveMsgs.forEach { m ->
@@ -8778,7 +10842,7 @@ fun AdminB2BDisputesTab(viewModel: AppViewModel) {
                         value = adminNoteInput,
                         onValueChange = { adminNoteInput = it },
                         label = { Text("Admin Decision Note", color = TextSecondary) },
-                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)),
                         modifier = Modifier.fillMaxWidth()
                     )
 

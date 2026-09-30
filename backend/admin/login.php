@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_role'] = 'ADMIN';
                 $_SESSION['user_id'] = $admin['id'];
                 $_SESSION['user_name'] = $admin['name'];
-                header('Location: ' . Config::BASE_URL . 'admin/dashboard.php');
+                header('Location: dashboard.php');
                 exit(0);
             } else {
                 $error = 'Invalid email or password.';

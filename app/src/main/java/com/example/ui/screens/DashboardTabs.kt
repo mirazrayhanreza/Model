@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.launch
@@ -75,7 +76,7 @@ fun HomeTab(viewModel: AppViewModel) {
                     .clip(RoundedCornerShape(20.dp))
                     .background(
                         Brush.linearGradient(
-                            colors = listOf(Color(0xFF2E0854), Color(0xFFFF2B85))
+                            colors = listOf(PinkHighlight, Color(0xFFFF5E8A))
                         )
                     )
             ) {
@@ -85,7 +86,7 @@ fun HomeTab(viewModel: AppViewModel) {
                         .fillMaxSize()
                         .background(
                             Brush.radialGradient(
-                                colors = listOf(PinkHighlight.copy(alpha = 0.4f), Color.Transparent)
+                                colors = listOf(Color.White.copy(alpha = 0.2f), Color.Transparent)
                             )
                         )
                 )
@@ -103,12 +104,12 @@ fun HomeTab(viewModel: AppViewModel) {
                     ) {
                         Box(
                             modifier = Modifier
-                                .background(PinkHighlight.copy(alpha = 0.2f), RoundedCornerShape(6.dp))
+                                .background(Color.White.copy(alpha = 0.25f), RoundedCornerShape(6.dp))
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text(
                                 "FEATURED BANNER",
-                                color = PinkHighlight,
+                                color = Color.White,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 10.sp,
                                 letterSpacing = 1.sp
@@ -185,7 +186,8 @@ fun HomeTab(viewModel: AppViewModel) {
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(12.dp))
-                            .background(if (isSel) PinkHighlight else DarkSurface)
+                            .background(if (isSel) PinkHighlight else Color.White)
+                            .then(if (!isSel) Modifier.border(1.dp, PinkBorderSoft, RoundedCornerShape(12.dp)) else Modifier)
                             .clickable {
                                 selectedCategory = cat
                                 if (cat != "All") {
@@ -198,7 +200,7 @@ fun HomeTab(viewModel: AppViewModel) {
                     ) {
                         Text(
                             text = cat,
-                            color = if (isSel) Color.White else TextSecondary,
+                            color = if (isSel) Color.White else TextPrimary,
                             fontWeight = FontWeight.Bold,
                             fontSize = 13.sp
                         )
@@ -283,7 +285,8 @@ fun ModelRowCard(
             .width(160.dp)
             .clickable { onCardClick() }
             .testTag("model_card_${model.id}"),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, PinkBorderSoft),
         shape = RoundedCornerShape(16.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -344,10 +347,10 @@ fun ModelRowCard(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(8.dp)
-                        .background(Color.Black.copy(alpha = 0.6f), shape = RoundedCornerShape(6.dp))
+                        .background(PinkHighlight, shape = RoundedCornerShape(6.dp))
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
-                    Text("৳${model.hourlyRate}/hr", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text("৳${model.hourlyRate}/hr", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
                 }
 
                 // Online indicator
@@ -379,8 +382,8 @@ fun ModelRowCard(
             ) {
                 Text(
                     text = model.name,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
+                    color = TextPrimary,
+                    fontWeight = FontWeight.ExtraBold,
                     fontSize = 14.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -399,25 +402,37 @@ fun ModelRowCard(
                 Spacer(modifier = Modifier.height(6.dp))
                 
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Star,
-                        contentDescription = null,
-                        tint = StarYellow,
-                        modifier = Modifier.size(14.dp)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Star,
+                            contentDescription = null,
+                            tint = StarYellow,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            text = model.rating.toString(),
+                            color = TextPrimary,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp
+                        )
+                        Text(
+                            text = "(${model.reviewCount})",
+                            color = TextSecondary,
+                            fontSize = 10.sp
+                        )
+                    }
                     Text(
-                        text = model.rating.toString(),
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
+                        text = "৳${model.hourlyRate}/hr",
+                        color = PinkHighlight,
+                        fontWeight = FontWeight.ExtraBold,
                         fontSize = 12.sp
-                    )
-                    Text(
-                        text = "(${model.reviewCount})",
-                        color = TextSecondary,
-                        fontSize = 10.sp
                     )
                 }
             }
@@ -479,18 +494,18 @@ fun SearchTab(viewModel: AppViewModel) {
                     trailingIcon = {
                         if (viewModel.searchQuery.isNotEmpty()) {
                             IconButton(onClick = { viewModel.searchQuery = "" }) {
-                                Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear", tint = Color.White)
+                                Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear", tint = TextSecondary)
                             }
                         }
                     },
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = PinkHighlight,
-                        unfocusedBorderColor = Color(0xFF2E2E3E),
-                        focusedContainerColor = DarkSurface,
-                        unfocusedContainerColor = DarkSurface,
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White
+                        unfocusedBorderColor = Color(0xFFFF85A6),
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary
                     ),
                     modifier = Modifier
                         .weight(1f)
@@ -534,7 +549,7 @@ fun SearchTab(viewModel: AppViewModel) {
             ) {
                 Text(
                     "Found ${filteredModels.size} Professional Models",
-                    color = Color.White,
+                    color = TextPrimary,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp
                 )
@@ -577,7 +592,7 @@ fun SearchTab(viewModel: AppViewModel) {
                             modifier = Modifier.size(72.dp)
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Text("No Models Found", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                        Text("No Models Found", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
                         Spacer(modifier = Modifier.height(4.dp))
                         Text("Try adjusting search terms or filters", color = TextSecondary, fontSize = 14.sp)
                     }
@@ -613,7 +628,7 @@ fun SearchTab(viewModel: AppViewModel) {
         if (showFilterSheet) {
             AlertDialog(
                 onDismissRequest = { showFilterSheet = false },
-                title = { Text("Filters & Preferences", color = Color.White, fontWeight = FontWeight.Bold) },
+                title = { Text("Filters & Preferences", color = TextPrimary, fontWeight = FontWeight.ExtraBold) },
                 text = {
                     Column(
                         modifier = Modifier
@@ -621,7 +636,7 @@ fun SearchTab(viewModel: AppViewModel) {
                             .verticalScroll(rememberScrollState())
                     ) {
                         // Country Filter
-                        Text("Country Preference", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("Country Preference", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -632,7 +647,8 @@ fun SearchTab(viewModel: AppViewModel) {
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(if (isSel) PinkHighlight else Color(0xFF2E2E3E))
+                                        .background(if (isSel) PinkHighlight else Color(0xFFF1F5F9))
+                                        .then(if (!isSel) Modifier.border(1.dp, Color(0xFFFF85A6), RoundedCornerShape(8.dp)) else Modifier)
                                         .clickable { viewModel.searchCountry = country }
                                         .padding(horizontal = 12.dp, vertical = 6.dp)
                                 ) {
@@ -645,7 +661,7 @@ fun SearchTab(viewModel: AppViewModel) {
                                         "India" -> "🇮🇳 India"
                                         else -> "🌐 All Countries"
                                     }
-                                    Text(label, color = Color.White, fontSize = 12.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
+                                    Text(label, color = if (isSel) Color.White else TextPrimary, fontSize = 12.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
                                 }
                             }
                         }
@@ -653,7 +669,7 @@ fun SearchTab(viewModel: AppViewModel) {
                         Spacer(modifier = Modifier.height(20.dp))
 
                         // City Filter
-                        Text("City", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("City", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -664,11 +680,12 @@ fun SearchTab(viewModel: AppViewModel) {
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(if (isSel) PinkHighlight else Color(0xFF2E2E3E))
+                                        .background(if (isSel) PinkHighlight else Color(0xFFF1F5F9))
+                                        .then(if (!isSel) Modifier.border(1.dp, Color(0xFFFF85A6), RoundedCornerShape(8.dp)) else Modifier)
                                         .clickable { viewModel.searchCity = city }
                                         .padding(horizontal = 12.dp, vertical = 6.dp)
                                 ) {
-                                    Text(city, color = Color.White, fontSize = 12.sp)
+                                    Text(city, color = if (isSel) Color.White else TextPrimary, fontSize = 12.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
                                 }
                             }
                         }
@@ -676,7 +693,7 @@ fun SearchTab(viewModel: AppViewModel) {
                         Spacer(modifier = Modifier.height(20.dp))
 
                         // Category Filter
-                        Text("Main Category", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                        Text("Main Category", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(
                             modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
@@ -687,11 +704,12 @@ fun SearchTab(viewModel: AppViewModel) {
                                 Box(
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(8.dp))
-                                        .background(if (isSel) PinkHighlight else Color(0xFF2E2E3E))
+                                        .background(if (isSel) PinkHighlight else Color(0xFFF1F5F9))
+                                        .then(if (!isSel) Modifier.border(1.dp, Color(0xFFFF85A6), RoundedCornerShape(8.dp)) else Modifier)
                                         .clickable { viewModel.searchCategory = cat }
                                         .padding(horizontal = 12.dp, vertical = 6.dp)
                                 ) {
-                                    Text(cat, color = Color.White, fontSize = 12.sp)
+                                    Text(cat, color = if (isSel) Color.White else TextPrimary, fontSize = 12.sp, fontWeight = if (isSel) FontWeight.Bold else FontWeight.Normal)
                                 }
                             }
                         }
@@ -703,7 +721,7 @@ fun SearchTab(viewModel: AppViewModel) {
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Text("Max Hourly Rate", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Max Hourly Rate", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             Text("৳${viewModel.searchPriceMax}/hr", color = PinkHighlight, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                         }
                         Slider(
@@ -713,7 +731,7 @@ fun SearchTab(viewModel: AppViewModel) {
                             colors = SliderDefaults.colors(
                                 thumbColor = PinkHighlight,
                                 activeTrackColor = PinkHighlight,
-                                inactiveTrackColor = Color(0xFF2E2E3E)
+                                inactiveTrackColor = Color(0xFFFF85A6)
                             )
                         )
 
@@ -725,7 +743,7 @@ fun SearchTab(viewModel: AppViewModel) {
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Verified Only", color = Color.White, fontSize = 14.sp)
+                            Text("Verified Only", color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                             Switch(
                                 checked = viewModel.searchVerifiedOnly,
                                 onCheckedChange = { viewModel.searchVerifiedOnly = it },
@@ -738,7 +756,7 @@ fun SearchTab(viewModel: AppViewModel) {
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Online Now", color = Color.White, fontSize = 14.sp)
+                            Text("Online Now", color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
                             Switch(
                                 checked = viewModel.searchOnlineOnly,
                                 onCheckedChange = { viewModel.searchOnlineOnly = it },
@@ -748,8 +766,12 @@ fun SearchTab(viewModel: AppViewModel) {
                     }
                 },
                 confirmButton = {
-                    TextButton(onClick = { showFilterSheet = false }) {
-                        Text("Apply Filters", color = PinkHighlight, fontWeight = FontWeight.Bold)
+                    Button(
+                        onClick = { showFilterSheet = false },
+                        colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Apply Filters", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 },
                 dismissButton = {
@@ -762,10 +784,10 @@ fun SearchTab(viewModel: AppViewModel) {
                         viewModel.searchOnlineOnly = false
                         showFilterSheet = false
                     }) {
-                        Text("Clear All", color = TextSecondary)
+                        Text("Clear All", color = TextSecondary, fontWeight = FontWeight.SemiBold)
                     }
                 },
-                containerColor = DarkSurface,
+                containerColor = Color.White,
                 shape = RoundedCornerShape(16.dp)
             )
         }
@@ -783,8 +805,10 @@ fun ModelGridCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onCardClick() },
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        shape = RoundedCornerShape(16.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        border = BorderStroke(1.dp, PinkBorderSoft),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
             Box(
@@ -839,10 +863,10 @@ fun ModelGridCard(
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(8.dp)
-                        .background(Color.Black.copy(alpha = 0.6f), shape = RoundedCornerShape(6.dp))
+                        .background(PinkHighlight, shape = RoundedCornerShape(6.dp))
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
-                    Text("৳${model.hourlyRate}/hr", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                    Text("৳${model.hourlyRate}/hr", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.ExtraBold)
                 }
 
                 if (model.isOnline) {
@@ -870,17 +894,24 @@ fun ModelGridCard(
                     .fillMaxWidth()
                     .padding(10.dp)
             ) {
-                Text(model.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                Text(model.name, color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
                 Spacer(modifier = Modifier.height(2.dp))
                 Text("${model.location}, ${model.country}", color = TextSecondary, fontSize = 12.sp)
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(
+                    modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = StarYellow, modifier = Modifier.size(14.dp))
-                    Text(model.rating.toString(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    Text("(${model.reviewCount})", color = TextSecondary, fontSize = 10.sp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = StarYellow, modifier = Modifier.size(14.dp))
+                        Text(model.rating.toString(), color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("(${model.reviewCount})", color = TextSecondary, fontSize = 10.sp)
+                    }
+                    Text("৳${model.hourlyRate}/hr", color = PinkHighlight, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
                 }
             }
         }
@@ -906,29 +937,95 @@ fun BookingsTab(viewModel: AppViewModel) {
             .fillMaxSize()
             .background(DarkBg)
     ) {
-        // Bookings state filters Row
+        // Top Header Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.5.dp, PinkBorderSoft),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .background(PinkLight, CircleShape)
+                            .border(1.dp, PinkBorderSoft, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.EventNote,
+                            contentDescription = "Bookings",
+                            tint = PinkHighlight,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "My Bookings",
+                            color = TextPrimary,
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 17.sp
+                        )
+                        Text(
+                            text = "Escrow secured reservations & sessions",
+                            color = TextSecondary,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+
+                Surface(
+                    color = PinkLight,
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, PinkBorderSoft)
+                ) {
+                    Text(
+                        text = "${bookings.size} Total",
+                        color = PinkHighlight,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
+            }
+        }
+
+        // Bookings state filters Row with pink borders
         LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(DarkBg)
-                .padding(vertical = 12.dp),
+                .padding(vertical = 4.dp),
             contentPadding = PaddingValues(horizontal = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             items(filters) { f ->
                 val isSel = f.equals(selectedFilter, ignoreCase = true)
-                Box(
+                Surface(
                     modifier = Modifier
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(if (isSel) PinkHighlight else DarkSurface)
-                        .clickable { selectedFilter = f }
-                        .padding(horizontal = 14.dp, vertical = 8.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .clickable { selectedFilter = f },
+                    shape = RoundedCornerShape(12.dp),
+                    color = if (isSel) PinkHighlight else Color.White,
+                    border = BorderStroke(1.2.dp, if (isSel) PinkHighlight else PinkBorderSoft),
+                    shadowElevation = if (isSel) 2.dp else 0.dp
                 ) {
                     Text(
                         text = f,
-                        color = if (isSel) Color.White else TextSecondary,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp
+                        color = if (isSel) Color.White else TextPrimary,
+                        fontWeight = if (isSel) FontWeight.Bold else FontWeight.SemiBold,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)
                     )
                 }
             }
@@ -951,20 +1048,56 @@ fun BookingsTab(viewModel: AppViewModel) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
+                    .weight(1f)
+                    .padding(24.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.CalendarToday,
-                        contentDescription = "No bookings",
-                        tint = TextSecondary,
-                        modifier = Modifier.size(64.dp)
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("No $selectedFilter Bookings", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Bookings in this category will appear here", color = TextSecondary, fontSize = 12.sp)
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    shape = RoundedCornerShape(20.dp),
+                    border = BorderStroke(1.5.dp, PinkBorderSoft),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(28.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(70.dp)
+                                .background(PinkLight, CircleShape)
+                                .border(1.5.dp, PinkBorderSoft, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CalendarToday,
+                                contentDescription = "No bookings",
+                                tint = PinkHighlight,
+                                modifier = Modifier.size(34.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text("No $selectedFilter Bookings", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            "Bookings in this category will appear here in real-time.",
+                            color = TextSecondary,
+                            fontSize = 12.sp,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(18.dp))
+                        Button(
+                            onClick = { viewModel.selectedTab = 0 },
+                            colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.height(42.dp)
+                        ) {
+                            Icon(Icons.Default.Search, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Browse Available Models", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
+                        }
+                    }
                 }
             }
         } else {
@@ -972,8 +1105,8 @@ fun BookingsTab(viewModel: AppViewModel) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 items(filteredBookings) { booking ->
                     BookingCard(
@@ -985,6 +1118,10 @@ fun BookingsTab(viewModel: AppViewModel) {
                         onCardClick = {
                             viewModel.selectModel(booking.modelId)
                             viewModel.navigateTo("MODEL_PROFILE")
+                        },
+                        onChatClick = {
+                            viewModel.selectChatPartner(booking.modelId.toString())
+                            viewModel.selectedTab = 2 // Switch to chat tab
                         }
                     )
                 }
@@ -998,149 +1135,259 @@ fun BookingCard(
     booking: Booking,
     currentUserRole: String,
     onStatusChange: (String) -> Unit,
-    onCardClick: () -> Unit
+    onCardClick: () -> Unit,
+    onChatClick: () -> Unit = {}
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { onCardClick() },
-        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-        shape = RoundedCornerShape(16.dp)
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(18.dp),
+        border = BorderStroke(1.5.dp, PinkBorderSoft),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Header: Model and price details
+            // Header: Model Photo, Name, Service Type, and Status Badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
                     Box(
                         modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(12.dp))
+                            .size(54.dp)
+                            .clip(RoundedCornerShape(14.dp))
+                            .border(1.5.dp, PinkBorderSoft, RoundedCornerShape(14.dp))
                     ) {
                         ModelImage(imageName = booking.modelPhoto, contentDescription = booking.modelName)
                     }
-                    
+
                     Spacer(modifier = Modifier.width(12.dp))
-                    
+
                     Column {
-                        Text(
-                            text = booking.modelName,
-                            color = Color.White,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 15.sp
-                        )
-                        Text(
-                            text = booking.serviceType,
-                            color = PinkHighlight,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = booking.modelName,
+                                color = TextPrimary,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 16.sp
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(Icons.Default.Verified, contentDescription = "Verified", tint = Color(0xFF3B82F6), modifier = Modifier.size(15.dp))
+                        }
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Surface(
+                            color = PinkLight,
+                            shape = RoundedCornerShape(6.dp),
+                            border = BorderStroke(0.8.dp, PinkBorderSoft)
+                        ) {
+                            Text(
+                                text = booking.serviceType,
+                                color = PinkHighlight,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
                     }
                 }
 
-                Column(horizontalAlignment = Alignment.End) {
+                // Status Badge Chip
+                val (statusBg, statusBorder, statusText, statusLabel) = when (booking.status.uppercase()) {
+                    "PENDING", "ADMIN_REVIEW", "PAYMENT_PENDING" ->
+                        listOf(Color(0xFFFEF3C7), Color(0xFFF59E0B), Color(0xFFB45309), "Pending")
+                    "ACCEPTED" ->
+                        listOf(Color(0xFFDBEAFE), Color(0xFF3B82F6), Color(0xFF1D4ED8), "Accepted")
+                    "ONGOING", "IN_PROGRESS" ->
+                        listOf(PinkLight, PinkBorderSoft, PinkHighlight, "In Session")
+                    "COMPLETED", "PAYMENT_RELEASED" ->
+                        listOf(Color(0xFFDCFCE7), OnlineGreen, Color(0xFF15803D), "Completed")
+                    "CANCELLED", "REJECTED", "REFUNDED" ->
+                        listOf(Color(0xFFFEE2E2), Color(0xFFEF4444), Color(0xFFB91C1C), "Cancelled")
+                    else ->
+                        listOf(PinkLight, PinkBorderSoft, PinkHighlight, booking.status)
+                }
+
+                Surface(
+                    color = statusBg as Color,
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, statusBorder as Color)
+                ) {
                     Text(
-                        text = "৳${booking.totalPrice.toInt()}",
-                        color = Color.White,
-                        fontWeight = FontWeight.Black,
-                        fontSize = 16.sp
-                    )
-                    Text(
-                        text = booking.paymentStatus,
-                        color = if (booking.paymentStatus == "PAID") OnlineGreen else Color.LightGray,
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold
+                        text = statusLabel as String,
+                        color = statusText as Color,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
-            HorizontalDivider(color = Color(0xFF2E2E3E), thickness = 1.dp)
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(color = PinkBorderLight, thickness = 1.dp)
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // Booking specs: Date, Time, Location
+            // Booking specs: Date, Time & Location
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = Icons.Default.Event, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(booking.date, color = Color.White, fontSize = 12.sp)
+                    Icon(imageVector = Icons.Default.Event, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text(booking.date, color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
-                
+
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(imageVector = Icons.Default.Schedule, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("${booking.durationHours} hrs (${booking.time})", color = Color.White, fontSize = 12.sp)
+                    Icon(imageVector = Icons.Default.Schedule, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("${booking.durationHours} hrs (${booking.time})", color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(booking.location, color = Color.White, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(6.dp))
+                Text(booking.location, color = TextSecondary, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
 
             if (booking.notes.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = "Note: \"${booking.notes}\"",
-                    color = TextSecondary,
-                    fontSize = 11.sp,
-                    style = MaterialTheme.typography.bodySmall
-                )
+                Surface(
+                    color = Color(0xFFF8FAFC),
+                    shape = RoundedCornerShape(8.dp),
+                    border = BorderStroke(0.8.dp, PinkBorderLight),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Note: \"${booking.notes}\"",
+                        color = TextSecondary,
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+            HorizontalDivider(color = PinkBorderLight, thickness = 1.dp)
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Pricing & Escrow Security Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("Total Escrow", color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                    Text(
+                        text = "৳ %,d BDT".format(booking.totalPrice.toInt()),
+                        color = PinkHighlight,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 17.sp
+                    )
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        color = if (booking.paymentStatus == "PAID") Color(0xFFDCFCE7) else PinkLight,
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(1.dp, if (booking.paymentStatus == "PAID") OnlineGreen else PinkBorderSoft)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Security,
+                                contentDescription = null,
+                                tint = if (booking.paymentStatus == "PAID") OnlineGreen else PinkHighlight,
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = if (booking.paymentStatus == "PAID") "Escrow Held" else booking.paymentStatus,
+                                color = if (booking.paymentStatus == "PAID") Color(0xFF15803D) else PinkHighlight,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // Quick Chat Button
+                    IconButton(
+                        onClick = onChatClick,
+                        modifier = Modifier
+                            .size(34.dp)
+                            .background(PinkLight, CircleShape)
+                            .border(1.dp, PinkBorderSoft, CircleShape)
+                    ) {
+                        Icon(Icons.Default.ChatBubbleOutline, contentDescription = "Chat", tint = PinkHighlight, modifier = Modifier.size(16.dp))
+                    }
+                }
             }
 
             // Quick Actions panel based on Status & Role! Allows dynamic testing.
             if (booking.status == "PENDING" && (currentUserRole == "MODEL" || currentUserRole == "ADMIN")) {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Button(
                         onClick = { onStatusChange("ACCEPTED") },
-                        colors = ButtonDefaults.buttonColors(containerColor = OnlineGreen, contentColor = Color.Black),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.weight(1f).height(36.dp)
+                        colors = ButtonDefaults.buttonColors(containerColor = OnlineGreen, contentColor = Color.White),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(1f).height(38.dp)
                     ) {
-                        Text("Accept", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Accept", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
                     }
 
                     Button(
                         onClick = { onStatusChange("CANCELLED") },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color.Red, contentColor = Color.White),
-                        shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.weight(1f).height(36.dp)
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444), contentColor = Color.White),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(1f).height(38.dp)
                     ) {
-                        Text("Reject", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(14.dp), tint = Color.White)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Reject", fontWeight = FontWeight.Bold, fontSize = 12.sp, color = Color.White)
                     }
                 }
             } else if (booking.status == "ACCEPTED" && (currentUserRole == "USER" || currentUserRole == "ADMIN")) {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
                 Button(
                     onClick = { onStatusChange("ONGOING") },
                     colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth().height(36.dp)
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth().height(38.dp)
                 ) {
-                    Text("Start Booking Session", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Start Booking Session", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
                 }
             } else if (booking.status == "ONGOING" && (currentUserRole == "USER" || currentUserRole == "ADMIN")) {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(14.dp))
                 Button(
                     onClick = { onStatusChange("COMPLETED") },
-                    colors = ButtonDefaults.buttonColors(containerColor = OnlineGreen, contentColor = Color.Black),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth().height(36.dp)
+                    colors = ButtonDefaults.buttonColors(containerColor = OnlineGreen, contentColor = Color.White),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth().height(38.dp)
                 ) {
-                    Text("Complete & Release Payment", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    Icon(Icons.Default.Verified, contentDescription = null, modifier = Modifier.size(16.dp), tint = Color.White)
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Complete & Release Payment", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
                 }
             }
         }
@@ -1153,6 +1400,7 @@ fun BookingCard(
 
 @Composable
 fun ChatTab(viewModel: AppViewModel) {
+    val context = LocalContext.current
     val messages by viewModel.allMessages.collectAsStateWithLifecycle()
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
     val models by viewModel.allModels.collectAsStateWithLifecycle()
@@ -1161,6 +1409,7 @@ fun ChatTab(viewModel: AppViewModel) {
     var chatPartnerId by remember { mutableStateOf<String?>(null) }
     var chatPartnerName by remember { mutableStateOf("") }
     var chatPartnerPhoto by remember { mutableStateOf("jessica") }
+    var searchQuery by remember { mutableStateOf("") }
 
     // Group messages by partner to make recent conversation list
     val currentUserId = currentUser?.id ?: "user_1"
@@ -1188,33 +1437,81 @@ fun ChatTab(viewModel: AppViewModel) {
                 .background(DarkBg)
         ) {
             // Chat details header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(DarkSurface)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = Color.White,
+                shadowElevation = 2.dp,
+                border = BorderStroke(1.dp, PinkBorderSoft)
             ) {
-                IconButton(onClick = { isChatActive = false }) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
-                }
-
-                Box(
+                Row(
                     modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    ModelImage(imageName = chatPartnerPhoto, contentDescription = chatPartnerName)
-                }
+                    IconButton(
+                        onClick = { isChatActive = false },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(PinkLight, CircleShape)
+                            .border(1.dp, PinkBorderSoft, CircleShape)
+                    ) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = PinkHighlight, modifier = Modifier.size(18.dp))
+                    }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
 
-                Column {
-                    Text(chatPartnerName, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(modifier = Modifier.size(6.dp).background(OnlineGreen, CircleShape))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Online", color = OnlineGreen, fontSize = 10.sp)
+                    Box(contentAlignment = Alignment.BottomEnd) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .border(1.5.dp, PinkBorderSoft, CircleShape)
+                        ) {
+                            ModelImage(imageName = chatPartnerPhoto, contentDescription = chatPartnerName)
+                        }
+                        Box(
+                            modifier = Modifier
+                                .size(11.dp)
+                                .background(OnlineGreen, CircleShape)
+                                .border(1.5.dp, Color.White, CircleShape)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                chatPartnerName,
+                                color = TextPrimary,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 15.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Icon(Icons.Default.Verified, contentDescription = "Verified", tint = Color(0xFF3B82F6), modifier = Modifier.size(14.dp))
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(modifier = Modifier.size(6.dp).background(OnlineGreen, CircleShape))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Active Now • Escrow Protected", color = OnlineGreen, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
+
+                    // Audio Call Action Only (Video Call removed per user request)
+                    IconButton(
+                        onClick = {
+                            viewModel.addNotification("Audio Call", "Initiating secure audio call with $chatPartnerName...", "Chat")
+                            Toast.makeText(context, "Initiating secure audio call with $chatPartnerName...", Toast.LENGTH_SHORT).show()
+                        },
+                        modifier = Modifier
+                            .size(38.dp)
+                            .background(PinkLight, CircleShape)
+                            .border(1.2.dp, PinkBorderSoft, CircleShape)
+                    ) {
+                        Icon(imageVector = Icons.Default.Phone, contentDescription = "Audio Call", tint = PinkHighlight, modifier = Modifier.size(18.dp))
                     }
                 }
             }
@@ -1225,178 +1522,454 @@ fun ChatTab(viewModel: AppViewModel) {
                     .fillMaxWidth()
                     .weight(1f)
                     .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = PaddingValues(vertical = 16.dp)
             ) {
+                // Safety Escrow Notice
+                item {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        color = PinkLight,
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, PinkBorderSoft)
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Default.Lock, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                "Messages & payments are end-to-end encrypted under Modol Escrow protection.",
+                                color = TextPrimary,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+
                 items(chatMessages) { msg ->
                     val isSenderMe = msg.senderId == currentUserId
                     Box(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = if (isSenderMe) Alignment.CenterEnd else Alignment.CenterStart
                     ) {
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (isSenderMe) PinkHighlight else Color(0xFF2E2E3E)
-                            ),
-                            shape = RoundedCornerShape(
-                                topStart = 16.dp,
-                                topEnd = 16.dp,
-                                bottomStart = if (isSenderMe) 16.dp else 0.dp,
-                                bottomEnd = if (isSenderMe) 0.dp else 16.dp
-                            ),
-                            modifier = Modifier.widthIn(max = 280.dp)
-                        ) {
-                            Text(
-                                text = msg.content,
-                                color = Color.White,
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                                fontSize = 14.sp
-                            )
+                        if (isSenderMe) {
+                            // My message: Pink gradient bubble
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = PinkHighlight),
+                                shape = RoundedCornerShape(
+                                    topStart = 16.dp,
+                                    topEnd = 16.dp,
+                                    bottomStart = 16.dp,
+                                    bottomEnd = 4.dp
+                                ),
+                                border = BorderStroke(1.dp, PinkDark),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                                modifier = Modifier.widthIn(max = 290.dp)
+                            ) {
+                                Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                                    Text(
+                                        text = msg.content,
+                                        color = Color.White,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                    Spacer(modifier = Modifier.height(3.dp))
+                                    Row(
+                                        modifier = Modifier.align(Alignment.End),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "Just now",
+                                            color = Color.White.copy(alpha = 0.8f),
+                                            fontSize = 9.sp
+                                        )
+                                        Spacer(modifier = Modifier.width(3.dp))
+                                        Icon(Icons.Default.DoneAll, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                                    }
+                                }
+                            }
+                        } else {
+                            // Partner message: Clean white card with pink border and dark text
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = Color.White),
+                                shape = RoundedCornerShape(
+                                    topStart = 16.dp,
+                                    topEnd = 16.dp,
+                                    bottomStart = 4.dp,
+                                    bottomEnd = 16.dp
+                                ),
+                                border = BorderStroke(1.2.dp, PinkBorderSoft),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                                modifier = Modifier.widthIn(max = 290.dp)
+                            ) {
+                                Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)) {
+                                    Text(
+                                        text = msg.content,
+                                        color = TextPrimary,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Normal
+                                    )
+                                    Spacer(modifier = Modifier.height(3.dp))
+                                    Text(
+                                        text = "Online",
+                                        color = TextSecondary,
+                                        fontSize = 9.sp,
+                                        modifier = Modifier.align(Alignment.Start)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            // Chat input row
-            Row(
+            // Quick suggestion chips
+            LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(DarkSurface)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Attach button
-                IconButton(onClick = {
-                    viewModel.sendMessage("📸 [Photo Attached]", "mock_image_uri")
-                }) {
-                    Icon(imageVector = Icons.Default.AddPhotoAlternate, contentDescription = "Attach", tint = PinkHighlight)
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                OutlinedTextField(
-                    value = textToSend,
-                    onValueChange = { textToSend = it },
-                    placeholder = { Text("Write a message...", color = TextSecondary, fontSize = 14.sp) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = PinkHighlight,
-                        unfocusedBorderColor = Color(0xFF2E2E3E),
-                        focusedTextColor = Color.White,
-                        unfocusedTextColor = Color.White,
-                        focusedContainerColor = DarkBg,
-                        unfocusedContainerColor = DarkBg
-                    ),
-                    shape = RoundedCornerShape(24.dp),
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(50.dp)
-                        .testTag("chat_input_text"),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+                val suggestions = listOf(
+                    "👋 Hi, are you available today?",
+                    "📍 Can we meet at Banani/Gulshan?",
+                    "💼 What is your 2-hour rate?",
+                    "📸 Can you do portfolio shoots?"
                 )
+                items(suggestions) { sug ->
+                    Surface(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { textToSend = sug },
+                        color = Color.White,
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, PinkBorderSoft)
+                    ) {
+                        Text(
+                            text = sug,
+                            color = PinkHighlight,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                        )
+                    }
+                }
+            }
 
-                Spacer(modifier = Modifier.width(8.dp))
-
-                IconButton(
-                    onClick = {
-                        if (textToSend.isNotBlank()) {
-                            viewModel.sendMessage(textToSend)
-                            textToSend = ""
-                        }
-                    },
+            // Chat input row
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                color = Color.White,
+                shadowElevation = 4.dp,
+                border = BorderStroke(1.dp, PinkBorderSoft)
+            ) {
+                Row(
                     modifier = Modifier
-                        .size(44.dp)
-                        .background(PinkHighlight, CircleShape)
-                        .testTag("chat_send_button")
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = Color.White)
+                    // Attach button
+                    IconButton(
+                        onClick = {
+                            viewModel.sendMessage("📸 [Photo Attached: Reservation Spec]", "mock_image_uri")
+                        },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .background(PinkLight, CircleShape)
+                            .border(1.dp, PinkBorderSoft, CircleShape)
+                    ) {
+                        Icon(imageVector = Icons.Default.AddPhotoAlternate, contentDescription = "Attach", tint = PinkHighlight, modifier = Modifier.size(20.dp))
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    OutlinedTextField(
+                        value = textToSend,
+                        onValueChange = { textToSend = it },
+                        placeholder = { Text("Write a message...", color = TextSecondary, fontSize = 13.sp) },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = PinkHighlight,
+                            unfocusedBorderColor = PinkBorderSoft,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
+                            focusedContainerColor = Color(0xFFF8FAFC),
+                            unfocusedContainerColor = Color(0xFFF8FAFC)
+                        ),
+                        shape = RoundedCornerShape(22.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                            .testTag("chat_input_text"),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                        singleLine = true
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    IconButton(
+                        onClick = {
+                            if (textToSend.isNotBlank()) {
+                                viewModel.sendMessage(textToSend)
+                                textToSend = ""
+                            }
+                        },
+                        modifier = Modifier
+                            .size(44.dp)
+                            .background(PinkHighlight, CircleShape)
+                            .border(1.dp, PinkDark, CircleShape)
+                            .testTag("chat_send_button")
+                    ) {
+                        Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = "Send", tint = Color.White, modifier = Modifier.size(18.dp))
+                    }
                 }
             }
         }
     } else {
         // Chat inbox conversation listing
-        if (recentChats.isEmpty()) {
-            Box(
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(DarkBg)
+        ) {
+            // Header Card
+            Card(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .background(DarkBg),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.5.dp, PinkBorderSoft),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(imageVector = Icons.Default.ChatBubbleOutline, contentDescription = "Inbox Empty", tint = TextSecondary, modifier = Modifier.size(64.dp))
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text("Your Inbox is Empty", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Select a model from Home to start chatting!", color = TextSecondary, fontSize = 12.sp)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .background(PinkLight, CircleShape)
+                                .border(1.dp, PinkBorderSoft, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ChatBubble,
+                                contentDescription = "Inbox",
+                                tint = PinkHighlight,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Messages & Chats",
+                                color = TextPrimary,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 17.sp
+                            )
+                            Text(
+                                text = "Real-time communication with models",
+                                color = TextSecondary,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+
+                    Surface(
+                        color = PinkLight,
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, PinkBorderSoft)
+                    ) {
+                        Text(
+                            text = "${recentChats.size} Active",
+                            color = PinkHighlight,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
                 }
             }
-        } else {
-            LazyColumn(
+
+            // Search in chats
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = { Text("Search conversations...", color = TextSecondary, fontSize = 13.sp) },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(18.dp)) },
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = PinkHighlight,
+                    unfocusedBorderColor = PinkBorderSoft,
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary,
+                    focusedContainerColor = Color.White,
+                    unfocusedContainerColor = Color.White
+                ),
+                shape = RoundedCornerShape(14.dp),
                 modifier = Modifier
-                    .fillMaxSize()
-                    .background(DarkBg),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(recentChats) { chat ->
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                    .height(48.dp),
+                singleLine = true
+            )
+
+            val displayChats = recentChats.filter { chat ->
+                if (searchQuery.isBlank()) true
+                else {
                     val partnerId = if (chat.senderId == currentUserId) chat.receiverId else chat.senderId
                     val partnerModel = models.firstOrNull { it.id.toString() == partnerId }
                     val name = partnerModel?.name ?: chat.senderName
-                    val photo = partnerModel?.imageResName ?: "jessica"
+                    name.contains(searchQuery, ignoreCase = true) || chat.content.contains(searchQuery, ignoreCase = true)
+                }
+            }
 
+            if (displayChats.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
                     Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable {
-                                chatPartnerId = partnerId
-                                chatPartnerName = name
-                                chatPartnerPhoto = photo
-                                isChatActive = true
-                            },
-                        colors = CardDefaults.cardColors(containerColor = DarkSurface),
-                        shape = RoundedCornerShape(12.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        shape = RoundedCornerShape(20.dp),
+                        border = BorderStroke(1.5.dp, PinkBorderSoft),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(14.dp),
-                            verticalAlignment = Alignment.CenterVertically
+                        Column(
+                            modifier = Modifier.padding(28.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(52.dp)
-                                    .clip(CircleShape)
+                                    .size(68.dp)
+                                    .background(PinkLight, CircleShape)
+                                    .border(1.5.dp, PinkBorderSoft, CircleShape),
+                                contentAlignment = Alignment.Center
                             ) {
-                                ModelImage(imageName = photo, contentDescription = name)
+                                Icon(imageVector = Icons.Default.ChatBubbleOutline, contentDescription = "Inbox Empty", tint = PinkHighlight, modifier = Modifier.size(34.dp))
                             }
-
-                            Spacer(modifier = Modifier.width(16.dp))
-
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = name,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 15.sp
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = chat.content,
-                                    color = TextSecondary,
-                                    fontSize = 13.sp,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text("Your Inbox is Clean", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text("Select any model from the Home feed to initiate real-time chat & escrow bookings.", color = TextSecondary, fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                            Spacer(modifier = Modifier.height(18.dp))
+                            Button(
+                                onClick = { viewModel.selectedTab = 0 },
+                                colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight),
+                                shape = RoundedCornerShape(12.dp),
+                                modifier = Modifier.height(42.dp)
+                            ) {
+                                Icon(Icons.Default.Explore, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text("Find Models to Chat", fontWeight = FontWeight.Bold, fontSize = 13.sp, color = Color.White)
                             }
+                        }
+                    }
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 16.dp),
+                    contentPadding = PaddingValues(top = 8.dp, bottom = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(displayChats) { chat ->
+                        val partnerId = if (chat.senderId == currentUserId) chat.receiverId else chat.senderId
+                        val partnerModel = models.firstOrNull { it.id.toString() == partnerId }
+                        val name = partnerModel?.name ?: chat.senderName
+                        val photo = partnerModel?.imageResName ?: "jessica"
 
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text("Active", color = OnlineGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                if (!chat.isRead && chat.senderId != currentUserId) {
+                        Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    chatPartnerId = partnerId
+                                    chatPartnerName = name
+                                    chatPartnerPhoto = photo
+                                    isChatActive = true
+                                },
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            shape = RoundedCornerShape(16.dp),
+                            border = BorderStroke(1.5.dp, PinkBorderSoft),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(contentAlignment = Alignment.BottomEnd) {
                                     Box(
                                         modifier = Modifier
-                                            .padding(top = 4.dp)
-                                            .size(8.dp)
-                                            .background(PinkHighlight, CircleShape)
+                                            .size(54.dp)
+                                            .clip(CircleShape)
+                                            .border(1.5.dp, PinkBorderSoft, CircleShape)
+                                    ) {
+                                        ModelImage(imageName = photo, contentDescription = name)
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .size(12.dp)
+                                            .background(OnlineGreen, CircleShape)
+                                            .border(1.5.dp, Color.White, CircleShape)
                                     )
+                                }
+
+                                Spacer(modifier = Modifier.width(14.dp))
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = name,
+                                            color = TextPrimary,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 15.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Icon(Icons.Default.Verified, contentDescription = "Verified", tint = Color(0xFF3B82F6), modifier = Modifier.size(14.dp))
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = chat.content,
+                                        color = TextSecondary,
+                                        fontSize = 13.sp,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+
+                                Spacer(modifier = Modifier.width(8.dp))
+
+                                Column(horizontalAlignment = Alignment.End) {
+                                    Text("Active", color = OnlineGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    if (!chat.isRead && chat.senderId != currentUserId) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(10.dp)
+                                                .background(PinkHighlight, CircleShape)
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.Default.ChevronRight,
+                                            contentDescription = null,
+                                            tint = PinkHighlight,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -1421,7 +1994,6 @@ fun ProfileTab(viewModel: AppViewModel) {
     val cardBg = Color.White
     val textDark = Color(0xFF1E202C)
     val textSub = Color(0xFF6B7280)
-    val purplePrimary = Color(0xFF7C3AED)
     val greenSuccess = Color(0xFF16A34A)
     val orangeWarn = Color(0xFFF97316)
     val redDanger = Color(0xFFEF4444)
@@ -1463,6 +2035,7 @@ fun ProfileTab(viewModel: AppViewModel) {
                             ),
                             shape = RoundedCornerShape(20.dp)
                         )
+                        .border(1.5.dp, PinkBorderSoft, RoundedCornerShape(20.dp))
                         .padding(20.dp)
                 ) {
                     Row(
@@ -1498,7 +2071,7 @@ fun ProfileTab(viewModel: AppViewModel) {
                                 Box(
                                     modifier = Modifier
                                         .size(24.dp)
-                                        .background(purplePrimary, CircleShape)
+                                        .background(PinkHighlight, CircleShape)
                                         .border(1.5.dp, Color.White, CircleShape)
                                         .clickable { viewModel.showPhotoUploadDialog = true },
                                     contentAlignment = Alignment.Center
@@ -1557,30 +2130,30 @@ fun ProfileTab(viewModel: AppViewModel) {
                                 Spacer(modifier = Modifier.height(2.dp))
 
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(imageVector = Icons.Default.Mail, contentDescription = null, tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(11.dp))
+                                    Icon(imageVector = Icons.Default.Mail, contentDescription = null, tint = Color.White.copy(alpha = 0.9f), modifier = Modifier.size(12.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text(text = userEmail, color = Color.White.copy(alpha = 0.8f), fontSize = 11.sp)
+                                    Text(text = userEmail, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
 
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(imageVector = Icons.Default.Phone, contentDescription = null, tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(11.dp))
+                                    Icon(imageVector = Icons.Default.Phone, contentDescription = null, tint = Color.White.copy(alpha = 0.9f), modifier = Modifier.size(12.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text(text = userPhone, color = Color.White.copy(alpha = 0.8f), fontSize = 11.sp)
+                                    Text(text = userPhone, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
 
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = Color.White.copy(alpha = 0.7f), modifier = Modifier.size(11.dp))
+                                    Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = Color.White.copy(alpha = 0.9f), modifier = Modifier.size(12.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text(text = "$userCity, Bangladesh", color = Color.White.copy(alpha = 0.8f), fontSize = 11.sp)
+                                    Text(text = "$userCity, Bangladesh", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
 
                         // Right: Wallet Balance Card
                         Card(
-                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.1f)),
+                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.12f)),
                             shape = RoundedCornerShape(14.dp),
-                            border = BorderStroke(1.dp, Color.White.copy(alpha = 0.15f)),
+                            border = BorderStroke(1.2.dp, PinkBorderSoft),
                             modifier = Modifier.padding(start = 8.dp)
                         ) {
                             Column(
@@ -1634,7 +2207,8 @@ fun ProfileTab(viewModel: AppViewModel) {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = cardBg),
                         shape = RoundedCornerShape(14.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        border = BorderStroke(1.2.dp, PinkBorderSoft),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         modifier = Modifier.weight(1f)
                     ) {
                         Column(
@@ -1647,12 +2221,12 @@ fun ProfileTab(viewModel: AppViewModel) {
                                     .background(Color(0xFFF3E8FF), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(imageVector = Icons.Default.CalendarMonth, contentDescription = null, tint = purplePrimary, modifier = Modifier.size(18.dp))
+                                Icon(imageVector = Icons.Default.CalendarMonth, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(18.dp))
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                             Text("$totalBookingsCount", color = textDark, fontWeight = FontWeight.Black, fontSize = 16.sp)
-                            Text("Total Bookings", color = textSub, fontSize = 10.sp, fontWeight = FontWeight.Medium)
-                            Text("All Time", color = textSub.copy(alpha = 0.7f), fontSize = 9.sp)
+                            Text("Total Bookings", color = textDark, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text("All Time", color = textSub, fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
 
@@ -1660,7 +2234,8 @@ fun ProfileTab(viewModel: AppViewModel) {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = cardBg),
                         shape = RoundedCornerShape(14.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        border = BorderStroke(1.2.dp, PinkBorderSoft),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         modifier = Modifier.weight(1f)
                     ) {
                         Column(
@@ -1677,8 +2252,8 @@ fun ProfileTab(viewModel: AppViewModel) {
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                             Text("$completedCount", color = textDark, fontWeight = FontWeight.Black, fontSize = 16.sp)
-                            Text("Completed", color = textSub, fontSize = 10.sp, fontWeight = FontWeight.Medium)
-                            Text("Bookings", color = textSub.copy(alpha = 0.7f), fontSize = 9.sp)
+                            Text("Completed", color = textDark, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text("Bookings", color = textSub, fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
 
@@ -1686,7 +2261,8 @@ fun ProfileTab(viewModel: AppViewModel) {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = cardBg),
                         shape = RoundedCornerShape(14.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        border = BorderStroke(1.2.dp, PinkBorderSoft),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         modifier = Modifier.weight(1f)
                     ) {
                         Column(
@@ -1703,8 +2279,8 @@ fun ProfileTab(viewModel: AppViewModel) {
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                             Text("$upcomingCount", color = textDark, fontWeight = FontWeight.Black, fontSize = 16.sp)
-                            Text("Upcoming", color = textSub, fontSize = 10.sp, fontWeight = FontWeight.Medium)
-                            Text("Bookings", color = textSub.copy(alpha = 0.7f), fontSize = 9.sp)
+                            Text("Upcoming", color = textDark, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text("Bookings", color = textSub, fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
 
@@ -1712,7 +2288,8 @@ fun ProfileTab(viewModel: AppViewModel) {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = cardBg),
                         shape = RoundedCornerShape(14.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        border = BorderStroke(1.2.dp, PinkBorderSoft),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         modifier = Modifier.weight(1f)
                     ) {
                         Column(
@@ -1729,8 +2306,8 @@ fun ProfileTab(viewModel: AppViewModel) {
                             }
                             Spacer(modifier = Modifier.height(6.dp))
                             Text("$cancelledCount", color = textDark, fontWeight = FontWeight.Black, fontSize = 16.sp)
-                            Text("Cancelled", color = textSub, fontSize = 10.sp, fontWeight = FontWeight.Medium)
-                            Text("Bookings", color = textSub.copy(alpha = 0.7f), fontSize = 9.sp)
+                            Text("Cancelled", color = textDark, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text("Bookings", color = textSub, fontSize = 9.sp, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
@@ -1743,7 +2320,8 @@ fun ProfileTab(viewModel: AppViewModel) {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = cardBg),
                         shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        border = BorderStroke(1.2.dp, PinkBorderSoft),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
@@ -1753,12 +2331,12 @@ fun ProfileTab(viewModel: AppViewModel) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(imageVector = Icons.Default.PersonOutline, contentDescription = null, tint = purplePrimary, modifier = Modifier.size(18.dp))
+                                    Icon(imageVector = Icons.Default.PersonOutline, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text("Personal Information", color = textDark, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                                 }
 
-                                Text("Edit", color = purplePrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.clickable { viewModel.showEditPersonalInfoModal = true })
+                                Text("Edit", color = PinkHighlight, fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.clickable { viewModel.showEditPersonalInfoModal = true })
                             }
 
                             Spacer(modifier = Modifier.height(14.dp))
@@ -1780,11 +2358,11 @@ fun ProfileTab(viewModel: AppViewModel) {
                                         .padding(vertical = 6.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text(label, color = textSub, fontSize = 12.sp)
-                                    Text(value, color = textDark, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                    Text(label, color = textDark, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Text(value, color = textDark, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
                                 }
                                 if (index < infoList.size - 1) {
-                                    HorizontalDivider(color = Color(0xFFF3F4F6), thickness = 1.dp)
+                                    HorizontalDivider(color = PinkBorderLight, thickness = 0.8.dp)
                                 }
                             }
                         }
@@ -1794,7 +2372,8 @@ fun ProfileTab(viewModel: AppViewModel) {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = cardBg),
                         shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        border = BorderStroke(1.2.dp, PinkBorderSoft),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
@@ -1804,12 +2383,12 @@ fun ProfileTab(viewModel: AppViewModel) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(imageVector = Icons.Default.DonutLarge, contentDescription = null, tint = purplePrimary, modifier = Modifier.size(18.dp))
+                                    Icon(imageVector = Icons.Default.DonutLarge, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text("Booking Summary", color = textDark, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                                 }
 
-                                Text("View All", color = purplePrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.clickable { viewModel.selectedTab = 1 })
+                                Text("View All", color = PinkHighlight, fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.clickable { viewModel.selectedTab = 1 })
                             }
 
                             Spacer(modifier = Modifier.height(16.dp))
@@ -1833,7 +2412,7 @@ fun ProfileTab(viewModel: AppViewModel) {
                                         // Upcoming 3 -> 60 deg
                                         // Cancelled 3 -> 60 deg
                                         drawArc(
-                                            color = purplePrimary,
+                                            color = PinkHighlight,
                                             startAngle = -90f,
                                             sweepAngle = 238f,
                                             useCenter = false,
@@ -1864,7 +2443,7 @@ fun ProfileTab(viewModel: AppViewModel) {
                                 // Legend
                                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Box(modifier = Modifier.size(8.dp).background(purplePrimary, CircleShape))
+                                        Box(modifier = Modifier.size(8.dp).background(PinkHighlight, CircleShape))
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text("Completed", color = textSub, fontSize = 11.sp)
                                         Spacer(modifier = Modifier.width(12.dp))
@@ -1903,7 +2482,8 @@ fun ProfileTab(viewModel: AppViewModel) {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = cardBg),
                         shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        border = BorderStroke(1.2.dp, PinkBorderSoft),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
@@ -1913,7 +2493,7 @@ fun ProfileTab(viewModel: AppViewModel) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text("Recent Bookings", color = textDark, fontWeight = FontWeight.Bold, fontSize = 15.sp)
-                                Text("View All", color = purplePrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.clickable { viewModel.selectedTab = 1 })
+                                Text("View All", color = PinkHighlight, fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.clickable { viewModel.selectedTab = 1 })
                             }
 
                             Spacer(modifier = Modifier.height(12.dp))
@@ -1954,7 +2534,7 @@ fun ProfileTab(viewModel: AppViewModel) {
                                 Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = textSub, modifier = Modifier.size(18.dp))
                             }
 
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = Color(0xFFF3F4F6), thickness = 1.dp)
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp), color = PinkBorderLight, thickness = 0.8.dp)
 
                             // Item 2: Pooja Singh
                             Row(
@@ -1994,11 +2574,16 @@ fun ProfileTab(viewModel: AppViewModel) {
                         }
                     }
 
-                    // Verification Status Card
+                    // Dynamic Verification Status Card (Phone & Email Verification)
+                    val isPhoneVerified = viewModel.isUserPhoneVerified
+                    val isEmailVerified = viewModel.isUserEmailVerified
+                    val isFullyVerified = isPhoneVerified && isEmailVerified
+
                     Card(
                         colors = CardDefaults.cardColors(containerColor = cardBg),
                         shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        border = BorderStroke(1.2.dp, PinkBorderSoft),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
@@ -2008,47 +2593,215 @@ fun ProfileTab(viewModel: AppViewModel) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(imageVector = Icons.Default.VerifiedUser, contentDescription = null, tint = purplePrimary, modifier = Modifier.size(18.dp))
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Verification Status", color = textDark, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                    Icon(imageVector = Icons.Default.VerifiedUser, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Account Verification", color = textDark, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                                 }
 
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text("Verified", color = greenSuccess, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                    Spacer(modifier = Modifier.width(2.dp))
-                                    Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = greenSuccess, modifier = Modifier.size(14.dp))
+                                Surface(
+                                    color = if (isFullyVerified) Color(0xFFDCFCE7) else Color(0xFFFEF3C7),
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = BorderStroke(1.dp, if (isFullyVerified) Color(0xFF86EFAC) else Color(0xFFFDE68A))
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = if (isFullyVerified) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                            contentDescription = null,
+                                            tint = if (isFullyVerified) greenSuccess else Color(0xFFD97706),
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = if (isFullyVerified) "Fully Verified ✓" else if (!isPhoneVerified && !isEmailVerified) "2 Pending" else "1 Pending",
+                                            color = if (isFullyVerified) greenSuccess else Color(0xFFD97706),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp
+                                        )
+                                    }
                                 }
                             }
 
                             Spacer(modifier = Modifier.height(14.dp))
 
+                            // 1. Phone Verification Row
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFF9FAFB), RoundedCornerShape(12.dp))
+                                    .border(1.dp, PinkBorderLight, RoundedCornerShape(12.dp))
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                listOf(
-                                    "Email" to Icons.Default.Mail,
-                                    "Phone" to Icons.Default.Phone,
-                                    "ID Proof" to Icons.Default.Badge,
-                                    "Address" to Icons.Default.Home
-                                ).forEach { (title, icon) ->
-                                    Card(
-                                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF9FAFB)),
-                                        shape = RoundedCornerShape(10.dp),
-                                        border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
-                                        modifier = Modifier.weight(1f)
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(if (isPhoneVerified) Color(0xFFDCFCE7) else Color(0xFFFFF1F2), CircleShape),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Column(
-                                            modifier = Modifier.padding(8.dp),
-                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        Icon(
+                                            imageVector = Icons.Default.PhoneAndroid,
+                                            contentDescription = null,
+                                            tint = if (isPhoneVerified) greenSuccess else PinkHighlight,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text("Mobile Phone", color = textDark, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = if (isPhoneVerified) "Verified ✓" else "Not Verified",
+                                                color = if (isPhoneVerified) greenSuccess else Color(0xFFD97706),
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontSize = 10.sp
+                                            )
+                                        }
+                                        Text(userPhone, color = textSub, fontSize = 11.sp)
+                                    }
+                                }
+
+                                if (!isPhoneVerified) {
+                                    Button(
+                                        onClick = { viewModel.startProfileVerification("PHONE") },
+                                        colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight),
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                        modifier = Modifier.height(34.dp)
+                                    ) {
+                                        Text("Verify Phone", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = "Verified",
+                                        tint = greenSuccess,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // 2. Email Verification Row
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFF9FAFB), RoundedCornerShape(12.dp))
+                                    .border(1.dp, PinkBorderLight, RoundedCornerShape(12.dp))
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(if (isEmailVerified) Color(0xFFDCFCE7) else Color(0xFFFFF1F2), CircleShape),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Mail,
+                                            contentDescription = null,
+                                            tint = if (isEmailVerified) greenSuccess else PinkHighlight,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text("Email Address", color = textDark, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = if (isEmailVerified) "Verified ✓" else "Not Verified",
+                                                color = if (isEmailVerified) greenSuccess else Color(0xFFD97706),
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontSize = 10.sp
+                                            )
+                                        }
+                                        Text(userEmail, color = textSub, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                                    }
+                                }
+
+                                if (!isEmailVerified) {
+                                    Button(
+                                        onClick = { viewModel.startProfileVerification("EMAIL") },
+                                        colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight),
+                                        shape = RoundedCornerShape(8.dp),
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                                        modifier = Modifier.height(34.dp)
+                                    ) {
+                                        Text("Verify Email", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    }
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = "Verified",
+                                        tint = greenSuccess,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }
+
+                            // 3. Problem & Admin Manual Code Assistance Box
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Surface(
+                                color = Color(0xFFFFF8F0),
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, Color(0xFFFFE0B2)),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.SupportAgent,
+                                            contentDescription = null,
+                                            tint = Color(0xFFE65100),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "Problem with OTP? Admin Manual Code & Verification Available",
+                                            color = Color(0xFFE65100),
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "If you don't receive OTP via SMS or Email, Admin can generate a Manual Code or directly verify your account from Backend Admin Panel.",
+                                        color = Color(0xFF795548),
+                                        fontSize = 10.sp,
+                                        lineHeight = 14.sp
+                                    )
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        TextButton(
+                                            onClick = {
+                                                viewModel.requestAdminVerificationSupport("PHONE & EMAIL")
+                                                Toast.makeText(context, "Admin notified! Admin will inspect and dispatch manual code.", Toast.LENGTH_LONG).show()
+                                            },
+                                            contentPadding = PaddingValues(0.dp)
                                         ) {
-                                            Icon(imageVector = icon, contentDescription = null, tint = textSub, modifier = Modifier.size(16.dp))
-                                            Spacer(modifier = Modifier.height(4.dp))
-                                            Text(title, color = textDark, fontWeight = FontWeight.Bold, fontSize = 10.sp)
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Text("Verified", color = greenSuccess, fontSize = 8.sp, fontWeight = FontWeight.Bold)
-                                                Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = greenSuccess, modifier = Modifier.size(8.dp))
-                                            }
+                                            Text("Request Admin Manual Verification >", color = PinkHighlight, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        }
+
+                                        if (viewModel.profilePendingOtp.isNotBlank()) {
+                                            Text(
+                                                text = "Current Code: ${viewModel.profilePendingOtp}",
+                                                color = Color(0xFF16A34A),
+                                                fontWeight = FontWeight.Black,
+                                                fontSize = 10.sp
+                                            )
                                         }
                                     }
                                 }
@@ -2060,7 +2813,8 @@ fun ProfileTab(viewModel: AppViewModel) {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = cardBg),
                         shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        border = BorderStroke(1.2.dp, PinkBorderSoft),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
@@ -2070,12 +2824,12 @@ fun ProfileTab(viewModel: AppViewModel) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(imageVector = Icons.Default.Payment, contentDescription = null, tint = purplePrimary, modifier = Modifier.size(18.dp))
+                                    Icon(imageVector = Icons.Default.Payment, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text("Payment Methods", color = textDark, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                                 }
 
-                                Text("Manage", color = purplePrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.clickable { viewModel.showPaymentManagementModal = true })
+                                Text("Manage", color = PinkHighlight, fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.clickable { viewModel.showPaymentManagementModal = true })
                             }
 
                             Spacer(modifier = Modifier.height(12.dp))
@@ -2098,7 +2852,7 @@ fun ProfileTab(viewModel: AppViewModel) {
                                     Card(
                                         colors = CardDefaults.cardColors(containerColor = Color(0xFFF9FAFB)),
                                         shape = RoundedCornerShape(10.dp),
-                                        border = BorderStroke(1.dp, if (pm.isPrimary) purplePrimary else Color(0xFFE5E7EB)),
+                                        border = BorderStroke(1.dp, if (pm.isPrimary) PinkHighlight else Color(0xFFFF85A6)),
                                         modifier = Modifier
                                             .width(110.dp)
                                             .clickable { viewModel.showPaymentManagementModal = true }
@@ -2132,7 +2886,7 @@ fun ProfileTab(viewModel: AppViewModel) {
                                 Card(
                                     colors = CardDefaults.cardColors(containerColor = Color(0xFFF9FAFB)),
                                     shape = RoundedCornerShape(10.dp),
-                                    border = BorderStroke(1.dp, Color(0xFFE5E7EB)),
+                                    border = BorderStroke(1.dp, Color(0xFFFF85A6)),
                                     modifier = Modifier
                                         .width(90.dp)
                                         .clickable { viewModel.showAddPaymentMethodModal = true }
@@ -2142,9 +2896,9 @@ fun ProfileTab(viewModel: AppViewModel) {
                                         horizontalAlignment = Alignment.CenterHorizontally,
                                         verticalArrangement = Arrangement.Center
                                     ) {
-                                        Icon(imageVector = Icons.Default.Add, contentDescription = "Add New", tint = purplePrimary, modifier = Modifier.size(18.dp))
+                                        Icon(imageVector = Icons.Default.Add, contentDescription = "Add New", tint = PinkHighlight, modifier = Modifier.size(18.dp))
                                         Spacer(modifier = Modifier.height(2.dp))
-                                        Text("Add New", color = purplePrimary, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                        Text("Add New", color = PinkHighlight, fontSize = 9.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
@@ -2155,7 +2909,8 @@ fun ProfileTab(viewModel: AppViewModel) {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = cardBg),
                         shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        border = BorderStroke(1.2.dp, PinkBorderSoft),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
@@ -2165,12 +2920,12 @@ fun ProfileTab(viewModel: AppViewModel) {
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(imageVector = Icons.Default.FavoriteBorder, contentDescription = null, tint = purplePrimary, modifier = Modifier.size(18.dp))
+                                    Icon(imageVector = Icons.Default.FavoriteBorder, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(18.dp))
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text("Preferences", color = textDark, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                                 }
 
-                                Text("Edit", color = purplePrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.clickable { viewModel.showEditPreferencesModal = true })
+                                Text("Edit", color = PinkHighlight, fontWeight = FontWeight.Bold, fontSize = 12.sp, modifier = Modifier.clickable { viewModel.showEditPreferencesModal = true })
                             }
 
                             Spacer(modifier = Modifier.height(14.dp))
@@ -2189,11 +2944,11 @@ fun ProfileTab(viewModel: AppViewModel) {
                                         .padding(vertical = 6.dp),
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
-                                    Text(label, color = textSub, fontSize = 12.sp)
-                                    Text(value, color = textDark, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                                    Text(label, color = textDark, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                    Text(value, color = textDark, fontWeight = FontWeight.ExtraBold, fontSize = 12.sp)
                                 }
                                 if (index < prefList.size - 1) {
-                                    HorizontalDivider(color = Color(0xFFF3F4F6), thickness = 1.dp)
+                                    HorizontalDivider(color = PinkBorderLight, thickness = 0.8.dp)
                                 }
                             }
                         }
@@ -2203,6 +2958,7 @@ fun ProfileTab(viewModel: AppViewModel) {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1B4B)),
                         shape = RoundedCornerShape(16.dp),
+                        border = BorderStroke(1.5.dp, PinkBorderSoft),
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { viewModel.showLiveSupportModal = true }
@@ -2278,7 +3034,8 @@ fun ProfileTab(viewModel: AppViewModel) {
                     Card(
                         colors = CardDefaults.cardColors(containerColor = cardBg),
                         shape = RoundedCornerShape(16.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                        border = BorderStroke(1.2.dp, PinkBorderSoft),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(8.dp)) {
@@ -2289,7 +3046,7 @@ fun ProfileTab(viewModel: AppViewModel) {
                                     .padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(imageVector = Icons.Default.SupportAgent, contentDescription = null, tint = purplePrimary)
+                                Icon(imageVector = Icons.Default.SupportAgent, contentDescription = null, tint = PinkHighlight)
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text("Customer Support & Live Chat", color = textDark, fontWeight = FontWeight.Bold, fontSize = 13.sp)
@@ -2298,7 +3055,7 @@ fun ProfileTab(viewModel: AppViewModel) {
                                 Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = textSub, modifier = Modifier.size(18.dp))
                             }
 
-                            HorizontalDivider(color = Color(0xFFF3F4F6), thickness = 1.dp)
+                            HorizontalDivider(color = PinkBorderLight, thickness = 0.8.dp)
 
                             Row(
                                 modifier = Modifier
@@ -2307,7 +3064,7 @@ fun ProfileTab(viewModel: AppViewModel) {
                                     .padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(imageVector = Icons.Default.Settings, contentDescription = null, tint = purplePrimary)
+                                Icon(imageVector = Icons.Default.Settings, contentDescription = null, tint = PinkHighlight)
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text("App Settings", color = textDark, fontWeight = FontWeight.Bold, fontSize = 13.sp)
@@ -2316,7 +3073,7 @@ fun ProfileTab(viewModel: AppViewModel) {
                                 Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = textSub, modifier = Modifier.size(18.dp))
                             }
 
-                            HorizontalDivider(color = Color(0xFFF3F4F6), thickness = 1.dp)
+                            HorizontalDivider(color = PinkBorderLight, thickness = 0.8.dp)
 
                             Row(
                                 modifier = Modifier
@@ -2353,12 +3110,189 @@ fun ProfileTab(viewModel: AppViewModel) {
             viewModel = viewModel
         )
     }
+
+    if (viewModel.showProfileVerificationDialog) {
+        ProfileVerificationModal(
+            viewModel = viewModel,
+            onDismiss = { viewModel.showProfileVerificationDialog = false }
+        )
+    }
+}
+
+@Composable
+fun ProfileVerificationModal(viewModel: AppViewModel, onDismiss: () -> Unit) {
+    val context = LocalContext.current
+    val isPhone = viewModel.profileVerificationType == "PHONE"
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+    val target = if (isPhone) viewModel.clientPhone else (currentUser?.email ?: "rahul.verma@email.com")
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(
+                        modifier = Modifier
+                            .size(38.dp)
+                            .background(PinkHighlight.copy(alpha = 0.15f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (isPhone) Icons.Default.PhoneAndroid else Icons.Default.Mail,
+                            contentDescription = null,
+                            tint = PinkHighlight,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Column {
+                        Text(
+                            text = if (isPhone) "Verify Phone Number" else "Verify Email Address",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = TextPrimary
+                        )
+                        Text(target, color = TextSecondary, fontSize = 11.sp)
+                    }
+                }
+                IconButton(onClick = onDismiss) {
+                    Icon(Icons.Default.Close, contentDescription = "Close", tint = TextSecondary)
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = "A 6-digit OTP verification code has been dispatched to $target. Enter the code below to complete profile verification.",
+                    color = TextSecondary,
+                    fontSize = 12.sp,
+                    lineHeight = 16.sp
+                )
+
+                // OTP Input Field
+                OutlinedTextField(
+                    value = viewModel.profileOtpInput,
+                    onValueChange = { 
+                        if (it.length <= 6) {
+                            viewModel.profileOtpInput = it 
+                            viewModel.profileOtpError = null
+                        }
+                    },
+                    label = { Text("6-Digit Verification Code") },
+                    placeholder = { Text("e.g. 849201") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = PinkHighlight,
+                        unfocusedBorderColor = PinkBorderSoft,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Error / Success message
+                if (viewModel.profileOtpError != null) {
+                    Text(
+                        text = viewModel.profileOtpError!!,
+                        color = Color(0xFFEF4444),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+                if (viewModel.profileOtpSuccess != null) {
+                    Text(
+                        text = viewModel.profileOtpSuccess!!,
+                        color = Color(0xFF16A34A),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                // Problem Helper Card (Admin manual dispatch assistance)
+                Surface(
+                    color = Color(0xFFFFF1F2),
+                    shape = RoundedCornerShape(10.dp),
+                    border = BorderStroke(1.dp, Color(0xFFFFCCD5)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Info, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Active Code on File: ${viewModel.profilePendingOtp}", color = PinkHighlight, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                        Text(
+                            text = "💡 Problem receiving code? Admin can generate a Manual Code or directly verify your account from Backend Admin Panel.",
+                            color = Color(0xFF881337),
+                            fontSize = 10.sp
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TextButton(
+                                onClick = {
+                                    viewModel.requestAdminVerificationSupport(if (isPhone) "PHONE" else "EMAIL")
+                                    Toast.makeText(context, "Admin notified! Admin will inspect and dispatch code from Admin Panel.", Toast.LENGTH_SHORT).show()
+                                },
+                                contentPadding = PaddingValues(0.dp)
+                            ) {
+                                Text("Request Admin Help >", color = PinkHighlight, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                            TextButton(
+                                onClick = {
+                                    viewModel.profileOtpInput = viewModel.profilePendingOtp
+                                },
+                                contentPadding = PaddingValues(0.dp)
+                            ) {
+                                Text("Auto-fill Code", color = Color(0xFF16A34A), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    val success = viewModel.submitProfileOtp()
+                    if (success) {
+                        Toast.makeText(context, "Verification Successful! ✓", Toast.LENGTH_SHORT).show()
+                        onDismiss()
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text("Verify Now ✓", fontWeight = FontWeight.Bold, color = Color.White)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = TextSecondary)
+            }
+        },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(16.dp)
+    )
 }
 
 @Composable
 fun EditPersonalInfoModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
-    val purplePrimary = Color(0xFF7C3AED)
+    val PinkHighlight = PinkBorderSoft
 
     var editedName by remember { mutableStateOf(currentUser?.name ?: "Rahul Verma") }
     var editedEmail by remember { mutableStateOf(currentUser?.email ?: "rahul.verma@email.com") }
@@ -2371,9 +3305,9 @@ fun EditPersonalInfoModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Edit, contentDescription = null, tint = purplePrimary)
+                Icon(Icons.Default.Edit, contentDescription = null, tint = PinkHighlight)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Edit Personal Information", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.White)
+                Text("Edit Personal Information", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = TextPrimary)
             }
         },
         text = {
@@ -2383,59 +3317,59 @@ fun EditPersonalInfoModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text("Full Name", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                Text("Full Name", color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                 OutlinedTextField(
                     value = editedName,
                     onValueChange = { editedName = it },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary, unfocusedBorderColor = Color.Gray, focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PinkHighlight, unfocusedBorderColor = PinkBorderSoft, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White),
                     singleLine = true
                 )
 
-                Text("Email Address", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                Text("Email Address", color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                 OutlinedTextField(
                     value = editedEmail,
                     onValueChange = { editedEmail = it },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary, unfocusedBorderColor = Color.Gray, focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PinkHighlight, unfocusedBorderColor = PinkBorderSoft, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White),
                     singleLine = true
                 )
 
-                Text("Phone Number", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                Text("Phone Number", color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                 OutlinedTextField(
                     value = editedPhone,
                     onValueChange = { editedPhone = it },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary, unfocusedBorderColor = Color.Gray, focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PinkHighlight, unfocusedBorderColor = PinkBorderSoft, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White),
                     singleLine = true
                 )
 
-                Text("City / Location", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                Text("City / Location", color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                 OutlinedTextField(
                     value = editedCity,
                     onValueChange = { editedCity = it },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary, unfocusedBorderColor = Color.Gray, focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PinkHighlight, unfocusedBorderColor = PinkBorderSoft, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White),
                     singleLine = true
                 )
 
-                Text("Date of Birth", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                Text("Date of Birth", color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                 OutlinedTextField(
                     value = editedDob,
                     onValueChange = { editedDob = it },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary, unfocusedBorderColor = Color.Gray, focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PinkHighlight, unfocusedBorderColor = PinkBorderSoft, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White),
                     singleLine = true
                 )
 
-                Text("Gender", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                Text("Gender", color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf("Male", "Female", "Other").forEach { gender ->
                         val isSel = editedGender.equals(gender, ignoreCase = true)
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(8.dp))
-                                .background(if (isSel) purplePrimary else Color(0xFF2E2E3E))
+                                .background(if (isSel) PinkHighlight else Color(0xFFFF85A6))
                                 .clickable { editedGender = gender }
                                 .padding(horizontal = 14.dp, vertical = 8.dp)
                         ) {
@@ -2458,7 +3392,7 @@ fun EditPersonalInfoModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                     )
                     onDismiss()
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = purplePrimary)
+                colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight)
             ) {
                 Text("Save Changes", color = Color.White)
             }
@@ -2468,13 +3402,13 @@ fun EditPersonalInfoModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                 Text("Cancel", color = Color.Gray)
             }
         },
-        containerColor = Color(0xFF1E1E2E)
+        containerColor = Color.White
     )
 }
 
 @Composable
 fun EditPreferencesModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
-    val purplePrimary = Color(0xFF7C3AED)
+    val PinkHighlight = PinkBorderSoft
 
     var editedLanguages by remember { mutableStateOf(viewModel.clientPreferredLanguages) }
     var editedCategories by remember { mutableStateOf(viewModel.clientPreferredCategories) }
@@ -2485,9 +3419,9 @@ fun EditPreferencesModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
         onDismissRequest = onDismiss,
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Favorite, contentDescription = null, tint = purplePrimary)
+                Icon(Icons.Default.Favorite, contentDescription = null, tint = PinkHighlight)
                 Spacer(modifier = Modifier.width(8.dp))
-                Text("Edit Booking Preferences", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Color.White)
+                Text("Edit Booking Preferences", fontWeight = FontWeight.Bold, fontSize = 18.sp, color = TextPrimary)
             }
         },
         text = {
@@ -2497,39 +3431,39 @@ fun EditPreferencesModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Text("Preferred Languages", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                Text("Preferred Languages", color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                 OutlinedTextField(
                     value = editedLanguages,
                     onValueChange = { editedLanguages = it },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary, unfocusedBorderColor = Color.Gray, focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PinkHighlight, unfocusedBorderColor = PinkBorderSoft, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White),
                     singleLine = true
                 )
 
-                Text("Preferred Categories", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                Text("Preferred Categories", color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                 OutlinedTextField(
                     value = editedCategories,
                     onValueChange = { editedCategories = it },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary, unfocusedBorderColor = Color.Gray, focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PinkHighlight, unfocusedBorderColor = PinkBorderSoft, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White),
                     singleLine = true
                 )
 
-                Text("Budget Range", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                Text("Budget Range", color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                 OutlinedTextField(
                     value = editedBudget,
                     onValueChange = { editedBudget = it },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary, unfocusedBorderColor = Color.Gray, focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PinkHighlight, unfocusedBorderColor = PinkBorderSoft, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White),
                     singleLine = true
                 )
 
-                Text("Preferred Booking Times", color = Color.White, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
+                Text("Preferred Booking Times", color = TextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 12.sp)
                 OutlinedTextField(
                     value = editedBookingTime,
                     onValueChange = { editedBookingTime = it },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary, unfocusedBorderColor = Color.Gray, focusedTextColor = Color.White, unfocusedTextColor = Color.White),
+                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PinkHighlight, unfocusedBorderColor = PinkBorderSoft, focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary, focusedContainerColor = Color.White, unfocusedContainerColor = Color.White),
                     singleLine = true
                 )
             }
@@ -2545,7 +3479,7 @@ fun EditPreferencesModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                     )
                     onDismiss()
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = purplePrimary)
+                colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight)
             ) {
                 Text("Save Preferences", color = Color.White)
             }
@@ -2555,7 +3489,7 @@ fun EditPreferencesModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                 Text("Cancel", color = Color.Gray)
             }
         },
-        containerColor = Color(0xFF1E1E2E)
+        containerColor = Color.White
     )
 }
 
@@ -2586,7 +3520,7 @@ fun ProfileOptionRow(
         Spacer(modifier = Modifier.width(16.dp))
 
         Column(modifier = Modifier.weight(1f)) {
-            Text(title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+            Text(title, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             Text(desc, color = TextSecondary, fontSize = 11.sp)
         }
 
@@ -2617,7 +3551,7 @@ fun ModelDashboardTab(viewModel: AppViewModel) {
     val cardBg = Color.White
     val textDark = Color(0xFF1E202C)
     val textSub = Color(0xFF6B7280)
-    val purplePrimary = Color(0xFF7C3AED)
+    val PinkHighlight = PinkBorderSoft
     val greenSuccess = Color(0xFF16A34A)
 
     LazyColumn(
@@ -2877,7 +3811,7 @@ fun ModelDashboardTab(viewModel: AppViewModel) {
                                     Icon(
                                         imageVector = Icons.Default.CalendarMonth,
                                         contentDescription = null,
-                                        tint = purplePrimary,
+                                        tint = PinkHighlight,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -3055,7 +3989,7 @@ fun ModelDashboardTab(viewModel: AppViewModel) {
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Button(
                                     onClick = { viewModel.navigateTo("WALLET") },
-                                    colors = ButtonDefaults.buttonColors(containerColor = purplePrimary),
+                                    colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight),
                                     shape = RoundedCornerShape(8.dp),
                                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                                     modifier = Modifier.height(28.dp)
@@ -3077,7 +4011,7 @@ fun ModelDashboardTab(viewModel: AppViewModel) {
         // QUICK ACTION: SERVICES & PRICE CONFIGURATION BANNER
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E2E)),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(16.dp),
                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 modifier = Modifier
@@ -3159,7 +4093,7 @@ fun ModelDashboardTab(viewModel: AppViewModel) {
                     )
                     Text(
                         text = "View All",
-                        color = purplePrimary,
+                        color = PinkHighlight,
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp,
                         modifier = Modifier.clickable { viewModel.selectedTab = 1 }
@@ -3329,7 +4263,7 @@ fun ModelDashboardTab(viewModel: AppViewModel) {
                             title = "Edit Profile",
                             icon = Icons.Default.Person,
                             iconBg = Color(0xFFF3E8FF),
-                            iconTint = purplePrimary,
+                            iconTint = PinkHighlight,
                             modifier = Modifier.weight(1f)
                         ) { viewModel.navigateTo("EDIT_PROFILE") }
 
@@ -3374,7 +4308,7 @@ fun ModelDashboardTab(viewModel: AppViewModel) {
                             title = "Wallet",
                             icon = Icons.Default.AccountBalanceWallet,
                             iconBg = Color(0xFFF3E8FF),
-                            iconTint = purplePrimary,
+                            iconTint = PinkHighlight,
                             modifier = Modifier.weight(1f)
                         ) { viewModel.navigateTo("WALLET") }
 
@@ -3417,7 +4351,7 @@ fun ModelDashboardTab(viewModel: AppViewModel) {
                     )
                     Text(
                         text = "85% Complete",
-                        color = purplePrimary,
+                        color = PinkHighlight,
                         fontWeight = FontWeight.Bold,
                         fontSize = 12.sp
                     )
@@ -3430,8 +4364,8 @@ fun ModelDashboardTab(viewModel: AppViewModel) {
                         .fillMaxWidth()
                         .height(8.dp)
                         .clip(RoundedCornerShape(4.dp)),
-                    color = purplePrimary,
-                    trackColor = Color(0xFFE5E7EB)
+                    color = PinkHighlight,
+                    trackColor = Color(0xFFFF85A6)
                 )
 
                 // Profile completion card
@@ -3456,7 +4390,7 @@ fun ModelDashboardTab(viewModel: AppViewModel) {
                             Icon(
                                 imageVector = Icons.Default.VerifiedUser,
                                 contentDescription = null,
-                                tint = purplePrimary,
+                                tint = PinkHighlight,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -3594,7 +4528,7 @@ fun ModelBookingsTab(viewModel: AppViewModel) {
                             Icon(imageVector = Icons.Default.CalendarToday, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(18.dp))
                         }
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text("My Bookings", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("My Bookings", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                     }
                     Text("Manage all your bookings and earnings", color = TextSecondary, fontSize = 11.sp, modifier = Modifier.padding(start = 40.dp))
                 }
@@ -3698,7 +4632,7 @@ fun ModelBookingsTab(viewModel: AppViewModel) {
                             Box(
                                 modifier = Modifier
                                     .background(
-                                        if (isSelected) Color.White.copy(alpha = 0.25f) else Color(0xFF2E2E3E),
+                                        if (isSelected) Color.White.copy(alpha = 0.25f) else Color(0xFFFF85A6),
                                         CircleShape
                                     )
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
@@ -3727,7 +4661,7 @@ fun ModelBookingsTab(viewModel: AppViewModel) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(imageVector = Icons.Default.EventNote, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(56.dp))
                     Spacer(modifier = Modifier.height(8.dp))
-                    Text("No Bookings Found", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text("No Bookings Found", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     Text("No booking requests matching '$selectedFilterChip'.", color = TextSecondary, fontSize = 12.sp)
                 }
             }
@@ -3774,7 +4708,7 @@ fun ModelBookingsTab(viewModel: AppViewModel) {
                         value = proofSelfieInput,
                         onValueChange = { proofSelfieInput = it },
                         label = { Text("Client Selfie Verification URL", color = TextSecondary) },
-                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)),
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -3783,7 +4717,7 @@ fun ModelBookingsTab(viewModel: AppViewModel) {
                         value = proofPhotosInput,
                         onValueChange = { proofPhotosInput = it },
                         label = { Text("Service Photos URLs (Comma separated)", color = TextSecondary) },
-                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)),
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -3792,7 +4726,7 @@ fun ModelBookingsTab(viewModel: AppViewModel) {
                         value = proofGpsInput,
                         onValueChange = { proofGpsInput = it },
                         label = { Text("GPS Location Tag", color = TextSecondary) },
-                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)),
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -3801,7 +4735,7 @@ fun ModelBookingsTab(viewModel: AppViewModel) {
                         value = proofNotesInput,
                         onValueChange = { proofNotesInput = it },
                         label = { Text("Service Completion Notes", color = TextSecondary) },
-                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)),
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)),
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -3839,14 +4773,14 @@ fun ModelBookingsTab(viewModel: AppViewModel) {
         val b = showInspectModalForBooking!!
         AlertDialog(
             onDismissRequest = { showInspectModalForBooking = null },
-            title = { Text("Submitted Service Proof", color = Color.White, fontWeight = FontWeight.Bold) },
+            title = { Text("Submitted Service Proof", color = TextPrimary, fontWeight = FontWeight.Bold) },
             text = {
                 Column(
                     modifier = Modifier.verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text("Status: ${b.status} | Escrow: ${b.paymentStatus}", color = PinkHighlight, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                    Text("GPS Tag: ${b.proofGpsLocation ?: "Verified on-location"}", color = Color.White, fontSize = 11.sp)
+                    Text("GPS Tag: ${b.proofGpsLocation ?: "Verified on-location"}", color = TextSecondary, fontSize = 11.sp)
                     Text("Notes: ${b.proofNotes ?: "None"}", color = TextSecondary, fontSize = 11.sp)
                 }
             },
@@ -3871,7 +4805,8 @@ fun MetricStatCard(
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = BorderStroke(1.2.dp, PinkBorderSoft),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier.width(105.dp)
     ) {
         Column(
@@ -3909,6 +4844,7 @@ fun ModelBookingItemCard(
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.2.dp, PinkBorderSoft),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -4022,7 +4958,7 @@ fun ModelBookingItemCard(
                     ) {
                         Text(
                             text = if (isCompleted) "Payment Released ✓" else if (isAdminReview) "Under Review" else "Advance Paid",
-                            color = if (isCompleted) Color(0xFF16A34A) else Color(0xFF7C3AED),
+                            color = if (isCompleted) Color(0xFF16A34A) else PinkBorderSoft,
                             fontSize = 9.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -4121,8 +5057,8 @@ fun ModelBookingItemCard(
                                     .background(
                                         when {
                                             isDone -> Color(0xFF16A34A)
-                                            isCurrent -> Color(0xFF7C3AED)
-                                            else -> Color(0xFFE5E7EB)
+                                            isCurrent -> PinkBorderSoft
+                                            else -> Color(0xFFFF85A6)
                                         },
                                         CircleShape
                                     ),
@@ -4162,7 +5098,7 @@ fun ModelBookingItemCard(
                         OutlinedButton(
                             onClick = { },
                             shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, Color(0xFFD1D5DB)),
+                            border = BorderStroke(1.dp, PinkBorderSoft),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
                             modifier = Modifier.weight(1f).height(36.dp)
                         ) {
@@ -4199,7 +5135,7 @@ fun ModelBookingItemCard(
                     ) {
                         Button(
                             onClick = { viewModel.selectChatPartner("user_1"); viewModel.navigateTo("CHAT_ROOM") },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED)),
+                            colors = ButtonDefaults.buttonColors(containerColor = PinkBorderSoft),
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                             modifier = Modifier.height(36.dp)
@@ -4210,16 +5146,16 @@ fun ModelBookingItemCard(
                         OutlinedButton(
                             onClick = { },
                             shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, Color(0xFF7C3AED)),
+                            border = BorderStroke(1.dp, PinkBorderSoft),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                             modifier = Modifier.height(36.dp)
                         ) {
-                            Text("📞 Call", color = Color(0xFF7C3AED), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("📞 Call", color = PinkBorderSoft, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
 
                         Button(
                             onClick = onEndServiceClick,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED)),
+                            colors = ButtonDefaults.buttonColors(containerColor = PinkBorderSoft),
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                             modifier = Modifier.weight(1f).height(36.dp)
@@ -4238,16 +5174,16 @@ fun ModelBookingItemCard(
                         OutlinedButton(
                             onClick = onViewProofClick,
                             shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, Color(0xFF7C3AED)),
+                            border = BorderStroke(1.dp, PinkBorderSoft),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
                             modifier = Modifier.height(36.dp)
                         ) {
-                            Text("🖼️ View Proof", color = Color(0xFF7C3AED), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Text("🖼️ View Proof", color = PinkBorderSoft, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
 
                         Button(
                             onClick = { viewModel.selectChatPartner("user_1"); viewModel.navigateTo("CHAT_ROOM") },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED)),
+                            colors = ButtonDefaults.buttonColors(containerColor = PinkBorderSoft),
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
                             modifier = Modifier.height(36.dp)
@@ -4258,7 +5194,7 @@ fun ModelBookingItemCard(
                         OutlinedButton(
                             onClick = { },
                             shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, Color(0xFFD1D5DB)),
+                            border = BorderStroke(1.dp, PinkBorderSoft),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
                             modifier = Modifier.height(36.dp)
                         ) {
@@ -4289,7 +5225,7 @@ fun ModelBookingItemCard(
 
                         Button(
                             onClick = { viewModel.selectChatPartner("user_1"); viewModel.navigateTo("CHAT_ROOM") },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF7C3AED)),
+                            colors = ButtonDefaults.buttonColors(containerColor = PinkBorderSoft),
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
                             modifier = Modifier.height(36.dp)
@@ -4353,11 +5289,11 @@ fun ModelBookingItemCard(
                             OutlinedButton(
                                 onClick = onViewProofClick,
                                 shape = RoundedCornerShape(8.dp),
-                                border = BorderStroke(1.dp, Color(0xFF7C3AED)),
+                                border = BorderStroke(1.dp, PinkBorderSoft),
                                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                                 modifier = Modifier.height(34.dp)
                             ) {
-                                Text("View Review", color = Color(0xFF7C3AED), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                Text("View Review", color = PinkBorderSoft, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -4438,7 +5374,7 @@ fun OldModelWalletTab(viewModel: AppViewModel) {
                             focusedTextColor = Color.White,
                             unfocusedTextColor = Color.White,
                             focusedBorderColor = PinkHighlight,
-                            unfocusedBorderColor = Color(0xFF2E2E3E)
+                            unfocusedBorderColor = Color(0xFFFF85A6)
                         ),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         shape = RoundedCornerShape(10.dp),
@@ -4458,7 +5394,7 @@ fun OldModelWalletTab(viewModel: AppViewModel) {
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isSel) PinkHighlight else Color(0xFF2E2E3E))
+                                    .background(if (isSel) PinkHighlight else Color(0xFFFF85A6))
                                     .clickable { withdrawChannel = m }
                                     .padding(horizontal = 12.dp, vertical = 8.dp)
                             ) {
@@ -4496,7 +5432,7 @@ fun OldModelWalletTab(viewModel: AppViewModel) {
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(14.dp)) {
-                    Text("Commission Details", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    Text("Commission Details", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         "As a certified host on MODOL CONNECT, you receive 90% of all client booking amounts directly into your wallet. Platform fees of 10% cover escrow security, insurance, and local payment gateways.",
@@ -4510,7 +5446,7 @@ fun OldModelWalletTab(viewModel: AppViewModel) {
 
         // Transactions list header
         item {
-            Text("Earning & Withdrawal History", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+            Text("Earning & Withdrawal History", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
         }
 
         if (transactions.isEmpty()) {
@@ -4550,7 +5486,7 @@ fun OldModelWalletTab(viewModel: AppViewModel) {
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            Text(tx.description, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text(tx.description, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             Text(tx.type, color = Color.Gray, fontSize = 10.sp)
                         }
                     }
@@ -4562,7 +5498,7 @@ fun OldModelWalletTab(viewModel: AppViewModel) {
                         fontSize = 14.sp
                     )
                 }
-                HorizontalDivider(color = Color(0xFF2E2E3E), thickness = 0.5.dp)
+                HorizontalDivider(color = Color(0xFFFF85A6), thickness = 0.5.dp)
             }
         }
     }
@@ -4578,7 +5514,7 @@ fun ModelProfileTab(viewModel: AppViewModel) {
 
     if (modelProfile == null) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Loading profile details...", color = Color.White)
+            Text("Loading profile details...", color = TextSecondary)
         }
         return
     }
@@ -4615,8 +5551,10 @@ fun ModelProfileTab(viewModel: AppViewModel) {
         // Image Header & Social Count
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(20.dp),
+                border = BorderStroke(1.5.dp, PinkBorderSoft),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -4627,6 +5565,7 @@ fun ModelProfileTab(viewModel: AppViewModel) {
                         modifier = Modifier
                             .size(90.dp)
                             .clip(CircleShape)
+                            .border(2.dp, PinkBorderSoft, CircleShape)
                             .background(PinkHighlight.copy(alpha = 0.2f))
                     ) {
                         ModelImage(imageName = modelProfile.imageResName, contentDescription = "Avatar")
@@ -4636,7 +5575,7 @@ fun ModelProfileTab(viewModel: AppViewModel) {
 
                     Text(
                         text = modelProfile.name,
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold, color = Color.White)
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold, color = TextPrimary)
                     )
 
                     Text(
@@ -4680,15 +5619,15 @@ fun ModelProfileTab(viewModel: AppViewModel) {
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("12.5K", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                            Text("12.5K", color = TextPrimary, fontWeight = FontWeight.Black, fontSize = 16.sp)
                             Text("Followers", color = TextSecondary, fontSize = 10.sp)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("248", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                            Text("248", color = TextPrimary, fontWeight = FontWeight.Black, fontSize = 16.sp)
                             Text("Following", color = TextSecondary, fontSize = 10.sp)
                         }
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("1,240", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                            Text("1,240", color = TextPrimary, fontWeight = FontWeight.Black, fontSize = 16.sp)
                             Text("Favorites", color = TextSecondary, fontSize = 10.sp)
                         }
                     }
@@ -4705,7 +5644,7 @@ fun ModelProfileTab(viewModel: AppViewModel) {
             ) {
                 Text(
                     text = if (isEditMode) "Editing Host Profile" else "Host Profile Details",
-                    color = Color.White,
+                    color = TextPrimary,
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp
                 )
@@ -4746,8 +5685,10 @@ fun ModelProfileTab(viewModel: AppViewModel) {
         // Details list
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.5.dp, PinkBorderSoft),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -4760,8 +5701,9 @@ fun ModelProfileTab(viewModel: AppViewModel) {
                             onValueChange = { editedName = it },
                             label = { Text("Display Full Name", color = TextSecondary) },
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = PinkBorderSoft,
+                                focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                             ),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -4772,8 +5714,9 @@ fun ModelProfileTab(viewModel: AppViewModel) {
                             onValueChange = { editedBio = it },
                             label = { Text("Short Biography", color = TextSecondary) },
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = PinkBorderSoft,
+                                focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                             ),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -4784,8 +5727,9 @@ fun ModelProfileTab(viewModel: AppViewModel) {
                             onValueChange = { editedRate = it },
                             label = { Text("Hourly rate (৳)", color = TextSecondary) },
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = PinkBorderSoft,
+                                focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                             ),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth(),
@@ -4797,8 +5741,9 @@ fun ModelProfileTab(viewModel: AppViewModel) {
                             onValueChange = { editedLocation = it },
                             label = { Text("City & Country", color = TextSecondary) },
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = PinkBorderSoft,
+                                focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                             ),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -4810,8 +5755,9 @@ fun ModelProfileTab(viewModel: AppViewModel) {
                             onValueChange = { bodyTypeField = it },
                             label = { Text("Body Type", color = TextSecondary) },
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = PinkBorderSoft,
+                                focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                             ),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -4822,8 +5768,9 @@ fun ModelProfileTab(viewModel: AppViewModel) {
                             onValueChange = { hairColorField = it },
                             label = { Text("Hair Color", color = TextSecondary) },
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = PinkBorderSoft,
+                                focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                             ),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -4834,8 +5781,9 @@ fun ModelProfileTab(viewModel: AppViewModel) {
                             onValueChange = { eyeColorField = it },
                             label = { Text("Eye Color", color = TextSecondary) },
                             colors = OutlinedTextFieldDefaults.colors(
-                                focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFF2E2E3E)
+                                focusedTextColor = TextPrimary, unfocusedTextColor = TextPrimary,
+                                focusedBorderColor = PinkHighlight, unfocusedBorderColor = PinkBorderSoft,
+                                focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                             ),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.fillMaxWidth()
@@ -4861,16 +5809,18 @@ fun ModelProfileTab(viewModel: AppViewModel) {
         // Availability Controls Panel
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.5.dp, PinkBorderSoft),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
                     modifier = Modifier.padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Text("Availability & Rules", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                    HorizontalDivider(color = Color(0xFF2E2E3E), thickness = 0.5.dp)
+                    Text("Availability & Rules", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    HorizontalDivider(color = PinkBorderLight, thickness = 0.8.dp)
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -4878,7 +5828,7 @@ fun ModelProfileTab(viewModel: AppViewModel) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text("Instant Booking Mode", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text("Instant Booking Mode", color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                             Text("Let clients book immediately without pending review.", color = TextSecondary, fontSize = 10.sp)
                         }
                         Switch(
@@ -4894,7 +5844,7 @@ fun ModelProfileTab(viewModel: AppViewModel) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column {
-                            Text("Vacation Mode", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text("Vacation Mode", color = TextPrimary, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                             Text("Temporarily hide profile from search listing.", color = TextSecondary, fontSize = 10.sp)
                         }
                         Switch(
@@ -4910,12 +5860,14 @@ fun ModelProfileTab(viewModel: AppViewModel) {
         // Portfolio & Private Content Locked simulation
         item {
             Card(
-                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
                 shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.5.dp, PinkBorderSoft),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Portfolio & Locked Media", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("Portfolio & Locked Media", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     Spacer(modifier = Modifier.height(12.dp))
 
                     Row(
@@ -4928,6 +5880,7 @@ fun ModelProfileTab(viewModel: AppViewModel) {
                                 .weight(1f)
                                 .height(90.dp)
                                 .clip(RoundedCornerShape(8.dp))
+                                .border(1.dp, PinkBorderSoft, RoundedCornerShape(8.dp))
                                 .background(Color(0xFF1E1E2E)),
                             contentAlignment = Alignment.Center
                         ) {
@@ -4948,6 +5901,7 @@ fun ModelProfileTab(viewModel: AppViewModel) {
                                 .weight(1f)
                                 .height(90.dp)
                                 .clip(RoundedCornerShape(8.dp))
+                                .border(1.dp, PinkBorderSoft, RoundedCornerShape(8.dp))
                                 .background(Color(0xFF1E1E2E)),
                             contentAlignment = Alignment.Center
                         ) {
@@ -4968,6 +5922,7 @@ fun ModelProfileTab(viewModel: AppViewModel) {
                                 .weight(1f)
                                 .height(90.dp)
                                 .clip(RoundedCornerShape(8.dp))
+                                .border(1.dp, PinkBorderSoft, RoundedCornerShape(8.dp))
                                 .background(Color(0xFF1E1E2E)),
                             contentAlignment = Alignment.Center
                         ) {
@@ -4988,46 +5943,53 @@ fun ModelProfileTab(viewModel: AppViewModel) {
 
         // Settings & Sign Out
         item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(DarkSurface)
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.5.dp, PinkBorderSoft),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                modifier = Modifier.fillMaxWidth()
             ) {
-                ProfileOptionRow(
-                    title = "Offered Services & Price Configuration",
-                    desc = "Manage categories, hourly rates, travel & schedule",
-                    icon = Icons.Default.Category,
-                    onClick = { viewModel.navigateTo("MODEL_OFFERED_SERVICES") }
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(4.dp)
+                ) {
+                    ProfileOptionRow(
+                        title = "Offered Services & Price Configuration",
+                        desc = "Manage categories, hourly rates, travel & schedule",
+                        icon = Icons.Default.Category,
+                        onClick = { viewModel.navigateTo("MODEL_OFFERED_SERVICES") }
+                    )
 
-                HorizontalDivider(color = Color(0xFF2E2E3E), thickness = 0.5.dp)
+                    HorizontalDivider(color = PinkBorderLight, thickness = 0.8.dp)
 
-                ProfileOptionRow(
-                    title = "24/7 Admin Live Care Support",
-                    desc = "Real-time support chat with Modol Admin Desk",
-                    icon = Icons.Default.SupportAgent,
-                    onClick = { viewModel.showLiveSupportModal = true }
-                )
+                    ProfileOptionRow(
+                        title = "24/7 Admin Live Care Support",
+                        desc = "Real-time support chat with Modol Admin Desk",
+                        icon = Icons.Default.SupportAgent,
+                        onClick = { viewModel.showLiveSupportModal = true }
+                    )
 
-                HorizontalDivider(color = Color(0xFF2E2E3E), thickness = 0.5.dp)
+                    HorizontalDivider(color = PinkBorderLight, thickness = 0.8.dp)
 
-                ProfileOptionRow(
-                    title = "App Settings",
-                    desc = "Language, Notifications & Security",
-                    icon = Icons.Default.Settings,
-                    onClick = { viewModel.navigateTo("SETTINGS") }
-                )
+                    ProfileOptionRow(
+                        title = "App Settings",
+                        desc = "Language, Notifications & Security",
+                        icon = Icons.Default.Settings,
+                        onClick = { viewModel.navigateTo("SETTINGS") }
+                    )
 
-                HorizontalDivider(color = Color(0xFF2E2E3E), thickness = 0.5.dp)
+                    HorizontalDivider(color = PinkBorderLight, thickness = 0.8.dp)
 
-                ProfileOptionRow(
-                    title = "Sign Out",
-                    desc = "Safely log out of your current session",
-                    icon = Icons.Default.Logout,
-                    tint = Color.Red,
-                    onClick = { viewModel.logout() }
-                )
+                    ProfileOptionRow(
+                        title = "Sign Out",
+                        desc = "Safely log out of your current session",
+                        icon = Icons.Default.Logout,
+                        tint = Color.Red,
+                        onClick = { viewModel.logout() }
+                    )
+                }
             }
         }
     }
@@ -5038,9 +6000,9 @@ fun EditableItemText(label: String, value: String) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Text(label, color = TextSecondary, fontSize = 11.sp)
         Spacer(modifier = Modifier.height(2.dp))
-        Text(value, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+        Text(value, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
         Spacer(modifier = Modifier.height(4.dp))
-        HorizontalDivider(color = Color(0xFF1E1E2E), thickness = 0.5.dp)
+        HorizontalDivider(color = PinkBorderLight, thickness = 0.8.dp)
     }
 }
 
@@ -5050,7 +6012,7 @@ fun EditableItemText(label: String, value: String) {
 
 @Composable
 fun PhotoUploadChooserModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
-    val purplePrimary = Color(0xFF7C3AED)
+    val PinkHighlight = PinkBorderSoft
     val coroutineScope = rememberCoroutineScope()
     var isUploading by remember { mutableStateOf(false) }
     var uploadStatusMessage by remember { mutableStateOf("Preparing photo...") }
@@ -5116,7 +6078,7 @@ fun PhotoUploadChooserModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                 Icon(
                     imageVector = Icons.Default.AddAPhoto,
                     contentDescription = null,
-                    tint = purplePrimary
+                    tint = PinkHighlight
                 )
                 Text(
                     text = if (isUploading) "Uploading Photo..." else "Choose Profile Photo",
@@ -5137,9 +6099,9 @@ fun PhotoUploadChooserModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                 ) {
                     LinearProgressIndicator(
                         progress = { uploadProgress },
-                        color = purplePrimary,
+                        color = PinkHighlight,
                         modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
-                        trackColor = Color(0xFF2E2E3E)
+                        trackColor = Color(0xFFFF85A6)
                     )
                     Text(
                         text = uploadStatusMessage,
@@ -5148,7 +6110,7 @@ fun PhotoUploadChooserModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = "Target API: https://app.modolconncet.fun/backend/api/upload/profile-photo.php",
+                        text = "Target API: http://173.249.28.110/backend/api/upload/profile-photo.php",
                         color = Color.Gray,
                         fontSize = 10.sp,
                         textAlign = TextAlign.Center
@@ -5185,13 +6147,13 @@ fun PhotoUploadChooserModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                             Box(
                                 modifier = Modifier
                                     .size(40.dp)
-                                    .background(purplePrimary.copy(alpha = 0.2f), CircleShape),
+                                    .background(PinkHighlight.copy(alpha = 0.2f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.CameraAlt,
                                     contentDescription = "Camera",
-                                    tint = purplePrimary
+                                    tint = PinkHighlight
                                 )
                             }
                             Column {
@@ -5274,7 +6236,7 @@ fun PhotoUploadChooserModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
 
 @Composable
 fun PaymentManagementModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
-    val purplePrimary = Color(0xFF7C3AED)
+    val PinkHighlight = PinkBorderSoft
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -5288,7 +6250,7 @@ fun PaymentManagementModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Icon(imageVector = Icons.Default.Payment, contentDescription = null, tint = purplePrimary)
+                    Icon(imageVector = Icons.Default.Payment, contentDescription = null, tint = PinkHighlight)
                     Text(
                         text = "Manage Payment Methods",
                         fontWeight = FontWeight.Bold,
@@ -5342,7 +6304,7 @@ fun PaymentManagementModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                             Card(
                                 colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
                                 shape = RoundedCornerShape(12.dp),
-                                border = BorderStroke(1.dp, if (pm.isPrimary) purplePrimary else Color(0xFF334155)),
+                                border = BorderStroke(1.dp, if (pm.isPrimary) PinkHighlight else PinkBorderSoft),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Row(
@@ -5382,10 +6344,10 @@ fun PaymentManagementModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                                                     Spacer(modifier = Modifier.width(6.dp))
                                                     Box(
                                                         modifier = Modifier
-                                                            .background(purplePrimary.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
+                                                            .background(PinkHighlight.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
                                                             .padding(horizontal = 6.dp, vertical = 2.dp)
                                                     ) {
-                                                        Text("Primary", color = purplePrimary, fontSize = 8.sp, fontWeight = FontWeight.Bold)
+                                                        Text("Primary", color = PinkHighlight, fontSize = 8.sp, fontWeight = FontWeight.Bold)
                                                     }
                                                 }
                                             }
@@ -5400,7 +6362,7 @@ fun PaymentManagementModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         if (!pm.isPrimary) {
                                             TextButton(onClick = { viewModel.setPrimaryPaymentMethod(pm.id) }) {
-                                                Text("Make Primary", color = purplePrimary, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                                Text("Make Primary", color = PinkHighlight, fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                             }
                                         }
                                         IconButton(onClick = { viewModel.removePaymentMethod(pm.id) }) {
@@ -5424,7 +6386,7 @@ fun PaymentManagementModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                         viewModel.showAddPaymentMethodModal = true
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = purplePrimary),
+                    colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight),
                     shape = RoundedCornerShape(10.dp)
                 ) {
                     Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -5441,7 +6403,7 @@ fun PaymentManagementModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
 
 @Composable
 fun AddPaymentMethodModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
-    val purplePrimary = Color(0xFF7C3AED)
+    val PinkHighlight = PinkBorderSoft
     var selectedType by remember { mutableStateOf("bKash") }
     val availableTypes = listOf("bKash", "Nagad", "Rocket", "VISA / Card", "Bank Account")
 
@@ -5457,7 +6419,7 @@ fun AddPaymentMethodModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(imageVector = Icons.Default.CreditCard, contentDescription = null, tint = purplePrimary)
+                Icon(imageVector = Icons.Default.CreditCard, contentDescription = null, tint = PinkHighlight)
                 Text(
                     text = "Add Payment Method",
                     fontWeight = FontWeight.Bold,
@@ -5486,8 +6448,8 @@ fun AddPaymentMethodModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(20.dp))
-                                .background(if (isSelected) purplePrimary else Color(0xFF1E293B))
-                                .border(1.dp, if (isSelected) purplePrimary else Color(0xFF334155), RoundedCornerShape(20.dp))
+                                .background(if (isSelected) PinkHighlight else Color(0xFF1E293B))
+                                .border(1.dp, if (isSelected) PinkHighlight else PinkBorderSoft, RoundedCornerShape(20.dp))
                                 .clickable { selectedType = type }
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
                         ) {
@@ -5520,9 +6482,9 @@ fun AddPaymentMethodModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                     placeholder = { Text(numberPlaceholder) },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = purplePrimary,
-                        unfocusedBorderColor = Color(0xFF334155),
-                        focusedLabelColor = purplePrimary,
+                        focusedBorderColor = PinkHighlight,
+                        unfocusedBorderColor = PinkBorderSoft,
+                        focusedLabelColor = PinkHighlight,
                         unfocusedLabelColor = TextSecondary,
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White
@@ -5538,9 +6500,9 @@ fun AddPaymentMethodModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                     placeholder = { Text("e.g. John Doe") },
                     singleLine = true,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = purplePrimary,
-                        unfocusedBorderColor = Color(0xFF334155),
-                        focusedLabelColor = purplePrimary,
+                        focusedBorderColor = PinkHighlight,
+                        unfocusedBorderColor = PinkBorderSoft,
+                        focusedLabelColor = PinkHighlight,
                         unfocusedLabelColor = TextSecondary,
                         focusedTextColor = Color.White,
                         unfocusedTextColor = Color.White
@@ -5554,11 +6516,11 @@ fun AddPaymentMethodModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Set as primary payment method", color = Color.White, fontSize = 12.sp)
+                    Text("Set as primary payment method", color = TextPrimary, fontSize = 12.sp)
                     Switch(
                         checked = setAsPrimary,
                         onCheckedChange = { setAsPrimary = it },
-                        colors = SwitchDefaults.colors(checkedThumbColor = purplePrimary, checkedTrackColor = purplePrimary.copy(alpha = 0.4f))
+                        colors = SwitchDefaults.colors(checkedThumbColor = PinkHighlight, checkedTrackColor = PinkHighlight.copy(alpha = 0.4f))
                     )
                 }
 
@@ -5582,7 +6544,7 @@ fun AddPaymentMethodModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                     )
                     viewModel.showAddPaymentMethodModal = false
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = purplePrimary),
+                colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight),
                 shape = RoundedCornerShape(10.dp)
             ) {
                 Text("Save Method", fontWeight = FontWeight.Bold)

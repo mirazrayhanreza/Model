@@ -51,7 +51,7 @@ fun ModelProfileScreen(viewModel: AppViewModel) {
             .fillMaxSize()
             .background(DarkBg)
     ) {
-        // Custom Top Bar with overlap photo
+        // Custom Top Bar
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -62,21 +62,25 @@ fun ModelProfileScreen(viewModel: AppViewModel) {
         ) {
             IconButton(
                 onClick = { viewModel.navigateTo("DASHBOARD") },
-                modifier = Modifier.background(Color.Black.copy(alpha = 0.4f), CircleShape)
+                modifier = Modifier
+                    .background(Color.White, CircleShape)
+                    .border(1.dp, Color(0xFFFF85A6), CircleShape)
             ) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
             }
 
-            Text("Model Profile", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("Model Profile", color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
 
             IconButton(
                 onClick = { viewModel.toggleFavorite(model.id) },
-                modifier = Modifier.background(Color.Black.copy(alpha = 0.4f), CircleShape)
+                modifier = Modifier
+                    .background(Color.White, CircleShape)
+                    .border(1.dp, Color(0xFFFF85A6), CircleShape)
             ) {
                 Icon(
                     imageVector = if (isFav) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                     contentDescription = "Favorite",
-                    tint = if (isFav) PinkHighlight else Color.White
+                    tint = if (isFav) PinkHighlight else TextSecondary
                 )
             }
         }
@@ -135,7 +139,7 @@ fun ModelProfileScreen(viewModel: AppViewModel) {
                     ) {
                         Text(
                             text = model.name,
-                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold, color = Color.White)
+                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Black, color = TextPrimary)
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         if (model.isVerified) {
@@ -153,7 +157,7 @@ fun ModelProfileScreen(viewModel: AppViewModel) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = StarYellow, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(model.rating.toString(), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text(model.rating.toString(), color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                             Spacer(modifier = Modifier.width(4.dp))
                             Text("(${model.reviewCount} reviews)", color = TextSecondary, fontSize = 11.sp)
                         }
@@ -161,7 +165,7 @@ fun ModelProfileScreen(viewModel: AppViewModel) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("${model.location}, ${model.country}", color = Color.White, fontSize = 13.sp)
+                            Text("${model.location}, ${model.country}", color = TextSecondary, fontSize = 13.sp)
                         }
                     }
                 }
@@ -174,7 +178,8 @@ fun ModelProfileScreen(viewModel: AppViewModel) {
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
                         .clip(RoundedCornerShape(12.dp))
-                        .background(DarkSurface)
+                        .background(Color.White)
+                        .border(1.dp, Color(0xFFFF85A6), RoundedCornerShape(12.dp))
                         .padding(4.dp)
                 ) {
                     listOf("About", "Services", "Reviews").forEach { tab ->
@@ -183,7 +188,7 @@ fun ModelProfileScreen(viewModel: AppViewModel) {
                             onClick = { selectedTabState = tab },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (isSel) PinkHighlight else Color.Transparent,
-                                contentColor = if (isSel) Color.White else TextSecondary
+                                contentColor = if (isSel) Color.White else TextPrimary
                             ),
                             shape = RoundedCornerShape(8.dp),
                             modifier = Modifier.weight(1f),
@@ -200,13 +205,13 @@ fun ModelProfileScreen(viewModel: AppViewModel) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     when (selectedTabState) {
                         "About" -> {
-                            Text("Biography", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text("Biography", color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(model.bio, color = TextSecondary, fontSize = 13.sp, lineHeight = 20.sp)
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            Text("Details", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text("Details", color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                             Spacer(modifier = Modifier.height(8.dp))
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
@@ -219,7 +224,7 @@ fun ModelProfileScreen(viewModel: AppViewModel) {
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            Text("Key Skills", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text("Key Skills", color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                             Spacer(modifier = Modifier.height(8.dp))
                             Row(
                                 modifier = Modifier.horizontalScroll(rememberScrollState()),
@@ -228,17 +233,18 @@ fun ModelProfileScreen(viewModel: AppViewModel) {
                                 model.skills.split(",").forEach { skill ->
                                     Box(
                                         modifier = Modifier
-                                            .background(Color(0xFF2E2E3E), RoundedCornerShape(8.dp))
+                                            .background(Color(0xFFFFF0F5), RoundedCornerShape(8.dp))
+                                            .border(1.dp, Color(0xFFFFD1DF), RoundedCornerShape(8.dp))
                                             .padding(horizontal = 12.dp, vertical = 6.dp)
                                     ) {
-                                        Text(skill.trim(), color = Color.White, fontSize = 12.sp)
+                                        Text(skill.trim(), color = PinkHighlight, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                     }
                                 }
                             }
                         }
 
                         "Services" -> {
-                            Text("Offered Services & Prices", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                            Text("Offered Services & Prices", color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                             Spacer(modifier = Modifier.height(12.dp))
 
                             model.services.split(",").forEach { s ->
@@ -252,11 +258,11 @@ fun ModelProfileScreen(viewModel: AppViewModel) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(10.dp))
-                                        Text(s.trim(), color = Color.White, fontSize = 14.sp)
+                                        Text(s.trim(), color = TextPrimary, fontWeight = FontWeight.Medium, fontSize = 14.sp)
                                     }
-                                    Text("৳${model.hourlyRate}/hr", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text("৳${model.hourlyRate}/hr", color = PinkHighlight, fontWeight = FontWeight.ExtraBold, fontSize = 14.sp)
                                 }
-                                HorizontalDivider(color = Color(0xFF2E2E3E), thickness = 0.5.dp)
+                                HorizontalDivider(color = Color(0xFFFF85A6), thickness = 0.5.dp)
                             }
                         }
 
@@ -266,11 +272,11 @@ fun ModelProfileScreen(viewModel: AppViewModel) {
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("Customer Reviews", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                Text("Customer Reviews", color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                                 TextButton(onClick = {
                                     viewModel.submitReview(model.id, 5, "Fabulous experience. Breathtaking talent!")
                                 }) {
-                                    Text("+ Quick Review", color = PinkHighlight, fontWeight = FontWeight.SemiBold)
+                                    Text("+ Quick Review", color = PinkHighlight, fontWeight = FontWeight.Bold)
                                 }
                             }
                             Spacer(modifier = Modifier.height(12.dp))
@@ -287,12 +293,12 @@ fun ModelProfileScreen(viewModel: AppViewModel) {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Box(modifier = Modifier.size(24.dp).background(PinkHighlight, CircleShape))
                                                 Spacer(modifier = Modifier.width(8.dp))
-                                                Text(r.reviewerName, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                                Text(r.reviewerName, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                             }
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = StarYellow, modifier = Modifier.size(12.dp))
                                                 Spacer(modifier = Modifier.width(3.dp))
-                                                Text(r.rating.toString(), color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                                Text(r.rating.toString(), color = TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
                                             }
                                         }
                                         Spacer(modifier = Modifier.height(4.dp))
@@ -300,7 +306,7 @@ fun ModelProfileScreen(viewModel: AppViewModel) {
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(r.date, color = Color.Gray, fontSize = 10.sp)
                                         Spacer(modifier = Modifier.height(8.dp))
-                                        HorizontalDivider(color = Color(0xFF2E2E3E), thickness = 0.5.dp)
+                                        HorizontalDivider(color = Color(0xFFFF85A6), thickness = 0.5.dp)
                                     }
                                 }
                             }
@@ -314,7 +320,8 @@ fun ModelProfileScreen(viewModel: AppViewModel) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(DarkSurface)
+                .background(Color.White)
+                .border(BorderStroke(1.dp, Color(0xFFFF85A6)))
                 .padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -324,7 +331,8 @@ fun ModelProfileScreen(viewModel: AppViewModel) {
                     viewModel.selectedTab = 3
                     viewModel.navigateTo("DASHBOARD")
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E2E3E)),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFFF85A6)),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier.size(52.dp),
                 contentPadding = PaddingValues(0.dp)
@@ -343,7 +351,7 @@ fun ModelProfileScreen(viewModel: AppViewModel) {
                     .height(52.dp)
                     .testTag("book_now_button")
             ) {
-                Text("Book Now", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("Book Now", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
             }
         }
     }
@@ -353,15 +361,15 @@ fun ModelProfileScreen(viewModel: AppViewModel) {
 fun DetailSpecChip(label: String, value: String, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
-            .background(DarkSurface, RoundedCornerShape(10.dp))
-            .border(0.5.dp, Color(0xFF2E2E3E), RoundedCornerShape(10.dp))
+            .background(Color.White, RoundedCornerShape(10.dp))
+            .border(1.dp, Color(0xFFFF85A6), RoundedCornerShape(10.dp))
             .padding(10.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(label, color = TextSecondary, fontSize = 10.sp)
+            Text(label, color = TextSecondary, fontSize = 11.sp)
             Spacer(modifier = Modifier.height(2.dp))
-            Text(value, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+            Text(value, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
         }
     }
 }
@@ -389,11 +397,16 @@ fun ServicesPricingScreen(viewModel: AppViewModel) {
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { viewModel.navigateTo("MODEL_PROFILE") }) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+            IconButton(
+                onClick = { viewModel.navigateTo("MODEL_PROFILE") },
+                modifier = Modifier
+                    .background(Color.White, CircleShape)
+                    .border(1.dp, Color(0xFFFF85A6), CircleShape)
+            ) {
+                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
             }
             Spacer(modifier = Modifier.width(12.dp))
-            Text("Select Service & Duration", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("Select Service & Duration", color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
         }
 
         LazyColumn(
@@ -403,7 +416,7 @@ fun ServicesPricingScreen(viewModel: AppViewModel) {
                 .padding(horizontal = 16.dp)
         ) {
             item {
-                Text("Select Service Type", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("Select Service Type", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
@@ -420,11 +433,17 @@ fun ServicesPricingScreen(viewModel: AppViewModel) {
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(if (isSel) PinkHighlight else DarkSurface)
+                                .background(if (isSel) PinkHighlight else Color.White)
+                                .border(1.dp, if (isSel) PinkHighlight else Color(0xFFFF85A6), RoundedCornerShape(12.dp))
                                 .clickable { viewModel.bookingService = trimmed }
                                 .padding(horizontal = 16.dp, vertical = 12.dp)
                         ) {
-                            Text(trimmed, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text(
+                                text = trimmed,
+                                color = if (isSel) Color.White else TextPrimary,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 13.sp
+                            )
                         }
                     }
                 }
@@ -432,7 +451,7 @@ fun ServicesPricingScreen(viewModel: AppViewModel) {
 
             item {
                 Spacer(modifier = Modifier.height(24.dp))
-                Text("Select Duration", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("Select Duration", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
@@ -455,8 +474,8 @@ fun ServicesPricingScreen(viewModel: AppViewModel) {
                             .clickable {
                                 viewModel.updateBookingDurationAndPrice(hours)
                             },
-                        colors = CardDefaults.cardColors(containerColor = if (isSel) PinkHighlight.copy(alpha = 0.15f) else DarkSurface),
-                        border = BorderStroke(1.dp, if (isSel) PinkHighlight else Color(0xFF2E2E3E)),
+                        colors = CardDefaults.cardColors(containerColor = if (isSel) PinkHighlight.copy(alpha = 0.08f) else Color.White),
+                        border = BorderStroke(1.dp, if (isSel) PinkHighlight else Color(0xFFFF85A6)),
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Row(
@@ -471,10 +490,10 @@ fun ServicesPricingScreen(viewModel: AppViewModel) {
                                     colors = RadioButtonDefaults.colors(selectedColor = PinkHighlight)
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
-                                Text(label, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text(label, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                             }
 
-                            Text("৳${model.hourlyRate * hours}", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
+                            Text("৳${model.hourlyRate * hours}", color = PinkHighlight, fontWeight = FontWeight.Black, fontSize = 16.sp)
                         }
                     }
                 }
@@ -483,7 +502,8 @@ fun ServicesPricingScreen(viewModel: AppViewModel) {
 
         // Bottom Cost and Next button
         Card(
-            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            border = BorderStroke(1.dp, Color(0xFFFF85A6)),
             shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)
         ) {
             Row(
@@ -495,7 +515,7 @@ fun ServicesPricingScreen(viewModel: AppViewModel) {
             ) {
                 Column {
                     Text("Total Price", color = TextSecondary, fontSize = 12.sp)
-                    Text("৳${viewModel.bookingPriceSummary.toInt()}", color = Color.White, fontWeight = FontWeight.Black, fontSize = 20.sp)
+                    Text("৳${viewModel.bookingPriceSummary.toInt()}", color = PinkHighlight, fontWeight = FontWeight.Black, fontSize = 20.sp)
                 }
 
                 Button(
@@ -541,11 +561,16 @@ fun AvailabilityScreen(viewModel: AppViewModel) {
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { viewModel.navigateTo("SERVICES_PRICING") }) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+            IconButton(
+                onClick = { viewModel.navigateTo("SERVICES_PRICING") },
+                modifier = Modifier
+                    .background(Color.White, CircleShape)
+                    .border(1.dp, Color(0xFFFF85A6), CircleShape)
+            ) {
+                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
             }
             Spacer(modifier = Modifier.width(12.dp))
-            Text("Select Date & Time", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("Select Date & Time", color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
         }
 
         LazyColumn(
@@ -561,7 +586,7 @@ fun AvailabilityScreen(viewModel: AppViewModel) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("May 2025", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("May 2025", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                     Row {
                         Icon(imageVector = Icons.Default.ChevronLeft, contentDescription = null, tint = TextSecondary)
                         Spacer(modifier = Modifier.width(16.dp))
@@ -586,7 +611,8 @@ fun AvailabilityScreen(viewModel: AppViewModel) {
                                 .width(56.dp)
                                 .height(72.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(if (isSel) PinkHighlight else DarkSurface)
+                                .background(if (isSel) PinkHighlight else Color.White)
+                                .border(1.dp, if (isSel) PinkHighlight else Color(0xFFFF85A6), RoundedCornerShape(12.dp))
                                 .clickable {
                                     selectedDay = d
                                     viewModel.bookingDate = "$d May 2025"
@@ -611,7 +637,7 @@ fun AvailabilityScreen(viewModel: AppViewModel) {
                                 Spacer(modifier = Modifier.height(6.dp))
                                 Text(
                                     text = d.toString(),
-                                    color = Color.White,
+                                    color = if (isSel) Color.White else TextPrimary,
                                     fontWeight = FontWeight.Bold,
                                     fontSize = 15.sp
                                 )
@@ -637,7 +663,7 @@ fun AvailabilityScreen(viewModel: AppViewModel) {
             // Times selection grid
             item {
                 Spacer(modifier = Modifier.height(28.dp))
-                Text("Available Hours", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                Text("Available Hours", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 Spacer(modifier = Modifier.height(12.dp))
             }
 
@@ -656,15 +682,15 @@ fun AvailabilityScreen(viewModel: AppViewModel) {
                                         .weight(1f)
                                         .height(46.dp)
                                         .clip(RoundedCornerShape(10.dp))
-                                        .background(if (isSel) PinkHighlight else DarkSurface)
-                                        .border(0.5.dp, if (isSel) PinkHighlight else Color(0xFF2E2E3E), RoundedCornerShape(10.dp))
+                                        .background(if (isSel) PinkHighlight else Color.White)
+                                        .border(1.dp, if (isSel) PinkHighlight else Color(0xFFFF85A6), RoundedCornerShape(10.dp))
                                         .clickable { viewModel.bookingTime = slot }
                                         .padding(8.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
                                         text = slot,
-                                        color = Color.White,
+                                        color = if (isSel) Color.White else TextPrimary,
                                         fontWeight = FontWeight.Bold,
                                         fontSize = 12.sp
                                     )
@@ -728,11 +754,16 @@ fun BookingSummaryScreen(viewModel: AppViewModel) {
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { viewModel.navigateTo("AVAILABILITY") }) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+            IconButton(
+                onClick = { viewModel.navigateTo("AVAILABILITY") },
+                modifier = Modifier
+                    .background(Color.White, CircleShape)
+                    .border(1.dp, Color(0xFFFF85A6), CircleShape)
+            ) {
+                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
             }
             Spacer(modifier = Modifier.width(12.dp))
-            Text("Confirm Booking & Pay", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text("Confirm Booking & Pay", color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
         }
 
         LazyColumn(
@@ -745,7 +776,8 @@ fun BookingSummaryScreen(viewModel: AppViewModel) {
             // Summary Card
             item {
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.dp, Color(0xFFFF85A6)),
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
@@ -755,7 +787,7 @@ fun BookingSummaryScreen(viewModel: AppViewModel) {
                             }
                             Spacer(modifier = Modifier.width(16.dp))
                             Column {
-                                Text(model.name, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                Text(model.name, color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 16.sp)
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(imageVector = Icons.Default.Verified, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(14.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
@@ -765,7 +797,7 @@ fun BookingSummaryScreen(viewModel: AppViewModel) {
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
-                        HorizontalDivider(color = Color(0xFF2E2E3E), thickness = 0.5.dp)
+                        HorizontalDivider(color = Color(0xFFFF85A6), thickness = 0.5.dp)
                         Spacer(modifier = Modifier.height(16.dp))
 
                         SummaryRowSpec(label = "Date", value = viewModel.bookingDate)
@@ -784,8 +816,8 @@ fun BookingSummaryScreen(viewModel: AppViewModel) {
                 val hasSufficient = currentBalance >= bookingCost
 
                 Card(
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1B2E)),
-                    border = BorderStroke(1.dp, PinkHighlight.copy(alpha = 0.5f)),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF0F5)),
+                    border = BorderStroke(1.dp, Color(0xFFFFD1DF)),
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -799,7 +831,7 @@ fun BookingSummaryScreen(viewModel: AppViewModel) {
                                 Box(
                                     modifier = Modifier
                                         .size(38.dp)
-                                        .background(PinkHighlight.copy(alpha = 0.2f), CircleShape),
+                                        .background(PinkHighlight.copy(alpha = 0.15f), CircleShape),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
@@ -812,7 +844,7 @@ fun BookingSummaryScreen(viewModel: AppViewModel) {
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column {
                                     Text("My Wallet Balance", color = TextSecondary, fontSize = 11.sp)
-                                    Text("৳${currentBalance.toInt()}", color = Color.White, fontWeight = FontWeight.Black, fontSize = 20.sp)
+                                    Text("৳${currentBalance.toInt()}", color = PinkHighlight, fontWeight = FontWeight.Black, fontSize = 20.sp)
                                 }
                             }
 
@@ -842,7 +874,8 @@ fun BookingSummaryScreen(viewModel: AppViewModel) {
                                 OutlinedButton(
                                     onClick = { viewModel.quickAddWalletBalance(amount.toDouble()) },
                                     shape = RoundedCornerShape(8.dp),
-                                    border = BorderStroke(1.dp, PinkHighlight.copy(alpha = 0.6f)),
+                                    border = BorderStroke(1.dp, Color(0xFFFFD1DF)),
+                                    colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White),
                                     contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
                                     modifier = Modifier.weight(1f).height(32.dp)
                                 ) {
@@ -857,13 +890,13 @@ fun BookingSummaryScreen(viewModel: AppViewModel) {
                                 Box(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .background(OnlineGreen.copy(alpha = 0.15f), RoundedCornerShape(8.dp))
+                                        .background(Color(0xFFE8F5E9), RoundedCornerShape(8.dp))
                                         .padding(8.dp)
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, tint = OnlineGreen, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(8.dp))
-                                        Text("Sufficient wallet balance available for instant checkout.", color = Color.White, fontSize = 11.sp)
+                                        Text("Sufficient wallet balance available for instant checkout.", color = Color(0xFF2E7D32), fontSize = 11.sp, fontWeight = FontWeight.Medium)
                                     }
                                 }
                             } else {
@@ -900,7 +933,7 @@ fun BookingSummaryScreen(viewModel: AppViewModel) {
 
             // Additional Specs Inputs
             item {
-                Text("Booking Specifications", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text("Booking Specifications", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 Spacer(modifier = Modifier.height(12.dp))
 
                 PremiumTextField(
@@ -926,7 +959,7 @@ fun BookingSummaryScreen(viewModel: AppViewModel) {
 
             // Payment Methods
             item {
-                Text("Select Payment Gateway", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Text("Select Payment Gateway", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                 Spacer(modifier = Modifier.height(12.dp))
 
                 val payMethods = listOf(
@@ -945,8 +978,8 @@ fun BookingSummaryScreen(viewModel: AppViewModel) {
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
                             .clickable { viewModel.bookingPaymentMethod = method },
-                        colors = CardDefaults.cardColors(containerColor = if (isSel) color.copy(alpha = 0.15f) else DarkSurface),
-                        border = BorderStroke(1.dp, if (isSel) color else Color(0xFF2E2E3E)),
+                        colors = CardDefaults.cardColors(containerColor = if (isSel) color.copy(alpha = 0.08f) else Color.White),
+                        border = BorderStroke(1.dp, if (isSel) color else Color(0xFFFF85A6)),
                         shape = RoundedCornerShape(12.dp)
                     ) {
                         Row(
@@ -974,7 +1007,7 @@ fun BookingSummaryScreen(viewModel: AppViewModel) {
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column {
-                                    Text(method, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                    Text(method, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                                     if (method == "Wallet Balance") {
                                         Text("Available: ৳${user?.balance?.toInt() ?: 0}", color = TextSecondary, fontSize = 11.sp)
                                     }
@@ -1003,7 +1036,7 @@ fun BookingSummaryScreen(viewModel: AppViewModel) {
                 .height(52.dp)
                 .testTag("submit_booking_button")
         ) {
-            Text("Confirm & Pay ৳${viewModel.bookingPriceSummary.toInt()}", fontWeight = FontWeight.Black, fontSize = 16.sp)
+            Text("Confirm & Pay ৳${viewModel.bookingPriceSummary.toInt()}", color = Color.White, fontWeight = FontWeight.Black, fontSize = 16.sp)
         }
     }
 
@@ -1015,7 +1048,7 @@ fun BookingSummaryScreen(viewModel: AppViewModel) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(imageVector = Icons.Default.AccountBalanceWallet, contentDescription = null, tint = PinkHighlight)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Add Wallet Balance", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("Add Wallet Balance", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             },
             text = {
@@ -1027,10 +1060,12 @@ fun BookingSummaryScreen(viewModel: AppViewModel) {
                         onValueChange = { customAddAmountText = it },
                         label = { Text("Amount (৳)", color = TextSecondary) },
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedTextColor = Color.White,
-                            unfocusedTextColor = Color.White,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
                             focusedBorderColor = PinkHighlight,
-                            unfocusedBorderColor = Color(0xFF2E2E3E)
+                            unfocusedBorderColor = Color(0xFFFF85A6),
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White
                         ),
                         shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -1047,7 +1082,7 @@ fun BookingSummaryScreen(viewModel: AppViewModel) {
                                 contentPadding = PaddingValues(0.dp),
                                 modifier = Modifier.weight(1f)
                             ) {
-                                Text("৳$amt", fontSize = 10.sp, color = Color.White)
+                                Text("৳$amt", fontSize = 10.sp, color = PinkHighlight, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -1063,7 +1098,7 @@ fun BookingSummaryScreen(viewModel: AppViewModel) {
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight)
                 ) {
-                    Text("Recharge Now", fontWeight = FontWeight.Bold)
+                    Text("Recharge Now", color = Color.White, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
@@ -1071,13 +1106,13 @@ fun BookingSummaryScreen(viewModel: AppViewModel) {
                     Text("Cancel", color = TextSecondary)
                 }
             },
-            containerColor = DarkSurface
+            containerColor = Color.White
         )
     }
 }
 
 @Composable
-fun SummaryRowSpec(label: String, value: String, valueColor: Color = Color.White) {
+fun SummaryRowSpec(label: String, value: String, valueColor: Color = TextPrimary) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1125,7 +1160,7 @@ fun ConfirmBookingScreen(viewModel: AppViewModel) {
                 "Booking Confirmed!",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Black,
-                    color = Color.White,
+                    color = TextPrimary,
                     textAlign = TextAlign.Center
                 )
             )
@@ -1144,7 +1179,8 @@ fun ConfirmBookingScreen(viewModel: AppViewModel) {
 
             // Spec recap
             Card(
-                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.dp, Color(0xFFFF85A6)),
                 shape = RoundedCornerShape(16.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -1191,7 +1227,7 @@ fun ConfirmBookingScreen(viewModel: AppViewModel) {
 @Composable
 fun EditProfileScreen(viewModel: AppViewModel) {
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
-    val purplePrimary = Color(0xFF7C3AED)
+    val PinkHighlight = PinkBorderSoft
     val cardBg = Color.White
     val textDark = Color(0xFF1E202C)
     val textSub = Color(0xFF6B7280)
@@ -1211,13 +1247,13 @@ fun EditProfileScreen(viewModel: AppViewModel) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Edit Profile", fontWeight = FontWeight.Bold, color = Color.White) },
+                title = { Text("Edit Profile", fontWeight = FontWeight.Bold, color = TextPrimary) },
                 navigationIcon = {
                     IconButton(onClick = { viewModel.goBack() }) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color.White)
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF1E103C))
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
         },
         containerColor = Color(0xFFF6F7FB)
@@ -1251,7 +1287,7 @@ fun EditProfileScreen(viewModel: AppViewModel) {
                             modifier = Modifier
                                 .size(90.dp)
                                 .clip(CircleShape)
-                                .border(3.dp, purplePrimary, CircleShape)
+                                .border(3.dp, PinkHighlight, CircleShape)
                         ) {
                             SubcomposeAsyncImage(
                                 model = currentUser?.avatarUrl ?: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
@@ -1264,7 +1300,7 @@ fun EditProfileScreen(viewModel: AppViewModel) {
                         Box(
                             modifier = Modifier
                                 .size(30.dp)
-                                .background(purplePrimary, CircleShape)
+                                .background(PinkHighlight, CircleShape)
                                 .border(2.dp, Color.White, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
@@ -1301,7 +1337,7 @@ fun EditProfileScreen(viewModel: AppViewModel) {
                         label = { Text("Full Name") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary)
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PinkHighlight)
                     )
 
                     OutlinedTextField(
@@ -1310,7 +1346,7 @@ fun EditProfileScreen(viewModel: AppViewModel) {
                         label = { Text("Email Address") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary)
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PinkHighlight)
                     )
 
                     OutlinedTextField(
@@ -1319,7 +1355,7 @@ fun EditProfileScreen(viewModel: AppViewModel) {
                         label = { Text("Phone Number") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary)
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PinkHighlight)
                     )
 
                     OutlinedTextField(
@@ -1328,7 +1364,7 @@ fun EditProfileScreen(viewModel: AppViewModel) {
                         label = { Text("City / Location") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary)
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PinkHighlight)
                     )
 
                     OutlinedTextField(
@@ -1337,7 +1373,7 @@ fun EditProfileScreen(viewModel: AppViewModel) {
                         label = { Text("Date of Birth") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary)
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PinkHighlight)
                     )
 
                     Text("Gender", color = textSub, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
@@ -1349,7 +1385,7 @@ fun EditProfileScreen(viewModel: AppViewModel) {
                                 onClick = { gender = g },
                                 label = { Text(g) },
                                 colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = purplePrimary,
+                                    selectedContainerColor = PinkHighlight,
                                     selectedLabelColor = Color.White
                                 )
                             )
@@ -1377,7 +1413,7 @@ fun EditProfileScreen(viewModel: AppViewModel) {
                         label = { Text("Preferred Languages") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary)
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PinkHighlight)
                     )
 
                     OutlinedTextField(
@@ -1386,7 +1422,7 @@ fun EditProfileScreen(viewModel: AppViewModel) {
                         label = { Text("Preferred Categories") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary)
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PinkHighlight)
                     )
 
                     OutlinedTextField(
@@ -1395,7 +1431,7 @@ fun EditProfileScreen(viewModel: AppViewModel) {
                         label = { Text("Budget Range") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary)
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PinkHighlight)
                     )
 
                     OutlinedTextField(
@@ -1404,7 +1440,7 @@ fun EditProfileScreen(viewModel: AppViewModel) {
                         label = { Text("Preferred Booking Time") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
-                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = purplePrimary)
+                        colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = PinkHighlight)
                     )
                 }
             }
@@ -1430,7 +1466,7 @@ fun EditProfileScreen(viewModel: AppViewModel) {
                 },
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = purplePrimary)
+                colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight)
             ) {
                 Icon(imageVector = Icons.Default.Save, contentDescription = null, tint = Color.White)
                 Spacer(modifier = Modifier.width(8.dp))

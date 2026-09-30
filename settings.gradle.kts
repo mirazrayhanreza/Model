@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "MODOL CONNECT"
+rootProject.name = "Modol Connect"
 
 include(":app")

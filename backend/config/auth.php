@@ -16,7 +16,7 @@ function checkAdminAuth(): void
         if (isApiRequest()) {
             sendJsonResponse('error', 'Unauthorized: Administrative access required.', [], 401);
         } else {
-            header('Location: ' . Config::BASE_URL . 'admin/login.php');
+            header('Location: ' . Config::getBaseUrl() . 'admin/login.php');
             exit(0);
         }
     }
@@ -31,7 +31,7 @@ function checkAgentAuth(): void
         if (isApiRequest()) {
             sendJsonResponse('error', 'Unauthorized: Verified Cash Agent login required.', [], 401);
         } else {
-            header('Location: ' . Config::BASE_URL . 'agent/login.php');
+            header('Location: ' . Config::getBaseUrl() . 'agent/login.php');
             exit(0);
         }
     }
