@@ -4,9 +4,11 @@ declare(strict_types=1);
 // backend/config/config.php
 // Global Configuration File (Compatible with PHP 8.0, 8.1, 8.2, and 8.3)
 
-// Enable error display for debugging during setup
+// Enable error logging to file for debugging
 ini_set('display_errors', '0');
 ini_set('display_startup_errors', '0');
+ini_set('log_errors', '1');
+ini_set('error_log', __DIR__ . '/../error.log');
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
 
 final class Config

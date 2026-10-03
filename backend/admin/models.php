@@ -11,122 +11,157 @@ require_once __DIR__ . '/layout.php';
 checkAdminAuth();
 $db = Database::getInstance();
 
-// Ensure models table structure
-$db->exec("
-CREATE TABLE IF NOT EXISTS models (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    uid TEXT UNIQUE,
-    name TEXT NOT NULL,
-    hourly_rate REAL DEFAULT 1500.0,
-    daily_rate REAL DEFAULT 8000.0,
-    category TEXT DEFAULT 'Fashion',
-    location TEXT DEFAULT 'Dhaka',
-    country TEXT DEFAULT 'Bangladesh',
-    phone TEXT,
-    email TEXT,
-    services TEXT DEFAULT 'Fashion & Runway, Commercial, Editorial',
-    is_online INTEGER DEFAULT 1,
-    is_verified INTEGER DEFAULT 1,
-    rating REAL DEFAULT 4.9,
-    review_count INTEGER DEFAULT 128,
-    bio TEXT,
-    avatar_url TEXT,
-    status TEXT DEFAULT 'AVAILABLE',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-)
-");
+// Ensure models table structure (Driver-aware and exception-safe)
+try {
+    if (Database::isMySQL()) {
+        $db->exec("
+        CREATE TABLE IF NOT EXISTS `models` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `uid` VARCHAR(64) UNIQUE,
+            `user_id` INT NULL,
+            `name` VARCHAR(100) NOT NULL,
+            `hourly_rate` DECIMAL(10,2) NOT NULL DEFAULT 1500.00,
+            `daily_rate` DECIMAL(10,2) DEFAULT 8000.00,
+            `category` VARCHAR(50) NOT NULL DEFAULT 'Fashion',
+            `location` VARCHAR(100) DEFAULT 'Dhaka',
+            `country` VARCHAR(50) DEFAULT 'Bangladesh',
+            `phone` VARCHAR(30) NULL,
+            `email` VARCHAR(150) NULL,
+            `services` VARCHAR(255) DEFAULT 'Fashion & Runway, Commercial, Editorial',
+            `is_online` TINYINT(1) DEFAULT 1,
+            `is_verified` TINYINT(1) DEFAULT 1,
+            `rating` DECIMAL(3,2) DEFAULT 4.90,
+            `review_count` INT DEFAULT 128,
+            `avatar_url` VARCHAR(255) DEFAULT NULL,
+            `bio` TEXT NULL,
+            `status` VARCHAR(20) DEFAULT 'AVAILABLE',
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    } else {
+        $db->exec("
+        CREATE TABLE IF NOT EXISTS models (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            uid TEXT UNIQUE,
+            name TEXT NOT NULL,
+            hourly_rate REAL DEFAULT 1500.0,
+            daily_rate REAL DEFAULT 8000.0,
+            category TEXT DEFAULT 'Fashion',
+            location TEXT DEFAULT 'Dhaka',
+            country TEXT DEFAULT 'Bangladesh',
+            phone TEXT,
+            email TEXT,
+            services TEXT DEFAULT 'Fashion & Runway, Commercial, Editorial',
+            is_online INTEGER DEFAULT 1,
+            is_verified INTEGER DEFAULT 1,
+            rating REAL DEFAULT 4.9,
+            review_count INTEGER DEFAULT 128,
+            bio TEXT,
+            avatar_url TEXT,
+            status TEXT DEFAULT 'AVAILABLE',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        ");
+    }
+} catch (Throwable $e) {
+    error_log("Models table check notice: " . $e->getMessage());
+}
 
 // Pre-seed sample models if empty
-$modelCount = (int)$db->query("SELECT COUNT(*) FROM models")->fetchColumn();
-if ($modelCount === 0) {
-    $seedModels = [
-        [
-            'uid' => 'mod_1',
-            'name' => 'Jessica Chowdhury',
-            'hourly_rate' => 3500.00,
-            'daily_rate' => 18000.00,
-            'category' => 'Fashion & Runway',
-            'location' => 'Gulshan, Dhaka',
-            'country' => 'Bangladesh',
-            'phone' => '+880 1711 998877',
-            'email' => 'jessica.c@modolconnect.com',
-            'services' => 'Runway, High Fashion, Magazine Covers',
-            'is_online' => 1,
-            'is_verified' => 1,
-            'rating' => 4.95,
-            'review_count' => 142,
-            'bio' => 'Professional fashion and runway model with over 6 years of experience in top international and local fashion weeks.',
-            'avatar_url' => 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=faces',
-            'status' => 'AVAILABLE'
-        ],
-        [
-            'uid' => 'mod_2',
-            'name' => 'Tania Islam',
-            'hourly_rate' => 2800.00,
-            'daily_rate' => 14000.00,
-            'category' => 'Commercial Photography',
-            'location' => 'Banani, Dhaka',
-            'country' => 'Bangladesh',
-            'phone' => '+880 1819 123456',
-            'email' => 'tania.islam@modolconnect.com',
-            'services' => 'TV Commercials, Billboard, Digital Ads',
-            'is_online' => 1,
-            'is_verified' => 1,
-            'rating' => 4.88,
-            'review_count' => 98,
-            'bio' => 'Commercial model specialized in brand endorsements, cosmetics commercials, and billboard shoots.',
-            'avatar_url' => 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&h=150&fit=crop&crop=faces',
-            'status' => 'AVAILABLE'
-        ],
-        [
-            'uid' => 'mod_3',
-            'name' => 'Nila Akter',
-            'hourly_rate' => 3200.00,
-            'daily_rate' => 16000.00,
-            'category' => 'Bridal & Editorial',
-            'location' => 'GEC Circle, Chittagong',
-            'country' => 'Bangladesh',
-            'phone' => '+880 1912 345678',
-            'email' => 'nila.akter@modolconnect.com',
-            'services' => 'Bridal Makeover, Jewelry Shoots, Traditional Attire',
-            'is_online' => 1,
-            'is_verified' => 1,
-            'rating' => 4.92,
-            'review_count' => 115,
-            'bio' => 'Award-winning bridal model featured in premier wedding magazines and bridal wear campaigns across South Asia.',
-            'avatar_url' => 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&h=150&fit=crop&crop=faces',
-            'status' => 'AVAILABLE'
-        ],
-        [
-            'uid' => 'mod_4',
-            'name' => 'Sophia Laurent',
-            'hourly_rate' => 4500.00,
-            'daily_rate' => 24000.00,
-            'category' => 'High Fashion',
-            'location' => 'Downtown Dubai',
-            'country' => 'UAE',
-            'phone' => '+971 50 123 9876',
-            'email' => 'sophia.l@modolconnect.com',
-            'services' => 'Luxury Brands, Haute Couture, International Runway',
-            'is_online' => 1,
-            'is_verified' => 1,
-            'rating' => 4.98,
-            'review_count' => 210,
-            'bio' => 'International high fashion model operating in Dubai, Milan, and Paris. Extensive luxury portfolio.',
-            'avatar_url' => 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=150&h=150&fit=crop&crop=faces',
-            'status' => 'AVAILABLE'
-        ]
-    ];
+try {
+    $modelCount = (int)$db->query("SELECT COUNT(*) FROM models")->fetchColumn();
+    if ($modelCount === 0) {
+        $seedModels = [
+            [
+                'uid' => 'mod_1',
+                'name' => 'Jessica Chowdhury',
+                'hourly_rate' => 3500.00,
+                'daily_rate' => 18000.00,
+                'category' => 'Fashion & Runway',
+                'location' => 'Gulshan, Dhaka',
+                'country' => 'Bangladesh',
+                'phone' => '+880 1711 998877',
+                'email' => 'jessica.c@modolconnect.com',
+                'services' => 'Runway, High Fashion, Magazine Covers',
+                'is_online' => 1,
+                'is_verified' => 1,
+                'rating' => 4.95,
+                'review_count' => 142,
+                'bio' => 'Professional fashion and runway model with over 6 years of experience in top international and local fashion weeks.',
+                'avatar_url' => 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop&crop=faces',
+                'status' => 'AVAILABLE'
+            ],
+            [
+                'uid' => 'mod_2',
+                'name' => 'Tania Islam',
+                'hourly_rate' => 2800.00,
+                'daily_rate' => 14000.00,
+                'category' => 'Commercial Photography',
+                'location' => 'Banani, Dhaka',
+                'country' => 'Bangladesh',
+                'phone' => '+880 1819 123456',
+                'email' => 'tania.islam@modolconnect.com',
+                'services' => 'TV Commercials, Billboard, Digital Ads',
+                'is_online' => 1,
+                'is_verified' => 1,
+                'rating' => 4.88,
+                'review_count' => 98,
+                'bio' => 'Commercial model specialized in brand endorsements, cosmetics commercials, and billboard shoots.',
+                'avatar_url' => 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&h=150&fit=crop&crop=faces',
+                'status' => 'AVAILABLE'
+            ],
+            [
+                'uid' => 'mod_3',
+                'name' => 'Nila Akter',
+                'hourly_rate' => 3200.00,
+                'daily_rate' => 16000.00,
+                'category' => 'Bridal & Editorial',
+                'location' => 'GEC Circle, Chittagong',
+                'country' => 'Bangladesh',
+                'phone' => '+880 1912 345678',
+                'email' => 'nila.akter@modolconnect.com',
+                'services' => 'Bridal Makeover, Jewelry Shoots, Traditional Attire',
+                'is_online' => 1,
+                'is_verified' => 1,
+                'rating' => 4.92,
+                'review_count' => 115,
+                'bio' => 'Award-winning bridal model featured in premier wedding magazines and bridal wear campaigns across South Asia.',
+                'avatar_url' => 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&h=150&fit=crop&crop=faces',
+                'status' => 'AVAILABLE'
+            ],
+            [
+                'uid' => 'mod_4',
+                'name' => 'Sophia Laurent',
+                'hourly_rate' => 4500.00,
+                'daily_rate' => 24000.00,
+                'category' => 'High Fashion',
+                'location' => 'Downtown Dubai',
+                'country' => 'UAE',
+                'phone' => '+971 50 123 9876',
+                'email' => 'sophia.l@modolconnect.com',
+                'services' => 'Luxury Brands, Haute Couture, International Runway',
+                'is_online' => 1,
+                'is_verified' => 1,
+                'rating' => 4.98,
+                'review_count' => 210,
+                'bio' => 'International high fashion model operating in Dubai, Milan, and Paris. Extensive luxury portfolio.',
+                'avatar_url' => 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?w=150&h=150&fit=crop&crop=faces',
+                'status' => 'AVAILABLE'
+            ]
+        ];
 
-    $insModel = $db->prepare("INSERT INTO models (uid, name, hourly_rate, daily_rate, category, location, country, phone, email, services, is_online, is_verified, rating, review_count, bio, avatar_url, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    foreach ($seedModels as $m) {
-        $insModel->execute([
-            $m['uid'], $m['name'], $m['hourly_rate'], $m['daily_rate'], $m['category'],
-            $m['location'], $m['country'], $m['phone'], $m['email'], $m['services'],
-            $m['is_online'], $m['is_verified'], $m['rating'], $m['review_count'],
-            $m['bio'], $m['avatar_url'], $m['status']
-        ]);
+        $insModel = $db->prepare("INSERT INTO models (uid, name, hourly_rate, daily_rate, category, location, country, phone, email, services, is_online, is_verified, rating, review_count, bio, avatar_url, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        foreach ($seedModels as $m) {
+            $insModel->execute([
+                $m['uid'], $m['name'], $m['hourly_rate'], $m['daily_rate'], $m['category'],
+                $m['location'], $m['country'], $m['phone'], $m['email'], $m['services'],
+                $m['is_online'], $m['is_verified'], $m['rating'], $m['review_count'],
+                $m['bio'], $m['avatar_url'], $m['status']
+            ]);
+        }
     }
+} catch (Throwable $e) {
+    error_log("Models seeding notice: " . $e->getMessage());
 }
 
 $msg = '';

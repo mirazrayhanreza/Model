@@ -108,6 +108,8 @@ object BackendApiClient {
                         val returnedAvatar = userObj?.optString("avatar_url", avatarUrl)?.ifEmpty { avatarUrl } ?: avatarUrl
                         val returnedBalance = userObj?.optDouble("wallet_balance", 500.0) ?: 500.0
                         val returnedCity = userObj?.optString("city", city) ?: city
+                        val returnedCountry = userObj?.optString("country", country)?.ifEmpty { country } ?: country
+                        val returnedCurrency = userObj?.optString("currency", "")?.ifEmpty { com.example.data.CountryPaymentMaster.getCurrencyForCountry(returnedCountry) } ?: com.example.data.CountryPaymentMaster.getCurrencyForCountry(returnedCountry)
 
                         val currentUser = CurrentUser(
                             id = returnedId,
@@ -122,7 +124,9 @@ object BackendApiClient {
                             },
                             isVerified = true,
                             email = returnedEmail,
-                            city = returnedCity
+                            city = returnedCity,
+                            country = returnedCountry,
+                            currency = returnedCurrency
                         )
 
                         return@withContext Result.success(currentUser)
@@ -141,7 +145,9 @@ object BackendApiClient {
                 avatarUrl = avatarUrl.ifEmpty { "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde" },
                 isVerified = true,
                 email = email.ifEmpty { "${phone.filter { it.isDigit() }}@modolconnect.com" },
-                city = city
+                city = city,
+                country = country,
+                currency = com.example.data.CountryPaymentMaster.getCurrencyForCountry(country)
             )
             return@withContext Result.success(fallbackUser)
         } catch (e: Exception) {
@@ -154,7 +160,9 @@ object BackendApiClient {
                 avatarUrl = avatarUrl.ifEmpty { "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde" },
                 isVerified = true,
                 email = email.ifEmpty { "${phone.filter { it.isDigit() }}@modolconnect.com" },
-                city = city
+                city = city,
+                country = country,
+                currency = com.example.data.CountryPaymentMaster.getCurrencyForCountry(country)
             )
             return@withContext Result.success(fallbackUser)
         }
@@ -287,5 +295,139 @@ object BackendApiClient {
                 city = city
             )
         )
+    }
+
+    /**
+     * Fetch Live GPS bottom tab visibility setting from PHP Backend.
+     * Controlled by Admin from Backend settings (Default: HIDDEN).
+     */
+    suspend fun fetchLiveGpsTabVisibility(baseUrl: String = "http://173.249.28.110/"): Boolean = withContext(Dispatchers.IO) {
+        val rootUrl = normalizeBaseUrl(baseUrl)
+        val endpoints = listOf(
+            "${rootUrl}api/tracking.php",
+            "${rootUrl}backend/api/tracking.php"
+        )
+        for (endpoint in endpoints) {
+            try {
+                val request = Request.Builder()
+                    .url(endpoint)
+                    .get()
+                    .addHeader("Accept", "application/json")
+                    .build()
+                val response = client.newCall(request).execute()
+                val body = response.body?.string() ?: ""
+                if (response.isSuccessful && body.isNotBlank()) {
+                    val json = JSONObject(body)
+                    return@withContext json.optBoolean("show_live_gps_tab", false)
+                }
+            } catch (e: Exception) {
+                Log.d(TAG, "fetchLiveGpsTabVisibility check failed on $endpoint: ${e.message}")
+            }
+        }
+        false // Default: HIDDEN
+    }
+
+    /**
+     * Admin toggle for Live GPS bottom tab visibility on PHP Backend.
+     */
+    suspend fun setRemoteLiveGpsTabVisibility(
+        baseUrl: String = "http://173.249.28.110/",
+        enabled: Boolean
+    ): Boolean = withContext(Dispatchers.IO) {
+        val rootUrl = normalizeBaseUrl(baseUrl)
+        val endpoints = listOf(
+            "${rootUrl}api/tracking.php",
+            "${rootUrl}backend/api/tracking.php"
+        )
+        val jsonPayload = JSONObject().apply {
+            put("action", "toggle_live_gps_tab")
+            put("enabled", enabled)
+        }
+        for (endpoint in endpoints) {
+            try {
+                val body = jsonPayload.toString().toRequestBody(JSON_MEDIA_TYPE)
+                val request = Request.Builder()
+                    .url(endpoint)
+                    .post(body)
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Accept", "application/json")
+                    .build()
+                val response = client.newCall(request).execute()
+                val raw = response.body?.string() ?: ""
+                if (response.isSuccessful && raw.isNotBlank()) {
+                    val json = JSONObject(raw)
+                    return@withContext json.optBoolean("show_live_gps_tab", enabled)
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed toggle on $endpoint: ${e.message}")
+            }
+        }
+        enabled
+    }
+
+    /**
+     * Fetch dynamic multi-country and dynamic payment methods from PHP Backend.
+     */
+    suspend fun fetchCountriesFromBackend(baseUrl: String = "http://173.249.28.110/"): List<com.example.data.CountryData>? = withContext(Dispatchers.IO) {
+        val rootUrl = normalizeBaseUrl(baseUrl)
+        val endpoints = listOf(
+            "${rootUrl}api/countries.php",
+            "${rootUrl}backend/api/countries.php"
+        )
+        for (endpoint in endpoints) {
+            try {
+                val request = Request.Builder()
+                    .url(endpoint)
+                    .get()
+                    .addHeader("Accept", "application/json")
+                    .build()
+                val response = client.newCall(request).execute()
+                val body = response.body?.string() ?: ""
+                if (response.isSuccessful && body.isNotBlank()) {
+                    val json = JSONObject(body)
+                    val dataArr = json.optJSONArray("data")
+                    if (dataArr != null && dataArr.length() > 0) {
+                        val list = mutableListOf<com.example.data.CountryData>()
+                        for (i in 0 until dataArr.length()) {
+                            val cObj = dataArr.getJSONObject(i)
+                            val methodsArr = cObj.optJSONArray("payment_methods")
+                            val methods = mutableListOf<com.example.data.CountryPaymentMethod>()
+                            if (methodsArr != null) {
+                                for (j in 0 until methodsArr.length()) {
+                                    val mObj = methodsArr.getJSONObject(j)
+                                    methods.add(
+                                        com.example.data.CountryPaymentMethod(
+                                            id = mObj.optInt("id", 0),
+                                            countryId = mObj.optInt("country_id", 0),
+                                            methodName = mObj.optString("method_name", ""),
+                                            methodType = mObj.optString("method_type", "Mobile Wallet"),
+                                            minAmount = mObj.optDouble("min_amount", 100.0),
+                                            maxAmount = mObj.optDouble("max_amount", 500000.0),
+                                            status = mObj.optString("status", "Active")
+                                        )
+                                    )
+                                }
+                            }
+                            list.add(
+                                com.example.data.CountryData(
+                                    id = cObj.optInt("id", i + 1),
+                                    countryName = cObj.optString("country_name", ""),
+                                    isoCode = cObj.optString("iso_code", ""),
+                                    phoneCode = cObj.optString("phone_code", ""),
+                                    currencyCode = cObj.optString("currency_code", "BDT"),
+                                    flag = cObj.optString("flag", "🌐"),
+                                    status = cObj.optString("status", "Active"),
+                                    paymentMethods = methods
+                                )
+                            )
+                        }
+                        return@withContext list
+                    }
+                }
+            } catch (e: Exception) {
+                Log.d(TAG, "fetchCountriesFromBackend failed on $endpoint: ${e.message}")
+            }
+        }
+        null
     }
 }

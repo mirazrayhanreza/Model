@@ -562,11 +562,23 @@ function renderAdminHeader(string $title, string $activePage = 'dashboard'): voi
             <span>Booking Management</span>
         </a>
 
+        <a href="live_gps.php" class="sidebar-link <?= $activePage === 'live_gps' ? 'active' : '' ?>">
+            <i class="bi bi-geo-alt-fill text-danger"></i>
+            <span>Live GPS Tracking</span>
+            <span class="badge bg-success sidebar-badge"><i class="bi bi-broadcast me-1"></i>LIVE</span>
+        </a>
+
         <div class="nav-category">Finance & Network</div>
 
         <a href="wallets.php" class="sidebar-link <?= $activePage === 'wallets' ? 'active' : '' ?>">
             <i class="bi bi-wallet2"></i>
             <span>Wallet & Finance</span>
+        </a>
+
+        <a href="payments.php" class="sidebar-link <?= $activePage === 'payments' ? 'active' : '' ?>">
+            <i class="bi bi-credit-card-2-front-fill"></i>
+            <span>Payment Gateways</span>
+            <span class="badge bg-success sidebar-badge">Config</span>
         </a>
 
         <a href="deposits.php" class="sidebar-link <?= $activePage === 'deposits' ? 'active' : '' ?>">
@@ -629,9 +641,10 @@ function renderAdminHeader(string $title, string $activePage = 'dashboard'): voi
             <span>Support Tickets</span>
         </a>
 
-        <a href="country_currency.php" class="sidebar-link <?= $activePage === 'country_currency' ? 'active' : '' ?>">
+        <a href="country_currency.php" class="sidebar-link <?= ($activePage === 'country_currency' || $activePage === 'countries') ? 'active' : '' ?>">
             <i class="bi bi-globe2"></i>
-            <span>Country & Currency</span>
+            <span>Country & Methods</span>
+            <span class="badge bg-danger sidebar-badge">Binance</span>
         </a>
 
         <a href="staff.php" class="sidebar-link <?= $activePage === 'staff' ? 'active' : '' ?>">

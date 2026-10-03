@@ -12,90 +12,163 @@ require_once __DIR__ . '/layout.php';
 checkAdminAuth();
 $db = Database::getInstance();
 
-// Ensure cash_agents table exists with all necessary columns
-$db->exec("
-CREATE TABLE IF NOT EXISTS cash_agents (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    agent_code TEXT UNIQUE NOT NULL,
-    name TEXT NOT NULL,
-    phone TEXT UNIQUE NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL,
-    country TEXT DEFAULT 'Bangladesh',
-    city TEXT DEFAULT 'Dhaka',
-    daily_limit REAL DEFAULT 500000.0,
-    payment_methods TEXT DEFAULT 'bKash, Nagad, Bank Transfer',
-    commission_rate REAL DEFAULT 5.0,
-    wallet_balance REAL DEFAULT 0.0,
-    orders_count INTEGER DEFAULT 0,
-    rating REAL DEFAULT 5.0,
-    status TEXT DEFAULT 'ACTIVE',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-)
-");
+// Ensure cash_agents table exists with all necessary columns (Driver-aware and exception-safe)
+try {
+    if (Database::isMySQL()) {
+        $db->exec("
+        CREATE TABLE IF NOT EXISTS `cash_agents` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `agent_code` VARCHAR(50) UNIQUE NOT NULL,
+            `name` VARCHAR(100) NOT NULL,
+            `phone` VARCHAR(30) UNIQUE NOT NULL,
+            `email` VARCHAR(150) UNIQUE NOT NULL,
+            `password` VARCHAR(255) NOT NULL,
+            `country` VARCHAR(50) DEFAULT 'Bangladesh',
+            `city` VARCHAR(100) DEFAULT 'Dhaka',
+            `currency` VARCHAR(10) DEFAULT 'BDT',
+            `buy_rate` DECIMAL(12,4) DEFAULT 122.5000,
+            `sell_rate` DECIMAL(12,4) DEFAULT 120.8000,
+            `min_limit` DECIMAL(12,2) DEFAULT 500.00,
+            `max_limit` DECIMAL(12,2) DEFAULT 500000.00,
+            `daily_limit` DECIMAL(12,2) DEFAULT 500000.00,
+            `payment_methods` VARCHAR(255) DEFAULT 'bKash, Nagad, Rocket, Upay, Bank Transfer, Cash',
+            `commission_rate` DECIMAL(5,2) DEFAULT 5.00,
+            `wallet_balance` DECIMAL(12,2) DEFAULT 0.00,
+            `available_balance` DECIMAL(12,2) DEFAULT 50000.00,
+            `orders_count` INT DEFAULT 1250,
+            `total_orders` INT DEFAULT 1250,
+            `completion_rate` VARCHAR(20) DEFAULT '99.4%',
+            `avg_release_time` VARCHAR(20) DEFAULT '2.4 min',
+            `rating` DECIMAL(3,2) DEFAULT 4.95,
+            `is_online` TINYINT(1) DEFAULT 1,
+            `is_verified` TINYINT(1) DEFAULT 1,
+            `status` VARCHAR(20) DEFAULT 'ACTIVE',
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    } else {
+        $db->exec("
+        CREATE TABLE IF NOT EXISTS cash_agents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            agent_code TEXT UNIQUE NOT NULL,
+            name TEXT NOT NULL,
+            phone TEXT UNIQUE NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL,
+            country TEXT DEFAULT 'Bangladesh',
+            city TEXT DEFAULT 'Dhaka',
+            currency TEXT DEFAULT 'BDT',
+            buy_rate REAL DEFAULT 122.50,
+            sell_rate REAL DEFAULT 120.80,
+            min_limit REAL DEFAULT 500.0,
+            max_limit REAL DEFAULT 500000.0,
+            available_balance REAL DEFAULT 50000.0,
+            daily_limit REAL DEFAULT 500000.0,
+            payment_methods TEXT DEFAULT 'bKash, Nagad, Bank Transfer',
+            commission_rate REAL DEFAULT 5.0,
+            wallet_balance REAL DEFAULT 0.0,
+            orders_count INTEGER DEFAULT 1250,
+            total_orders INTEGER DEFAULT 1250,
+            completion_rate TEXT DEFAULT '99.4%',
+            avg_release_time TEXT DEFAULT '2.4 min',
+            rating REAL DEFAULT 4.95,
+            is_online INTEGER DEFAULT 1,
+            is_verified INTEGER DEFAULT 1,
+            status TEXT DEFAULT 'ACTIVE',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        ");
+    }
+} catch (Throwable $e) {
+    error_log("Cash agents table check notice: " . $e->getMessage());
+}
+
+// Dynamic migration for existing tables
+$agentExtraCols = [
+    'currency' => "TEXT DEFAULT 'BDT'",
+    'buy_rate' => "REAL DEFAULT 122.50",
+    'sell_rate' => "REAL DEFAULT 120.80",
+    'min_limit' => "REAL DEFAULT 500.0",
+    'max_limit' => "REAL DEFAULT 500000.0",
+    'available_balance' => "REAL DEFAULT 50000.0",
+    'is_online' => "INTEGER DEFAULT 1",
+    'is_verified' => "INTEGER DEFAULT 1",
+    'total_orders' => "INTEGER DEFAULT 1250",
+    'completion_rate' => "TEXT DEFAULT '99.4%'",
+    'avg_release_time' => "TEXT DEFAULT '2.4 min'"
+];
+foreach ($agentExtraCols as $cName => $cDef) {
+    try {
+        $db->exec("ALTER TABLE cash_agents ADD COLUMN $cName $cDef");
+    } catch (Throwable $e) {}
+}
 
 // Pre-seed sample agents if table is empty
-$agentCount = (int)$db->query("SELECT COUNT(*) FROM cash_agents")->fetchColumn();
-if ($agentCount === 0) {
-    $seedAgents = [
-        [
-            'agent_code' => 'AGENT-01',
-            'name' => 'Dhaka Central Cash Express #01',
-            'phone' => '+880 1711 223344',
-            'email' => 'sumon@agent.com',
-            'password' => password_hash('agent123', PASSWORD_BCRYPT),
-            'country' => 'Bangladesh',
-            'city' => 'Dhaka Central',
-            'daily_limit' => 500000.00,
-            'payment_methods' => 'bKash, Nagad, City Bank, Rocket',
-            'commission_rate' => 5.0,
-            'wallet_balance' => 250000.00,
-            'orders_count' => 2540,
-            'rating' => 4.95,
-            'status' => 'ACTIVE'
-        ],
-        [
-            'agent_code' => 'AGENT-02',
-            'name' => 'Dubai Deira Exchange Agent #02',
-            'phone' => '+971 4 321 4321',
-            'email' => 'deira@agent.com',
-            'password' => password_hash('agent123', PASSWORD_BCRYPT),
-            'country' => 'UAE',
-            'city' => 'Deira, Dubai',
-            'daily_limit' => 75000.00,
-            'payment_methods' => 'Bank Transfer, Cash Counter, FAB',
-            'commission_rate' => 4.5,
-            'wallet_balance' => 45000.00,
-            'orders_count' => 1850,
-            'rating' => 4.92,
-            'status' => 'ACTIVE'
-        ],
-        [
-            'agent_code' => 'AGENT-03',
-            'name' => 'Kuala Lumpur Bukit Bintang Pay #03',
-            'phone' => '+60 12 999 8888',
-            'email' => 'kl@agent.com',
-            'password' => password_hash('agent123', PASSWORD_BCRYPT),
-            'country' => 'Malaysia',
-            'city' => 'Bukit Bintang, KL',
-            'daily_limit' => 80000.00,
-            'payment_methods' => 'DuitNow, Maybank, CIMB Bank',
-            'commission_rate' => 4.8,
-            'wallet_balance' => 45000.00,
-            'orders_count' => 1120,
-            'rating' => 4.88,
-            'status' => 'ACTIVE'
-        ]
-    ];
+try {
+    $agentCount = (int)$db->query("SELECT COUNT(*) FROM cash_agents")->fetchColumn();
+    if ($agentCount === 0) {
+        $seedAgents = [
+            [
+                'agent_code' => 'AGENT-01',
+                'name' => 'Dhaka Central Cash Express #01',
+                'phone' => '+880 1711 223344',
+                'email' => 'sumon@agent.com',
+                'password' => password_hash('agent123', PASSWORD_BCRYPT),
+                'country' => 'Bangladesh',
+                'city' => 'Dhaka Central',
+                'daily_limit' => 500000.00,
+                'payment_methods' => 'bKash, Nagad, City Bank, Rocket',
+                'commission_rate' => 5.0,
+                'wallet_balance' => 250000.00,
+                'orders_count' => 2540,
+                'rating' => 4.95,
+                'status' => 'ACTIVE'
+            ],
+            [
+                'agent_code' => 'AGENT-02',
+                'name' => 'Dubai Deira Exchange Agent #02',
+                'phone' => '+971 4 321 4321',
+                'email' => 'deira@agent.com',
+                'password' => password_hash('agent123', PASSWORD_BCRYPT),
+                'country' => 'UAE',
+                'city' => 'Deira, Dubai',
+                'daily_limit' => 75000.00,
+                'payment_methods' => 'Bank Transfer, Cash Counter, FAB',
+                'commission_rate' => 4.5,
+                'wallet_balance' => 45000.00,
+                'orders_count' => 1850,
+                'rating' => 4.92,
+                'status' => 'ACTIVE'
+            ],
+            [
+                'agent_code' => 'AGENT-03',
+                'name' => 'Kuala Lumpur Bukit Bintang Pay #03',
+                'phone' => '+60 12 999 8888',
+                'email' => 'kl@agent.com',
+                'password' => password_hash('agent123', PASSWORD_BCRYPT),
+                'country' => 'Malaysia',
+                'city' => 'Bukit Bintang, KL',
+                'daily_limit' => 80000.00,
+                'payment_methods' => 'DuitNow, Maybank, CIMB Bank',
+                'commission_rate' => 4.8,
+                'wallet_balance' => 45000.00,
+                'orders_count' => 1120,
+                'rating' => 4.88,
+                'status' => 'ACTIVE'
+            ]
+        ];
 
-    $insAgent = $db->prepare("INSERT INTO cash_agents (agent_code, name, phone, email, password, country, city, daily_limit, payment_methods, commission_rate, wallet_balance, orders_count, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    foreach ($seedAgents as $sa) {
-        $insAgent->execute([
-            $sa['agent_code'], $sa['name'], $sa['phone'], $sa['email'], $sa['password'],
-            $sa['country'], $sa['city'], $sa['daily_limit'], $sa['payment_methods'],
-            $sa['commission_rate'], $sa['wallet_balance'], $sa['orders_count'], $sa['rating'], $sa['status']
-        ]);
+        $insAgent = $db->prepare("INSERT INTO cash_agents (agent_code, name, phone, email, password, country, city, daily_limit, payment_methods, commission_rate, wallet_balance, orders_count, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        foreach ($seedAgents as $sa) {
+            $insAgent->execute([
+                $sa['agent_code'], $sa['name'], $sa['phone'], $sa['email'], $sa['password'],
+                $sa['country'], $sa['city'], $sa['daily_limit'], $sa['payment_methods'],
+                $sa['commission_rate'], $sa['wallet_balance'], $sa['orders_count'], $sa['rating'], $sa['status']
+            ]);
+        }
     }
+} catch (Throwable $e) {
+    error_log("Cash agents seeding notice: " . $e->getMessage());
 }
 
 $msg = '';
@@ -108,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $agentCode = trim($_POST['agent_code'] ?? '');
 
     if ($action === 'create_agent') {
-        // Admin creates a new cash agent
+        // Admin creates a new cash agent with full Binance B2B Profile attributes
         $name = trim($_POST['name'] ?? '');
         $code = strtoupper(trim($_POST['agent_code'] ?? ''));
         $phone = trim($_POST['phone'] ?? '');
@@ -116,10 +189,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $rawPassword = $_POST['password'] ?? 'agent123';
         $country = trim($_POST['country'] ?? 'Bangladesh');
         $city = trim($_POST['city'] ?? 'Dhaka');
+        $currency = strtoupper(trim($_POST['currency'] ?? 'BDT'));
+        $buyRate = (float)($_POST['buy_rate'] ?? 122.50);
+        $sellRate = (float)($_POST['sell_rate'] ?? 120.80);
+        $minLimit = (float)($_POST['min_limit'] ?? 500.0);
+        $maxLimit = (float)($_POST['max_limit'] ?? 500000.0);
         $dailyLimit = (float)($_POST['daily_limit'] ?? 500000.0);
-        $initialBalance = (float)($_POST['wallet_balance'] ?? 0.0);
+        $initialBalance = (float)($_POST['wallet_balance'] ?? 50000.0);
+        $availableBalance = (float)($_POST['available_balance'] ?? $initialBalance);
         $commissionRate = (float)($_POST['commission_rate'] ?? 5.0);
         $paymentMethods = trim($_POST['payment_methods'] ?? 'bKash, Nagad, Bank Transfer');
+        $isOnline = isset($_POST['is_online']) ? 1 : 0;
+        $isVerified = isset($_POST['is_verified']) ? 1 : 0;
+        $totalOrders = (int)($_POST['total_orders'] ?? 1250);
+        $completionRate = trim($_POST['completion_rate'] ?? '99.4%');
+        $avgReleaseTime = trim($_POST['avg_release_time'] ?? '2.4 min');
         $status = trim($_POST['status'] ?? 'ACTIVE');
 
         if (empty($code)) {
@@ -129,9 +213,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!empty($name) && !empty($phone) && !empty($email)) {
             try {
                 $hash = password_hash($rawPassword, PASSWORD_BCRYPT);
-                $stmt = $db->prepare("INSERT INTO cash_agents (agent_code, name, phone, email, password, country, city, daily_limit, payment_methods, commission_rate, wallet_balance, orders_count, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 5.0, ?)");
-                $stmt->execute([$code, $name, $phone, $email, $hash, $country, $city, $dailyLimit, $paymentMethods, $commissionRate, $initialBalance, $status]);
-                $msg = "Cash Agent '{$name}' ({$code}) created successfully! Login Email: {$email} (Password: {$rawPassword})";
+                $stmt = $db->prepare("INSERT INTO cash_agents (agent_code, name, phone, email, password, country, city, currency, buy_rate, sell_rate, min_limit, max_limit, available_balance, daily_limit, payment_methods, commission_rate, wallet_balance, orders_count, total_orders, completion_rate, avg_release_time, is_online, is_verified, rating, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 4.95, ?)");
+                $stmt->execute([$code, $name, $phone, $email, $hash, $country, $city, $currency, $buyRate, $sellRate, $minLimit, $maxLimit, $availableBalance, $dailyLimit, $paymentMethods, $commissionRate, $initialBalance, $totalOrders, $totalOrders, $completionRate, $avgReleaseTime, $isOnline, $isVerified, $status]);
+                $msg = "Binance B2B Cash Agent '{$name}' ({$code}) created successfully! Login: {$email}";
                 $msgType = 'success';
             } catch (Throwable $e) {
                 $msg = "Failed to create agent: " . $e->getMessage();
@@ -149,16 +233,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $email = trim($_POST['email'] ?? '');
         $country = trim($_POST['country'] ?? 'Bangladesh');
         $city = trim($_POST['city'] ?? 'Dhaka');
+        $currency = strtoupper(trim($_POST['currency'] ?? 'BDT'));
+        $buyRate = (float)($_POST['buy_rate'] ?? 122.50);
+        $sellRate = (float)($_POST['sell_rate'] ?? 120.80);
+        $minLimit = (float)($_POST['min_limit'] ?? 500.0);
+        $maxLimit = (float)($_POST['max_limit'] ?? 500000.0);
+        $availableBalance = (float)($_POST['available_balance'] ?? 50000.0);
         $dailyLimit = (float)($_POST['daily_limit'] ?? 500000.0);
         $commissionRate = (float)($_POST['commission_rate'] ?? 5.0);
         $paymentMethods = trim($_POST['payment_methods'] ?? '');
+        $isOnline = isset($_POST['is_online']) ? 1 : 0;
+        $isVerified = isset($_POST['is_verified']) ? 1 : 0;
+        $totalOrders = (int)($_POST['total_orders'] ?? 1250);
+        $completionRate = trim($_POST['completion_rate'] ?? '99.4%');
+        $avgReleaseTime = trim($_POST['avg_release_time'] ?? '2.4 min');
         $status = trim($_POST['status'] ?? 'ACTIVE');
 
         if ($id > 0 && !empty($name)) {
             try {
-                $stmt = $db->prepare("UPDATE cash_agents SET name = ?, phone = ?, email = ?, country = ?, city = ?, daily_limit = ?, commission_rate = ?, payment_methods = ?, status = ? WHERE id = ?");
-                $stmt->execute([$name, $phone, $email, $country, $city, $dailyLimit, $commissionRate, $paymentMethods, $status, $id]);
-                $msg = "Cash agent information for '{$name}' updated successfully.";
+                $stmt = $db->prepare("UPDATE cash_agents SET name = ?, phone = ?, email = ?, country = ?, city = ?, currency = ?, buy_rate = ?, sell_rate = ?, min_limit = ?, max_limit = ?, available_balance = ?, daily_limit = ?, commission_rate = ?, payment_methods = ?, is_online = ?, is_verified = ?, total_orders = ?, orders_count = ?, completion_rate = ?, avg_release_time = ?, status = ? WHERE id = ?");
+                $stmt->execute([$name, $phone, $email, $country, $city, $currency, $buyRate, $sellRate, $minLimit, $maxLimit, $availableBalance, $dailyLimit, $commissionRate, $paymentMethods, $isOnline, $isVerified, $totalOrders, $totalOrders, $completionRate, $avgReleaseTime, $status, $id]);
+                $msg = "Binance B2B Agent profile for '{$name}' updated successfully.";
                 $msgType = 'success';
             } catch (Throwable $e) {
                 $msg = "Update failed: " . $e->getMessage();
@@ -294,13 +389,13 @@ renderAdminHeader('Cash Agents', 'cash_agents');
         <table class="table table-custom align-middle mb-0">
             <thead>
                 <tr>
-                    <th class="ps-4">Agent Details</th>
-                    <th>Region / City</th>
-                    <th>Country</th>
-                    <th>Escrow Float Balance</th>
-                    <th>Daily Limit</th>
-                    <th>Commission Rate</th>
-                    <th>Orders Handled</th>
+                    <th class="ps-4">Agent Profile & Status</th>
+                    <th>Country & Currency</th>
+                    <th>Buy / Sell Rate</th>
+                    <th>Trading Limits</th>
+                    <th>Available Balance</th>
+                    <th>Orders & Completion</th>
+                    <th>Release Time</th>
                     <th>Status</th>
                     <th class="text-end pe-4">Actions</th>
                 </tr>
@@ -314,17 +409,44 @@ renderAdminHeader('Cash Agents', 'cash_agents');
                 <?php foreach ($agentsList as $a): ?>
                 <tr>
                     <td class="ps-4">
-                        <div class="fw-bold text-dark"><?= htmlspecialchars($a['name']) ?></div>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="rounded-circle <?= !empty($a['is_online']) ? 'bg-success' : 'bg-secondary' ?>" style="width: 9px; height: 9px; display: inline-block;" title="<?= !empty($a['is_online']) ? 'Online' : 'Offline' ?>"></span>
+                            <span class="fw-bold text-dark"><?= htmlspecialchars($a['name']) ?></span>
+                            <?php if (!empty($a['is_verified'])): ?>
+                                <i class="bi bi-patch-check-fill text-danger" title="Verified Merchant"></i>
+                            <?php endif; ?>
+                        </div>
                         <small class="text-muted"><span class="badge bg-light text-primary border me-1"><?= htmlspecialchars($a['agent_code']) ?></span> <?= htmlspecialchars($a['phone']) ?></small>
+                        <div class="mt-1 small text-secondary">
+                            <i class="bi bi-wallet2 me-1"></i><?= htmlspecialchars($a['payment_methods'] ?: 'bKash, Nagad, Bank') ?>
+                        </div>
                     </td>
-                    <td><span class="fw-semibold text-secondary"><?= htmlspecialchars($a['city'] ?: 'Dhaka') ?></span></td>
-                    <td><span class="fw-semibold text-dark"><?= htmlspecialchars($a['country'] ?: 'Bangladesh') ?></span></td>
                     <td>
-                        <span class="fw-bold text-success fs-6">৳<?= number_format((float)$a['wallet_balance'], 2) ?></span>
+                        <span class="fw-semibold text-dark"><?= htmlspecialchars($a['country'] ?: 'Bangladesh') ?></span>
+                        <div class="small"><span class="badge bg-dark"><?= htmlspecialchars($a['currency'] ?: 'BDT') ?></span> <span class="text-muted"><?= htmlspecialchars($a['city'] ?: 'Dhaka') ?></span></div>
                     </td>
-                    <td class="text-secondary fw-semibold">৳<?= number_format((float)($a['daily_limit'] ?? 500000.0), 2) ?></td>
-                    <td><span class="badge bg-info-subtle text-info border border-info-subtle px-2 py-1 fw-bold"><?= number_format((float)$a['commission_rate'], 1) ?>%</span></td>
-                    <td><span class="badge bg-light text-dark border"><?= number_format((int)($a['orders_count'] ?? 0)) ?> Orders</span></td>
+                    <td>
+                        <div class="small text-success fw-bold">Buy: <?= number_format((float)($a['buy_rate'] ?? 122.50), 2) ?></div>
+                        <div class="small text-danger fw-bold">Sell: <?= number_format((float)($a['sell_rate'] ?? 120.80), 2) ?></div>
+                    </td>
+                    <td>
+                        <div class="small fw-semibold text-dark">
+                            <?= number_format((float)($a['min_limit'] ?? 500.0)) ?> - <?= number_format((float)($a['max_limit'] ?? 500000.0)) ?>
+                        </div>
+                        <small class="text-muted"><?= htmlspecialchars($a['currency'] ?: 'BDT') ?></small>
+                    </td>
+                    <td>
+                        <span class="fw-bold text-success fs-6">৳<?= number_format((float)($a['available_balance'] ?? $a['wallet_balance']), 2) ?></span>
+                    </td>
+                    <td>
+                        <div class="fw-bold text-dark"><?= number_format((int)($a['total_orders'] ?? $a['orders_count'] ?? 1250)) ?> Orders</div>
+                        <div class="small text-success fw-semibold"><?= htmlspecialchars($a['completion_rate'] ?: '99.4%') ?></div>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border">
+                            ⚡ <?= htmlspecialchars($a['avg_release_time'] ?: '2.4 min') ?>
+                        </span>
+                    </td>
                     <td>
                         <?php if ($a['status'] === 'ACTIVE'): ?>
                             <span class="badge-status badge-approved">Active</span>
@@ -504,37 +626,76 @@ renderAdminHeader('Cash Agents', 'cash_agents');
                                             <label class="form-label small fw-semibold text-secondary">Email Address (Login)</label>
                                             <input type="email" name="email" class="form-control" required value="<?= htmlspecialchars($a['email']) ?>">
                                         </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label small fw-semibold text-secondary">Country</label>
-                                            <select name="country" class="form-select">
-                                                <option value="Bangladesh" <?= ($a['country'] ?? '') === 'Bangladesh' ? 'selected' : '' ?>>Bangladesh</option>
-                                                <option value="UAE" <?= ($a['country'] ?? '') === 'UAE' ? 'selected' : '' ?>>United Arab Emirates</option>
-                                                <option value="Malaysia" <?= ($a['country'] ?? '') === 'Malaysia' ? 'selected' : '' ?>>Malaysia</option>
-                                                <option value="Saudi Arabia" <?= ($a['country'] ?? '') === 'Saudi Arabia' ? 'selected' : '' ?>>Saudi Arabia</option>
-                                            </select>
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-semibold text-secondary">Operating Country</label>
+                                            <input type="text" name="country" class="form-control" required value="<?= htmlspecialchars($a['country'] ?: 'Bangladesh') ?>">
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-semibold text-secondary">Currency Code</label>
+                                            <input type="text" name="currency" class="form-control" required value="<?= htmlspecialchars($a['currency'] ?: 'BDT') ?>" maxlength="5">
+                                        </div>
+                                        <div class="col-md-4">
                                             <label class="form-label small fw-semibold text-secondary">Assigned City / Area</label>
                                             <input type="text" name="city" class="form-control" required value="<?= htmlspecialchars($a['city'] ?: 'Dhaka') ?>">
                                         </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label small fw-semibold text-secondary">Daily Limit (৳ BDT)</label>
-                                            <input type="number" step="1000" name="daily_limit" class="form-control" required value="<?= (float)($a['daily_limit'] ?? 500000.0) ?>">
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-semibold text-secondary">Buy Rate</label>
+                                            <input type="number" step="0.0001" name="buy_rate" class="form-control" required value="<?= (float)($a['buy_rate'] ?? 122.50) ?>">
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-semibold text-secondary">Sell Rate</label>
+                                            <input type="number" step="0.0001" name="sell_rate" class="form-control" required value="<?= (float)($a['sell_rate'] ?? 120.80) ?>">
+                                        </div>
+                                        <div class="col-md-4">
                                             <label class="form-label small fw-semibold text-secondary">Commission Rate (%)</label>
                                             <input type="number" step="0.1" name="commission_rate" class="form-control" required value="<?= (float)$a['commission_rate'] ?>">
                                         </div>
-                                        <div class="col-md-6">
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-semibold text-secondary">Min Trading Limit</label>
+                                            <input type="number" step="10" name="min_limit" class="form-control" required value="<?= (float)($a['min_limit'] ?? 500.0) ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-semibold text-secondary">Max Trading Limit</label>
+                                            <input type="number" step="100" name="max_limit" class="form-control" required value="<?= (float)($a['max_limit'] ?? 500000.0) ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-semibold text-secondary">Available Balance</label>
+                                            <input type="number" step="100" name="available_balance" class="form-control" required value="<?= (float)($a['available_balance'] ?? $a['wallet_balance']) ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-semibold text-secondary">Total Orders Handled</label>
+                                            <input type="number" name="total_orders" class="form-control" value="<?= (int)($a['total_orders'] ?? $a['orders_count'] ?? 1250) ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-semibold text-secondary">Completion Rate</label>
+                                            <input type="text" name="completion_rate" class="form-control" value="<?= htmlspecialchars($a['completion_rate'] ?: '99.4%') ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-semibold text-secondary">Avg Release Time</label>
+                                            <input type="text" name="avg_release_time" class="form-control" value="<?= htmlspecialchars($a['avg_release_time'] ?: '2.4 min') ?>">
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label small fw-semibold text-secondary">Supported Payment Methods (e.g. bKash, Nagad, Bank, Cash)</label>
+                                            <input type="text" name="payment_methods" class="form-control" value="<?= htmlspecialchars($a['payment_methods'] ?: 'bKash, Nagad, Bank Transfer') ?>">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-check form-switch mt-3">
+                                                <input class="form-check-input" type="checkbox" name="is_online" id="editOnlineSwitch<?= $a['id'] ?>" <?= !empty($a['is_online']) ? 'checked' : '' ?>>
+                                                <label class="form-check-label small fw-semibold" for="editOnlineSwitch<?= $a['id'] ?>">Online in P2P Marketplace</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-check form-switch mt-3">
+                                                <input class="form-check-input" type="checkbox" name="is_verified" id="editVerSwitch<?= $a['id'] ?>" <?= !empty($a['is_verified']) ? 'checked' : '' ?>>
+                                                <label class="form-check-label small fw-semibold text-danger" for="editVerSwitch<?= $a['id'] ?>">Verified Merchant Badge</label>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
                                             <label class="form-label small fw-semibold text-secondary">Account Status</label>
                                             <select name="status" class="form-select">
                                                 <option value="ACTIVE" <?= $a['status'] === 'ACTIVE' ? 'selected' : '' ?>>ACTIVE</option>
                                                 <option value="SUSPENDED" <?= $a['status'] === 'SUSPENDED' ? 'selected' : '' ?>>SUSPENDED</option>
                                             </select>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <label class="form-label small fw-semibold text-secondary">Supported Payment Methods</label>
-                                            <input type="text" name="payment_methods" class="form-control" value="<?= htmlspecialchars($a['payment_methods'] ?: 'bKash, Nagad, Bank Transfer') ?>">
                                         </div>
                                     </div>
                                 </div>
@@ -646,42 +807,76 @@ renderAdminHeader('Cash Agents', 'cash_agents');
                             <label class="form-label small fw-semibold text-secondary">Initial Login Password</label>
                             <input type="password" name="password" class="form-control" required placeholder="Default: agent123" value="agent123">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label small fw-semibold text-secondary">Operating Country</label>
-                            <select name="country" class="form-select">
-                                <option value="Bangladesh" selected>Bangladesh</option>
-                                <option value="UAE">United Arab Emirates</option>
-                                <option value="Malaysia">Malaysia</option>
-                                <option value="Saudi Arabia">Saudi Arabia</option>
-                                <option value="United States">United States</option>
-                            </select>
+                            <input type="text" name="country" class="form-control" required placeholder="e.g. Bangladesh" value="Bangladesh">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-secondary">Currency Code</label>
+                            <input type="text" name="currency" class="form-control" required placeholder="BDT" value="BDT" maxlength="5">
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label small fw-semibold text-secondary">Assigned City / Area</label>
                             <input type="text" name="city" class="form-control" required placeholder="e.g. Dhanmondi, Dhaka" value="Dhanmondi, Dhaka">
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold text-secondary">Initial Escrow Float Balance (৳ BDT)</label>
-                            <input type="number" step="1000" name="wallet_balance" class="form-control" value="50000" placeholder="50000">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-secondary">Buy Rate</label>
+                            <input type="number" step="0.0001" name="buy_rate" class="form-control" value="122.50" required>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-semibold text-secondary">Daily Limit (৳ BDT)</label>
-                            <input type="number" step="1000" name="daily_limit" class="form-control" value="500000" placeholder="500000">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-secondary">Sell Rate</label>
+                            <input type="number" step="0.0001" name="sell_rate" class="form-control" value="120.80" required>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label small fw-semibold text-secondary">Commission Rate (%)</label>
                             <input type="number" step="0.1" name="commission_rate" class="form-control" value="5.0" placeholder="5.0">
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-secondary">Min Trading Limit</label>
+                            <input type="number" step="10" name="min_limit" class="form-control" value="500">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-secondary">Max Trading Limit</label>
+                            <input type="number" step="100" name="max_limit" class="form-control" value="500000">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-secondary">Initial Escrow / Available Balance</label>
+                            <input type="number" step="1000" name="wallet_balance" class="form-control" value="50000">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-secondary">Total Orders Handled</label>
+                            <input type="number" name="total_orders" class="form-control" value="1250">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-secondary">Completion Rate</label>
+                            <input type="text" name="completion_rate" class="form-control" value="99.4%">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-semibold text-secondary">Avg Release Time</label>
+                            <input type="text" name="avg_release_time" class="form-control" value="2.4 min">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold text-secondary">Supported Payment Methods (e.g. bKash, Nagad, Rocket, Bank Transfer, Cash)</label>
+                            <input type="text" name="payment_methods" class="form-control" value="bKash, Nagad, Rocket, Upay, Bank Transfer, Cash">
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch mt-3">
+                                <input class="form-check-input" type="checkbox" name="is_online" id="createOnlineSwitch" checked>
+                                <label class="form-check-label small fw-semibold" for="createOnlineSwitch">Show Online in Marketplace</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch mt-3">
+                                <input class="form-check-input" type="checkbox" name="is_verified" id="createVerifiedSwitch" checked>
+                                <label class="form-check-label small fw-semibold text-danger" for="createVerifiedSwitch">Verified Merchant Badge</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
                             <label class="form-label small fw-semibold text-secondary">Status</label>
                             <select name="status" class="form-select">
                                 <option value="ACTIVE" selected>ACTIVE (Ready for orders)</option>
                                 <option value="SUSPENDED">SUSPENDED</option>
                             </select>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small fw-semibold text-secondary">Supported Payment Methods</label>
-                            <input type="text" name="payment_methods" class="form-control" value="bKash, Nagad, Rocket, Bank Transfer, Cash Counter">
                         </div>
                     </div>
                 </div>

@@ -209,7 +209,7 @@ interface B2BChatDao {
         B2BOrder::class,
         B2BChatMessage::class
     ],
-    version = 6,
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

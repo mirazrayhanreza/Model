@@ -1289,11 +1289,28 @@ fun EditProfileScreen(viewModel: AppViewModel) {
                                 .clip(CircleShape)
                                 .border(3.dp, PinkHighlight, CircleShape)
                         ) {
+                            val rawAvatar = currentUser?.avatarUrl ?: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d"
+                            val safeAvatar = if (rawAvatar.startsWith("/") && !rawAvatar.startsWith("file://")) "file://$rawAvatar" else rawAvatar
                             SubcomposeAsyncImage(
-                                model = currentUser?.avatarUrl ?: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
+                                model = safeAvatar,
                                 contentDescription = "Profile Photo",
                                 modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
+                                contentScale = ContentScale.Crop,
+                                error = {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Color(0xFFFFF0F4)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Person,
+                                            contentDescription = null,
+                                            tint = PinkHighlight,
+                                            modifier = Modifier.size(45.dp)
+                                        )
+                                    }
+                                }
                             )
                         }
 

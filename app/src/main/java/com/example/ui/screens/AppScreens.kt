@@ -1430,7 +1430,7 @@ fun SelectAccountTypeScreen(viewModel: AppViewModel) {
 
                         Column {
                             Text(
-                                text = "Model",
+                                text = "Model (মডেল)",
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.ExtraBold,
                                     color = TextPrimary,
@@ -1439,7 +1439,64 @@ fun SelectAccountTypeScreen(viewModel: AppViewModel) {
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "Create your model profile and grow your career",
+                                text = "Create your model profile, receive bookings & earn money",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = TextSecondary,
+                                    fontSize = 12.sp
+                                )
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Card 3: Cash Agent
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            viewModel.registerRole = "CASH_AGENT"
+                            viewModel.navigateTo("REGISTER_CASH_AGENT")
+                        },
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    border = BorderStroke(1.5.dp, Color(0xFF2196F3)),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(18.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(50.dp)
+                                .background(Color(0xFF2196F3), shape = CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.AccountBalanceWallet,
+                                contentDescription = "Cash Agent",
+                                tint = Color.White,
+                                modifier = Modifier.size(26.dp)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        Column {
+                            Text(
+                                text = "Cash Agent (ক্যাশ এজেন্ট)",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = TextPrimary,
+                                    fontSize = 16.sp
+                                )
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Earn commissions processing client deposits & withdrawals with instant auto ID",
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     color = TextSecondary,
                                     fontSize = 12.sp
@@ -1653,25 +1710,11 @@ fun RegisterUserScreen(viewModel: AppViewModel) {
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // 6. Country Dropdown / Selector
-                    OutlinedTextField(
-                        value = viewModel.registerCountry,
-                        onValueChange = { viewModel.registerCountry = it },
-                        label = { Text("Country") },
-                        leadingIcon = { Icon(imageVector = Icons.Default.Public, contentDescription = null, tint = TextSecondary) },
-                        trailingIcon = { Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null, tint = TextSecondary) },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = PurplePrimary,
-                            unfocusedBorderColor = Color(0xFFFF85A6),
-                            focusedLabelColor = PurplePrimary,
-                            unfocusedLabelColor = TextSecondary,
-                            focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary,
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White
-                        ),
-                        modifier = Modifier.fillMaxWidth()
+                    // 6. Country Dropdown / Selector (61 Countries + Currencies + Wallets)
+                    RegisterCountrySelector(
+                        viewModel = viewModel,
+                        borderColor = PurplePrimary,
+                        accentColor = PinkHighlight
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -2023,25 +2066,11 @@ fun RegisterModelScreen(viewModel: AppViewModel) {
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // 6. Country Dropdown / Selector
-                    OutlinedTextField(
-                        value = viewModel.registerCountry,
-                        onValueChange = { viewModel.registerCountry = it },
-                        label = { Text("Country") },
-                        leadingIcon = { Icon(imageVector = Icons.Default.Public, contentDescription = null, tint = TextSecondary) },
-                        trailingIcon = { Icon(imageVector = Icons.Default.ArrowDropDown, contentDescription = null, tint = TextSecondary) },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFFFF4081),
-                            unfocusedBorderColor = Color(0xFFFF85A6),
-                            focusedLabelColor = Color(0xFFFF4081),
-                            unfocusedLabelColor = TextSecondary,
-                            focusedTextColor = TextPrimary,
-                            unfocusedTextColor = TextPrimary,
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White
-                        ),
-                        modifier = Modifier.fillMaxWidth()
+                    // 6. Country Dropdown / Selector (61 Countries + Currencies + Wallets)
+                    RegisterCountrySelector(
+                        viewModel = viewModel,
+                        borderColor = Color(0xFFFF4081),
+                        accentColor = Color(0xFFFF4081)
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -2208,6 +2237,306 @@ fun RegisterModelScreen(viewModel: AppViewModel) {
                 Text(
                     text = "Login",
                     color = PurplePrimary,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    modifier = Modifier.clickable { viewModel.navigateTo("LOGIN") }
+                )
+            }
+        }
+    }
+}
+
+// ---------------- 4.1 CREATE ACCOUNT - CASH AGENT SCREEN ----------------
+@Composable
+fun RegisterCashAgentScreen(viewModel: AppViewModel) {
+    var passVisible by remember { mutableStateOf(false) }
+    var confirmPassVisible by remember { mutableStateOf(false) }
+    var selectedGateway by remember { mutableStateOf("bKash / Nagad") }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(DarkBg)
+            .statusBarsPadding()
+            .padding(20.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                IconButton(
+                    onClick = { viewModel.navigateTo("SELECT_ACCOUNT_TYPE") },
+                    modifier = Modifier
+                        .background(Color.White, CircleShape)
+                        .border(1.dp, Color(0xFF2196F3), CircleShape)
+                ) {
+                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
+                }
+            }
+
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                item {
+                    // Top Icon Badge
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .background(Color(0xFF2196F3), shape = CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(imageVector = Icons.Default.AccountBalanceWallet, contentDescription = null, tint = Color.White, modifier = Modifier.size(30.dp))
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = "Cash Agent Registration",
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.Black,
+                            color = TextPrimary
+                        )
+                    )
+                    Text(
+                        text = "ক্যাশ এজেন্ট নিবন্ধন ও লাইভ অ্যাডমিন এন্ট্রি",
+                        style = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF2196F3), fontWeight = FontWeight.Bold)
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Live Auto ID Information Banner
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.2.dp, Color(0xFF3B82F6).copy(alpha = 0.6f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .background(Color(0xFF3B82F6).copy(alpha = 0.2f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(Icons.Default.Badge, contentDescription = null, tint = Color(0xFF60A5FA), modifier = Modifier.size(22.dp))
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text("Auto ID System Active", color = Color(0xFF93C5FD), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                Text("অ্যাকাউন্ট তৈরি শেষে স্বয়ংক্রিয় 'AGENT-XXXX' আইডি তৈরি হয়ে ব্যাকএন্ড অ্যাডমিন প্যানেলে লাইভ যুক্ত হবে।", color = Color(0xFFE2E8F0), fontSize = 11.sp)
+                            }
+                        }
+                    }
+
+                    // Auth Error Banner
+                    if (viewModel.authErrorMessage != null) {
+                        Spacer(modifier = Modifier.height(14.dp))
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF0F5)),
+                            border = BorderStroke(1.dp, Color(0xFFFFB3BA)),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFD32F2F), modifier = Modifier.size(20.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = viewModel.authErrorMessage ?: "",
+                                    color = Color(0xFFD32F2F),
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // 1. Agent Name
+                    PremiumTextField(
+                        value = viewModel.registerName,
+                        onValueChange = { viewModel.registerName = it },
+                        label = "Agent / Business Name",
+                        placeholder = "e.g. Uttara Cash Express Ltd",
+                        leadingIcon = Icons.Default.Storefront,
+                        testTag = "reg_agent_name"
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 2. Phone Number
+                    CountryCodePhoneInputField(
+                        value = viewModel.registerPhone,
+                        onValueChange = { viewModel.registerPhone = it },
+                        label = "Agent WhatsApp / Mobile",
+                        placeholder = "1XX-XXXXXXX",
+                        viewModel = viewModel,
+                        testTag = "reg_agent_phone"
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 3. Email
+                    PremiumTextField(
+                        value = viewModel.registerEmail,
+                        onValueChange = { viewModel.registerEmail = it },
+                        label = "Email Address",
+                        placeholder = "agent@modolconnect.com",
+                        leadingIcon = Icons.Default.Email,
+                        keyboardType = KeyboardType.Email,
+                        testTag = "reg_agent_email"
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 4. Preferred Cash Out Gateway
+                    Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.Start) {
+                        Text("Default Escrow Gateway", color = TextSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            listOf("bKash / Nagad", "Bank Transfer", "Cash / Escrow").forEach { gateway ->
+                                val isSel = selectedGateway == gateway
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (isSel) Color(0xFF2196F3) else Color.White,
+                                    border = BorderStroke(1.dp, if (isSel) Color(0xFF2196F3) else Color(0xFFCBD5E1)),
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clickable { selectedGateway = gateway }
+                                ) {
+                                    Text(
+                                        text = gateway,
+                                        color = if (isSel) Color.White else TextPrimary,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        textAlign = TextAlign.Center,
+                                        modifier = Modifier.padding(vertical = 8.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 5. Password
+                    OutlinedTextField(
+                        value = viewModel.registerPassword,
+                        onValueChange = { viewModel.registerPassword = it },
+                        label = { Text("Password") },
+                        placeholder = { Text("••••••••") },
+                        leadingIcon = { Icon(imageVector = Icons.Default.Lock, contentDescription = null, tint = TextSecondary) },
+                        trailingIcon = {
+                            IconButton(onClick = { passVisible = !passVisible }) {
+                                Icon(imageVector = if (passVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff, contentDescription = null, tint = TextSecondary)
+                            }
+                        },
+                        visualTransformation = if (passVisible) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF2196F3),
+                            unfocusedBorderColor = Color(0xFF90CAF9),
+                            focusedLabelColor = Color(0xFF2196F3),
+                            unfocusedLabelColor = TextSecondary,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // 6. Confirm Password
+                    OutlinedTextField(
+                        value = viewModel.registerConfirmPassword,
+                        onValueChange = { viewModel.registerConfirmPassword = it },
+                        label = { Text("Confirm Password") },
+                        placeholder = { Text("••••••••") },
+                        leadingIcon = { Icon(imageVector = Icons.Default.Lock, contentDescription = null, tint = TextSecondary) },
+                        trailingIcon = {
+                            IconButton(onClick = { confirmPassVisible = !confirmPassVisible }) {
+                                Icon(imageVector = if (confirmPassVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff, contentDescription = null, tint = TextSecondary)
+                            }
+                        },
+                        visualTransformation = if (confirmPassVisible) androidx.compose.ui.text.input.VisualTransformation.None else PasswordVisualTransformation(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF2196F3),
+                            unfocusedBorderColor = Color(0xFF90CAF9),
+                            focusedLabelColor = Color(0xFF2196F3),
+                            unfocusedLabelColor = TextSecondary,
+                            focusedTextColor = TextPrimary,
+                            unfocusedTextColor = TextPrimary,
+                            focusedContainerColor = Color.White,
+                            unfocusedContainerColor = Color.White
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // Submit Button
+                    Button(
+                        onClick = {
+                            viewModel.registerRole = "CASH_AGENT"
+                            viewModel.register()
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2196F3)),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .testTag("reg_agent_submit_btn"),
+                        enabled = !viewModel.isAuthLoading
+                    ) {
+                        if (viewModel.isAuthLoading) {
+                            CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                        } else {
+                            Icon(Icons.Default.VerifiedUser, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Register Cash Agent & Sync Live",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    fontSize = 14.sp
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(18.dp))
+                }
+            }
+
+            // Footer Link
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Already registered as an Agent? ", color = TextSecondary, fontSize = 13.sp)
+                Text(
+                    text = "Login",
+                    color = Color(0xFF2196F3),
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
                     modifier = Modifier.clickable { viewModel.navigateTo("LOGIN") }
@@ -3668,6 +3997,43 @@ fun DashboardContainer(viewModel: AppViewModel, content: @Composable (PaddingVal
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        // Live GPS Escort Tracking Pill Button (Admin or when enabled by Admin)
+                        if (currentUser?.role == "ADMIN" || viewModel.showLiveGpsBottomTab) {
+                            val isLiveGpsActive = (currentUser?.role == "ADMIN" && viewModel.selectedTab == 1) || viewModel.selectedTab == 5
+                            Surface(
+                                shape = RoundedCornerShape(20.dp),
+                                color = if (isLiveGpsActive) Color(0xFF00E676).copy(alpha = 0.25f) else Color(0xFFF0FDF4),
+                                border = BorderStroke(1.2.dp, Color(0xFF00E676)),
+                                modifier = Modifier.clickable {
+                                    if (currentUser?.role == "ADMIN") {
+                                        viewModel.selectedTab = 1
+                                    } else {
+                                        viewModel.selectedTab = 5
+                                    }
+                                    viewModel.navigateTo("DASHBOARD")
+                                }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 6.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(6.dp)
+                                            .background(Color(0xFF00E676), CircleShape)
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.LocationOn,
+                                        contentDescription = "Live GPS",
+                                        tint = Color(0xFF00C853),
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Text("Live GPS", color = Color(0xFF00C853), fontWeight = FontWeight.ExtraBold, fontSize = 11.sp)
+                                }
+                            }
+                        }
+
                         // Quick Wallet Balance Pill Button
                         val userBal = currentUser?.balance ?: 1500.0
                         Surface(
@@ -3725,6 +4091,25 @@ fun DashboardContainer(viewModel: AppViewModel, content: @Composable (PaddingVal
                                 }
                             }
                         }
+
+                        // Quick Sign Out / Logout icon button (Accessible on all 4 panels: User, Model, Cash Agent, Admin)
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFFFEF2F2),
+                            border = BorderStroke(1.dp, Color(0xFFFECACA)),
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clickable { viewModel.showSignOutConfirmDialog = true }
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Logout,
+                                    contentDescription = "Sign Out",
+                                    tint = Color(0xFFDC2626),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -3738,7 +4123,8 @@ fun DashboardContainer(viewModel: AppViewModel, content: @Composable (PaddingVal
                         Triple(4, "Escrow", Icons.Default.VerifiedUser),
                         Triple(5, "Collections", Icons.Default.Payments),
                         Triple(6, "Wallets", Icons.Default.AccountBalanceWallet),
-                        Triple(7, "Settings", Icons.Default.Settings)
+                        Triple(7, "Settings", Icons.Default.Settings),
+                        Triple(8, "API System", Icons.Default.Code)
                     )
                     Row(
                         modifier = Modifier
@@ -3786,6 +4172,33 @@ fun DashboardContainer(viewModel: AppViewModel, content: @Composable (PaddingVal
                                 }
                             }
                         }
+
+                        // Direct Admin Panel Sign Out Pill
+                        Surface(
+                            shape = RoundedCornerShape(18.dp),
+                            color = Color(0xFF450A0A),
+                            border = BorderStroke(1.dp, Color(0xFFEF4444)),
+                            modifier = Modifier.clickable { viewModel.showSignOutConfirmDialog = true }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Logout,
+                                    contentDescription = "Admin Logout",
+                                    tint = Color(0xFFF87171),
+                                    modifier = Modifier.size(13.dp)
+                                )
+                                Text(
+                                    text = "Logout",
+                                    color = Color(0xFFF87171),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
                     }
                     HorizontalDivider(color = PinkBorderSoft, thickness = 0.5.dp)
                 }
@@ -3805,7 +4218,7 @@ fun DashboardContainer(viewModel: AppViewModel, content: @Composable (PaddingVal
                         selected = viewModel.selectedTab == 0,
                         onClick = { viewModel.selectedTab = 0; viewModel.navigateTo("DASHBOARD") },
                         icon = { Icon(imageVector = Icons.Default.Dashboard, contentDescription = "Dashboard") },
-                        label = { Text("Dashboard", fontSize = 11.sp) },
+                        label = { Text("Dashboard", fontSize = 10.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = PinkHighlight,
                             selectedTextColor = PinkHighlight,
@@ -3815,11 +4228,38 @@ fun DashboardContainer(viewModel: AppViewModel, content: @Composable (PaddingVal
                         )
                     )
 
+                    // Live GPS Tab: Controlled by Admin from Backend. HIDDEN by default.
+                    if (viewModel.showLiveGpsBottomTab) {
+                        NavigationBarItem(
+                            selected = viewModel.selectedTab == 5,
+                            onClick = { viewModel.selectedTab = 5; viewModel.navigateTo("DASHBOARD") },
+                            icon = {
+                                Box {
+                                    Icon(imageVector = Icons.Default.LocationOn, contentDescription = "Live GPS")
+                                    Box(
+                                        modifier = Modifier
+                                            .size(6.dp)
+                                            .background(Color(0xFF00E676), CircleShape)
+                                            .align(Alignment.TopEnd)
+                                    )
+                                }
+                            },
+                            label = { Text("Live GPS", fontSize = 10.sp, fontWeight = if (viewModel.selectedTab == 5) FontWeight.Bold else FontWeight.Normal) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = Color(0xFF00E676),
+                                selectedTextColor = Color(0xFF00E676),
+                                unselectedIconColor = TextSecondary,
+                                unselectedTextColor = TextSecondary,
+                                indicatorColor = Color(0xFF00E676).copy(alpha = 0.15f)
+                            )
+                        )
+                    }
+
                     NavigationBarItem(
                         selected = viewModel.selectedTab == 1,
                         onClick = { viewModel.selectedTab = 1; viewModel.navigateTo("DASHBOARD") },
                         icon = { Icon(imageVector = Icons.Default.CalendarMonth, contentDescription = "Bookings") },
-                        label = { Text("Bookings", fontSize = 11.sp) },
+                        label = { Text("Bookings", fontSize = 10.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = PinkHighlight,
                             selectedTextColor = PinkHighlight,
@@ -3899,7 +4339,8 @@ fun DashboardContainer(viewModel: AppViewModel, content: @Composable (PaddingVal
                         Triple(4, "Escrow", Icons.Default.VerifiedUser),
                         Triple(5, "Cash", Icons.Default.Payments),
                         Triple(6, "Wallets", Icons.Default.AccountBalanceWallet),
-                        Triple(7, "Settings", Icons.Default.Settings)
+                        Triple(7, "Settings", Icons.Default.Settings),
+                        Triple(8, "API System", Icons.Default.Code)
                     )
                     adminBottomTabs.forEach { (idx, label, icon) ->
                         NavigationBarItem(
@@ -4001,7 +4442,7 @@ fun DashboardContainer(viewModel: AppViewModel, content: @Composable (PaddingVal
                         selected = viewModel.selectedTab == 0,
                         onClick = { viewModel.selectedTab = 0; viewModel.navigateTo("DASHBOARD") },
                         icon = { Icon(imageVector = Icons.Default.Home, contentDescription = "Home") },
-                        label = { Text("Home", fontSize = 11.sp) },
+                        label = { Text("Home", fontSize = 10.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = PinkHighlight,
                             selectedTextColor = PinkHighlight,
@@ -4011,11 +4452,38 @@ fun DashboardContainer(viewModel: AppViewModel, content: @Composable (PaddingVal
                         )
                     )
 
+                    // Live GPS Tab: Controlled by Admin from Backend. HIDDEN by default.
+                    if (viewModel.showLiveGpsBottomTab) {
+                        NavigationBarItem(
+                            selected = viewModel.selectedTab == 5,
+                            onClick = { viewModel.selectedTab = 5; viewModel.navigateTo("DASHBOARD") },
+                            icon = {
+                                Box {
+                                    Icon(imageVector = Icons.Default.LocationOn, contentDescription = "Live GPS")
+                                    Box(
+                                        modifier = Modifier
+                                            .size(6.dp)
+                                            .background(Color(0xFF00E676), CircleShape)
+                                            .align(Alignment.TopEnd)
+                                    )
+                                }
+                            },
+                            label = { Text("Live GPS", fontSize = 10.sp, fontWeight = if (viewModel.selectedTab == 5) FontWeight.Bold else FontWeight.Normal) },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = Color(0xFF00E676),
+                                selectedTextColor = Color(0xFF00E676),
+                                unselectedIconColor = TextSecondary,
+                                unselectedTextColor = TextSecondary,
+                                indicatorColor = Color(0xFF00E676).copy(alpha = 0.15f)
+                            )
+                        )
+                    }
+
                     NavigationBarItem(
                         selected = viewModel.selectedTab == 1,
                         onClick = { viewModel.selectedTab = 1; viewModel.navigateTo("DASHBOARD") },
                         icon = { Icon(imageVector = Icons.Default.Search, contentDescription = "Search") },
-                        label = { Text("Search", fontSize = 11.sp) },
+                        label = { Text("Search", fontSize = 10.sp) },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = PinkHighlight,
                             selectedTextColor = PinkHighlight,

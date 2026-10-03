@@ -12,106 +12,137 @@ require_once __DIR__ . '/layout.php';
 checkAdminAuth();
 $db = Database::getInstance();
 
-// Ensure users table exists with all required fields
-$db->exec("
-CREATE TABLE IF NOT EXISTS users (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    uid TEXT UNIQUE,
-    name TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    phone TEXT,
-    password TEXT,
-    country TEXT DEFAULT 'Bangladesh',
-    city TEXT DEFAULT 'Dhaka',
-    role TEXT DEFAULT 'USER',
-    avatar_url TEXT,
-    wallet_balance REAL DEFAULT 0.0,
-    currency TEXT DEFAULT 'BDT (৳)',
-    kyc_status TEXT DEFAULT 'NONE',
-    is_verified INTEGER DEFAULT 1,
-    status TEXT DEFAULT 'ACTIVE',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-)
-");
+// Ensure users table exists with all required fields (Driver-aware and exception-safe)
+try {
+    if (Database::isMySQL()) {
+        $db->exec("
+        CREATE TABLE IF NOT EXISTS `users` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `uid` VARCHAR(64) UNIQUE,
+            `name` VARCHAR(100) NOT NULL,
+            `email` VARCHAR(150) UNIQUE NOT NULL,
+            `phone` VARCHAR(30) NULL,
+            `password` VARCHAR(255) DEFAULT '',
+            `country` VARCHAR(50) DEFAULT 'Bangladesh',
+            `city` VARCHAR(100) DEFAULT 'Dhaka',
+            `role` VARCHAR(20) DEFAULT 'USER',
+            `avatar_url` VARCHAR(255) DEFAULT NULL,
+            `wallet_balance` DECIMAL(12,2) DEFAULT 0.00,
+            `currency` VARCHAR(20) DEFAULT 'BDT (৳)',
+            `kyc_status` VARCHAR(20) DEFAULT 'NONE',
+            `is_verified` TINYINT(1) DEFAULT 1,
+            `status` VARCHAR(20) DEFAULT 'ACTIVE',
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+        ");
+    } else {
+        $db->exec("
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            uid TEXT UNIQUE,
+            name TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            phone TEXT,
+            password TEXT,
+            country TEXT DEFAULT 'Bangladesh',
+            city TEXT DEFAULT 'Dhaka',
+            role TEXT DEFAULT 'USER',
+            avatar_url TEXT,
+            wallet_balance REAL DEFAULT 0.0,
+            currency TEXT DEFAULT 'BDT (৳)',
+            kyc_status TEXT DEFAULT 'NONE',
+            is_verified INTEGER DEFAULT 1,
+            status TEXT DEFAULT 'ACTIVE',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+        ");
+    }
+} catch (Throwable $e) {
+    error_log("Users table check notice: " . $e->getMessage());
+}
 
 // Pre-seed default users if empty
-$userCount = (int)$db->query("SELECT COUNT(*) FROM users")->fetchColumn();
-if ($userCount === 0) {
-    $seedUsers = [
-        [
-            'uid' => 'usr_1012',
-            'name' => 'Rahim Uddin',
-            'email' => 'rahim.uddin@gmail.com',
-            'phone' => '+880 1711 223344',
-            'password' => password_hash('user123', PASSWORD_BCRYPT),
-            'country' => 'Bangladesh',
-            'city' => 'Dhaka',
-            'role' => 'USER',
-            'avatar_url' => 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&fit=crop&crop=faces',
-            'wallet_balance' => 12500.00,
-            'currency' => 'BDT (৳)',
-            'kyc_status' => 'VERIFIED',
-            'is_verified' => 1,
-            'status' => 'ACTIVE'
-        ],
-        [
-            'uid' => 'usr_1013',
-            'name' => 'Karim Khan',
-            'email' => 'karim.khan@gmail.com',
-            'phone' => '+880 1822 334455',
-            'password' => password_hash('user123', PASSWORD_BCRYPT),
-            'country' => 'Bangladesh',
-            'city' => 'Chittagong',
-            'role' => 'USER',
-            'avatar_url' => 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&h=120&fit=crop&crop=faces',
-            'wallet_balance' => 2000.00,
-            'currency' => 'BDT (৳)',
-            'kyc_status' => 'SUBMITTED',
-            'is_verified' => 0,
-            'status' => 'BLOCKED'
-        ],
-        [
-            'uid' => 'usr_1014',
-            'name' => 'Faisal Al-Mansoor',
-            'email' => 'faisal.mansoor@uaenet.ae',
-            'phone' => '+971 55 987 6543',
-            'password' => password_hash('user123', PASSWORD_BCRYPT),
-            'country' => 'UAE',
-            'city' => 'Dubai',
-            'role' => 'VIP',
-            'avatar_url' => 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=120&h=120&fit=crop&crop=faces',
-            'wallet_balance' => 8400.00,
-            'currency' => 'AED (د.إ)',
-            'kyc_status' => 'VERIFIED',
-            'is_verified' => 1,
-            'status' => 'ACTIVE'
-        ],
-        [
-            'uid' => 'usr_1015',
-            'name' => 'Tan Wei Ming',
-            'email' => 'tan.weiming@klmail.my',
-            'phone' => '+60 19 888 7766',
-            'password' => password_hash('user123', PASSWORD_BCRYPT),
-            'country' => 'Malaysia',
-            'city' => 'Kuala Lumpur',
-            'role' => 'USER',
-            'avatar_url' => 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&h=120&fit=crop&crop=faces',
-            'wallet_balance' => 3500.00,
-            'currency' => 'MYR (RM)',
-            'kyc_status' => 'VERIFIED',
-            'is_verified' => 1,
-            'status' => 'ACTIVE'
-        ]
-    ];
+try {
+    $userCount = (int)$db->query("SELECT COUNT(*) FROM users")->fetchColumn();
+    if ($userCount === 0) {
+        $seedUsers = [
+            [
+                'uid' => 'usr_1012',
+                'name' => 'Rahim Uddin',
+                'email' => 'rahim.uddin@gmail.com',
+                'phone' => '+880 1711 223344',
+                'password' => password_hash('user123', PASSWORD_BCRYPT),
+                'country' => 'Bangladesh',
+                'city' => 'Dhaka',
+                'role' => 'USER',
+                'avatar_url' => 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&h=120&fit=crop&crop=faces',
+                'wallet_balance' => 12500.00,
+                'currency' => 'BDT (৳)',
+                'kyc_status' => 'VERIFIED',
+                'is_verified' => 1,
+                'status' => 'ACTIVE'
+            ],
+            [
+                'uid' => 'usr_1013',
+                'name' => 'Karim Khan',
+                'email' => 'karim.khan@gmail.com',
+                'phone' => '+880 1822 334455',
+                'password' => password_hash('user123', PASSWORD_BCRYPT),
+                'country' => 'Bangladesh',
+                'city' => 'Chittagong',
+                'role' => 'USER',
+                'avatar_url' => 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&h=120&fit=crop&crop=faces',
+                'wallet_balance' => 2000.00,
+                'currency' => 'BDT (৳)',
+                'kyc_status' => 'SUBMITTED',
+                'is_verified' => 0,
+                'status' => 'BLOCKED'
+            ],
+            [
+                'uid' => 'usr_1014',
+                'name' => 'Faisal Al-Mansoor',
+                'email' => 'faisal.mansoor@uaenet.ae',
+                'phone' => '+971 55 987 6543',
+                'password' => password_hash('user123', PASSWORD_BCRYPT),
+                'country' => 'UAE',
+                'city' => 'Dubai',
+                'role' => 'VIP',
+                'avatar_url' => 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=120&h=120&fit=crop&crop=faces',
+                'wallet_balance' => 8400.00,
+                'currency' => 'AED (د.إ)',
+                'kyc_status' => 'VERIFIED',
+                'is_verified' => 1,
+                'status' => 'ACTIVE'
+            ],
+            [
+                'uid' => 'usr_1015',
+                'name' => 'Tan Wei Ming',
+                'email' => 'tan.weiming@klmail.my',
+                'phone' => '+60 19 888 7766',
+                'password' => password_hash('user123', PASSWORD_BCRYPT),
+                'country' => 'Malaysia',
+                'city' => 'Kuala Lumpur',
+                'role' => 'USER',
+                'avatar_url' => 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&h=120&fit=crop&crop=faces',
+                'wallet_balance' => 3500.00,
+                'currency' => 'MYR (RM)',
+                'kyc_status' => 'VERIFIED',
+                'is_verified' => 1,
+                'status' => 'ACTIVE'
+            ]
+        ];
 
-    $insUser = $db->prepare("INSERT INTO users (uid, name, email, phone, password, country, city, role, avatar_url, wallet_balance, currency, kyc_status, is_verified, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
-    foreach ($seedUsers as $u) {
-        $insUser->execute([
-            $u['uid'], $u['name'], $u['email'], $u['phone'], $u['password'],
-            $u['country'], $u['city'], $u['role'], $u['avatar_url'],
-            $u['wallet_balance'], $u['currency'], $u['kyc_status'], $u['is_verified'], $u['status']
-        ]);
+        $insUser = $db->prepare("INSERT INTO users (uid, name, email, phone, password, country, city, role, avatar_url, wallet_balance, currency, kyc_status, is_verified, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+        foreach ($seedUsers as $u) {
+            $insUser->execute([
+                $u['uid'], $u['name'], $u['email'], $u['phone'], $u['password'],
+                $u['country'], $u['city'], $u['role'], $u['avatar_url'],
+                $u['wallet_balance'], $u['currency'], $u['kyc_status'], $u['is_verified'], $u['status']
+            ]);
+        }
     }
+} catch (Throwable $e) {
+    error_log("Users seeding notice: " . $e->getMessage());
 }
 
 $msg = '';

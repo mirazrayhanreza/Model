@@ -51,6 +51,30 @@ renderAdminHeader('Dashboard Overview', 'dashboard');
     </div>
 </div>
 
+<!-- Live GPS Escort Tracking Hero Banner -->
+<div class="card border-0 shadow-sm rounded-4 p-3 mb-4 text-white" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); border-left: 5px solid #00E676 !important;">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="p-3 rounded-circle" style="background: rgba(0, 230, 118, 0.15); border: 1.5px solid rgba(0, 230, 118, 0.4);">
+                <i class="bi bi-geo-alt-fill text-success fs-4"></i>
+            </div>
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <h5 class="fw-bold mb-0 text-white">Live GPS Location Tracking & Safety Escort</h5>
+                    <span class="badge bg-success d-inline-flex align-items-center gap-1 px-2 py-1"><i class="bi bi-broadcast"></i> 4 LIVE SESSIONS</span>
+                </div>
+                <p class="text-white-50 mb-0 small">Real-time user-to-model location telemetry, speed, battery, distance & emergency SOS safety radar.</p>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="live_gps.php" class="btn btn-success fw-bold px-4 py-2 rounded-3 shadow-sm d-flex align-items-center gap-2">
+                <i class="bi bi-crosshair2"></i>
+                <span>Open Live GPS Tracker</span>
+            </a>
+        </div>
+    </div>
+</div>
+
 <!-- Row 1: 8 KPI Summary Cards (2 rows of 4 cards on desktop) -->
 <div class="row g-3 mb-4">
     <!-- Card 1: Total Users -->

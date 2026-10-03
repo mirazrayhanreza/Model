@@ -24,7 +24,8 @@ $currentSettings = [
     'p2p_timeout_minutes' => 15,
     'currency_default' => 'BDT (৳)',
     'maintenance_mode' => false,
-    'app_name' => 'Modol Connect'
+    'app_name' => 'Modol Connect',
+    'show_live_gps_tab' => false
 ];
 
 if (file_exists($settingsFile)) {
@@ -42,6 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $currentSettings['p2p_timeout_minutes'] = (int)($_POST['p2p_timeout_minutes'] ?? 15);
     $currentSettings['app_name'] = trim((string)($_POST['app_name'] ?? 'Modol Connect'));
     $currentSettings['maintenance_mode'] = isset($_POST['maintenance_mode']);
+    $currentSettings['show_live_gps_tab'] = isset($_POST['show_live_gps_tab']);
 
     file_put_contents($settingsFile, json_encode($currentSettings, JSON_PRETTY_PRINT));
     $msg = 'Platform parameters updated successfully!';
@@ -97,6 +99,17 @@ renderAdminHeader('Settings', 'settings');
                             <input class="form-check-input" type="checkbox" name="maintenance_mode" id="maintSwitch" <?= $currentSettings['maintenance_mode'] ? 'checked' : '' ?>>
                             <label class="form-check-label fw-semibold text-dark" for="maintSwitch">Enable System Maintenance Mode</label>
                             <small class="d-block text-muted">Temporarily restricts user app logins while maintenance is underway.</small>
+                        </div>
+                    </div>
+                    <div class="col-12 mt-3 p-3 rounded-3 border bg-light">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="show_live_gps_tab" id="gpsTabSwitch" <?= !empty($currentSettings['show_live_gps_tab']) ? 'checked' : '' ?>>
+                            <label class="form-check-label fw-bold text-dark" for="gpsTabSwitch">
+                                <i class="bi bi-geo-alt-fill text-danger me-1"></i> Show Live GPS Tab in Mobile App Bottom Navigation
+                            </label>
+                            <small class="d-block text-secondary mt-1">
+                                <strong>Default: HIDE.</strong> When toggled OFF, the "Live GPS" tab is completely HIDDEN from Client and Model bottom navigation bars in the Android app. Toggle ON when you want users to see and access the Live GPS tab directly from the bottom bar.
+                            </small>
                         </div>
                     </div>
                 </div>

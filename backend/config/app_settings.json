@@ -1,0 +1,11 @@
+{
+    "platform_fee_percent": 15.0,
+    "agent_commission_percent": 5.0,
+    "min_deposit": 500.0,
+    "min_withdrawal": 1000.0,
+    "p2p_timeout_minutes": 15,
+    "currency_default": "BDT (৳)",
+    "maintenance_mode": false,
+    "app_name": "Modol Connect",
+    "show_live_gps_tab": false
+}

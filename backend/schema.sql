@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS `admins` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2. Cash Agents Table
+-- 2. Cash Agents Table (Binance-Style B2B P2P Agent Profile)
 CREATE TABLE IF NOT EXISTS `cash_agents` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `agent_code` VARCHAR(50) UNIQUE NOT NULL,
@@ -23,17 +23,54 @@ CREATE TABLE IF NOT EXISTS `cash_agents` (
     `password` VARCHAR(255) NOT NULL,
     `country` VARCHAR(50) DEFAULT 'Bangladesh',
     `city` VARCHAR(100) DEFAULT 'Dhaka',
+    `currency` VARCHAR(10) DEFAULT 'BDT',
+    `buy_rate` DECIMAL(12,4) DEFAULT 122.5000,
+    `sell_rate` DECIMAL(12,4) DEFAULT 120.8000,
+    `min_limit` DECIMAL(12,2) DEFAULT 500.00,
+    `max_limit` DECIMAL(12,2) DEFAULT 500000.00,
     `daily_limit` DECIMAL(12,2) DEFAULT 500000.00,
-    `payment_methods` VARCHAR(255) DEFAULT 'bKash, Nagad, Bank Transfer',
+    `payment_methods` VARCHAR(255) DEFAULT 'bKash, Nagad, Rocket, Upay, Bank Transfer, Cash',
     `commission_rate` DECIMAL(5,2) DEFAULT 5.00,
     `wallet_balance` DECIMAL(12,2) DEFAULT 0.00,
-    `orders_count` INT DEFAULT 0,
-    `rating` DECIMAL(3,2) DEFAULT 5.00,
+    `available_balance` DECIMAL(12,2) DEFAULT 50000.00,
+    `orders_count` INT DEFAULT 1250,
+    `total_orders` INT DEFAULT 1250,
+    `completion_rate` VARCHAR(20) DEFAULT '99.4%',
+    `avg_release_time` VARCHAR(20) DEFAULT '2.4 min',
+    `rating` DECIMAL(3,2) DEFAULT 4.95,
+    `is_online` TINYINT(1) DEFAULT 1,
+    `is_verified` TINYINT(1) DEFAULT 1,
     `status` ENUM('ACTIVE', 'SUSPENDED') DEFAULT 'ACTIVE',
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2.1 Countries and Currencies Table
+-- 2.1 Countries Table (Binance-Style Dynamic Multi-Country Architecture)
+CREATE TABLE IF NOT EXISTS `countries` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `country_name` VARCHAR(100) NOT NULL,
+    `iso_code` VARCHAR(10) NOT NULL,
+    `phone_code` VARCHAR(15) NOT NULL,
+    `currency_code` VARCHAR(10) NOT NULL,
+    `flag` VARCHAR(20) DEFAULT '🌐',
+    `status` ENUM('Active', 'Inactive') DEFAULT 'Active',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2.2 Payment Methods Table (Dynamic Country-linked Payment Methods)
+CREATE TABLE IF NOT EXISTS `payment_methods` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `country_id` INT NOT NULL,
+    `method_name` VARCHAR(100) NOT NULL,
+    `method_type` ENUM('Mobile Wallet', 'Bank Transfer', 'Instant Bank', 'Cash', 'Card', 'E-Wallet', 'Crypto/USDT', 'Other') DEFAULT 'Mobile Wallet',
+    `logo` VARCHAR(255) DEFAULT '',
+    `min_amount` DECIMAL(12,2) DEFAULT 100.00,
+    `max_amount` DECIMAL(12,2) DEFAULT 500000.00,
+    `status` ENUM('Active', 'Inactive') DEFAULT 'Active',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (`country_id`) REFERENCES `countries`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 2.3 Countries and Currencies Legacy Table
 CREATE TABLE IF NOT EXISTS `countries_currencies` (
     `id` INT AUTO_INCREMENT PRIMARY KEY,
     `country_code` VARCHAR(10) NOT NULL,
@@ -199,7 +236,81 @@ CREATE TABLE IF NOT EXISTS `notifications` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 10. Default Seed Data
+-- 10. GPS Live Escort & Tracking Table
+CREATE TABLE IF NOT EXISTS `gps_escort_sessions` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `session_code` VARCHAR(50) UNIQUE NOT NULL,
+    `booking_id` VARCHAR(50) NOT NULL,
+    `model_id` INT DEFAULT NULL,
+    `user_id` INT DEFAULT NULL,
+    `model_lat` DECIMAL(10, 7) NOT NULL DEFAULT 23.7745000,
+    `model_lng` DECIMAL(10, 7) NOT NULL DEFAULT 90.4120000,
+    `user_lat` DECIMAL(10, 7) NOT NULL DEFAULT 23.7937000,
+    `user_lng` DECIMAL(10, 7) NOT NULL DEFAULT 90.4066000,
+    `distance_km` DECIMAL(6, 2) DEFAULT 2.40,
+    `eta_minutes` INT DEFAULT 7,
+    `speed_kmh` INT DEFAULT 28,
+    `model_battery` INT DEFAULT 86,
+    `user_battery` INT DEFAULT 92,
+    `status` ENUM('EN_ROUTE', 'IN_TRANSIT', 'ARRIVED', 'COMPLETED', 'SOS_ALERT') DEFAULT 'EN_ROUTE',
+    `transport_mode` VARCHAR(100) DEFAULT 'Car (Escort)',
+    `sos_active` TINYINT(1) DEFAULT 0,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `gps_escort_sessions` (`session_code`, `booking_id`, `model_lat`, `model_lng`, `user_lat`, `user_lng`, `distance_km`, `eta_minutes`, `speed_kmh`, `status`) VALUES
+('TRK-84920', 'BK-1024', 23.7745000, 90.4120000, 23.7937000, 90.4066000, 2.40, 7, 28, 'EN_ROUTE'),
+('TRK-77190', 'BK-2058', 23.8681000, 90.3984000, 23.8164000, 90.4074000, 5.80, 14, 35, 'IN_TRANSIT')
+ON DUPLICATE KEY UPDATE `status` = VALUES(`status`);
+
+-- 10.1 Disputes Table
+CREATE TABLE IF NOT EXISTS `disputes` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `case_code` VARCHAR(50) UNIQUE NOT NULL,
+    `type` VARCHAR(100) NOT NULL,
+    `ref_code` VARCHAR(100) NOT NULL,
+    `user_name` VARCHAR(100) NOT NULL,
+    `agent_name` VARCHAR(100) NOT NULL,
+    `amount` VARCHAR(50) NOT NULL,
+    `status` VARCHAR(50) DEFAULT 'Open',
+    `timer` VARCHAR(50) DEFAULT 'Active 2h',
+    `user_statement` TEXT NULL,
+    `agent_statement` TEXT NULL,
+    `proof_img` VARCHAR(255) NULL,
+    `chat_logs` TEXT NULL,
+    `device_ip` VARCHAR(255) NULL,
+    `wallet_log` VARCHAR(255) NULL,
+    `resolution_notes` TEXT NULL,
+    `resolved_at` DATETIME NULL,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 10.2 Payment Gateways Table (Google Pay, Alipay, Apple Pay & Custom Configs)
+CREATE TABLE IF NOT EXISTS `payment_gateways` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `gateway_id` VARCHAR(50) UNIQUE NOT NULL,
+    `name` VARCHAR(100) NOT NULL,
+    `type` VARCHAR(50) DEFAULT 'GLOBAL',
+    `environment` VARCHAR(20) DEFAULT 'SANDBOX',
+    `merchant_id` VARCHAR(255) NULL,
+    `merchant_name` VARCHAR(100) NULL,
+    `api_key` VARCHAR(255) NULL,
+    `secret_key` TEXT NULL,
+    `public_key` TEXT NULL,
+    `webhook_secret` VARCHAR(255) NULL,
+    `currency` VARCHAR(10) DEFAULT 'BDT',
+    `min_amount` DECIMAL(12,2) DEFAULT 100.00,
+    `max_amount` DECIMAL(12,2) DEFAULT 1000000.00,
+    `fee_percent` DECIMAL(5,2) DEFAULT 1.50,
+    `is_enabled` TINYINT(1) DEFAULT 1,
+    `supported_cards` VARCHAR(255) DEFAULT 'VISA, MASTERCARD, AMEX',
+    `instructions` TEXT NULL,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 11. Default Seed Data
 INSERT INTO `admins` (`id`, `name`, `email`, `password`, `role`) VALUES
 (1, 'System Admin (Miraz Reza)', 'hmmirazreza2@gmail.com', 'Miraz@647291', 'SUPER_ADMIN'),
 (2, 'System Admin', 'admin@modolconnect.com', 'admin123', 'SUPER_ADMIN')

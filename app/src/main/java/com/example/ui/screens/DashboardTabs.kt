@@ -1,5 +1,9 @@
 package com.example.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.net.Uri
+import androidx.core.content.ContextCompat
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -2064,11 +2068,22 @@ fun ProfileTab(viewModel: AppViewModel) {
                                         .clip(CircleShape)
                                         .border(2.dp, Color.White, CircleShape)
                                 ) {
+                                    val safeAvatar = if (userAvatar.startsWith("/") && !userAvatar.startsWith("file://")) "file://$userAvatar" else userAvatar
                                     SubcomposeAsyncImage(
-                                        model = userAvatar,
+                                        model = safeAvatar,
                                         contentDescription = "Profile Photo",
                                         modifier = Modifier.fillMaxSize(),
-                                        contentScale = ContentScale.Crop
+                                        contentScale = ContentScale.Crop,
+                                        loading = {
+                                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp, color = PinkHighlight)
+                                            }
+                                        },
+                                        error = {
+                                            Box(modifier = Modifier.fillMaxSize().background(PinkLight), contentAlignment = Alignment.Center) {
+                                                Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(34.dp))
+                                            }
+                                        }
                                     )
                                 }
 
@@ -2177,11 +2192,13 @@ fun ProfileTab(viewModel: AppViewModel) {
 
                                 Spacer(modifier = Modifier.height(4.dp))
 
+                                val userCurrency = currentUser?.currency ?: "BDT"
+                                val currSymbol = CountryPaymentMaster.getCurrencySymbol(userCurrency)
                                 Text(
-                                    text = "৳${(currentUser?.balance ?: 0.0).toInt()}",
+                                    text = "$currSymbol${(currentUser?.balance ?: 0.0).toInt()} $userCurrency",
                                     color = Color.White,
                                     fontWeight = FontWeight.Black,
-                                    fontSize = 18.sp
+                                    fontSize = 17.sp
                                 )
 
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -3072,7 +3089,7 @@ fun ProfileTab(viewModel: AppViewModel) {
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text("App Settings", color = textDark, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                    Text("Language, Notifications & Security", color = textSub, fontSize = 11.sp)
+                                    Text("Language, Notifications & Preferences", color = textSub, fontSize = 11.sp)
                                 }
                                 Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = textSub, modifier = Modifier.size(18.dp))
                             }
@@ -3082,7 +3099,62 @@ fun ProfileTab(viewModel: AppViewModel) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { viewModel.logout() }
+                                    .clickable { viewModel.showChangePasswordDialog = true }
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .background(Color(0xFFFF2A6D).copy(alpha = 0.12f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(imageVector = Icons.Default.LockReset, contentDescription = null, tint = Color(0xFFFF2A6D), modifier = Modifier.size(18.dp))
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text("Change Password (পাসওয়ার্ড পরিবর্তন)", color = textDark, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Text("Update login credentials & safeguard account", color = textSub, fontSize = 11.sp)
+                                }
+                                Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = textSub, modifier = Modifier.size(18.dp))
+                            }
+
+                            HorizontalDivider(color = PinkBorderLight, thickness = 0.8.dp)
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { viewModel.showAllLogoutConfirmDialog = true }
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .background(Color(0xFFDC2626).copy(alpha = 0.12f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(imageVector = Icons.Default.Devices, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(18.dp))
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                        Text("Log Out All Devices (সকল ডিভাইস লগআউট)", color = Color(0xFFDC2626), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                        Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFFEF2F2)) {
+                                            Text("${viewModel.activeSessionsList.size} Sessions", color = Color(0xFFDC2626), fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                        }
+                                    }
+                                    Text("Terminate active sessions on other phones & PCs", color = textSub, fontSize = 11.sp)
+                                }
+                                Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = textSub, modifier = Modifier.size(18.dp))
+                            }
+
+                            HorizontalDivider(color = PinkBorderLight, thickness = 0.8.dp)
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { viewModel.showSignOutConfirmDialog = true }
                                     .padding(12.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -3090,7 +3162,7 @@ fun ProfileTab(viewModel: AppViewModel) {
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text("Sign Out", color = redDanger, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                    Text("Safely log out of your account", color = textSub, fontSize = 11.sp)
+                                    Text("Safely log out of this device", color = textSub, fontSize = 11.sp)
                                 }
                                 Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = textSub, modifier = Modifier.size(18.dp))
                             }
@@ -3669,33 +3741,55 @@ fun ModelDashboardTab(viewModel: AppViewModel) {
                             }
                         }
 
-                        // Notification Bell with Badge 5
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .background(Color.White.copy(alpha = 0.15f), CircleShape)
-                                .clickable { viewModel.navigateTo("NOTIFICATIONS") },
-                            contentAlignment = Alignment.Center
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Notifications,
-                                contentDescription = "Notifications",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
+                            // Notification Bell with Badge 5
                             Box(
                                 modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .offset(x = 2.dp, y = (-2).dp)
-                                    .size(16.dp)
-                                    .background(Color(0xFFEF4444), CircleShape),
+                                    .size(40.dp)
+                                    .background(Color.White.copy(alpha = 0.15f), CircleShape)
+                                    .clickable { viewModel.navigateTo("NOTIFICATIONS") },
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = "5",
-                                    color = Color.White,
-                                    fontSize = 9.sp,
-                                    fontWeight = FontWeight.Bold
+                                Icon(
+                                    imageVector = Icons.Default.Notifications,
+                                    contentDescription = "Notifications",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .offset(x = 2.dp, y = (-2).dp)
+                                        .size(16.dp)
+                                        .background(Color(0xFFEF4444), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "5",
+                                        color = Color.White,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+
+                            // Quick Model Sign Out Button
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(Color(0xFFDC2626).copy(alpha = 0.25f), CircleShape)
+                                    .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.5f), CircleShape)
+                                    .clickable { viewModel.showSignOutConfirmDialog = true },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Logout,
+                                    contentDescription = "Sign Out",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
                                 )
                             }
                         }
@@ -5339,10 +5433,12 @@ fun OldModelWalletTab(viewModel: AppViewModel) {
                     modifier = Modifier.padding(20.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text("Available Wallet Balance", color = TextSecondary, fontSize = 13.sp)
+                    val userCurrency = currentUser?.currency ?: "BDT"
+                    val currSymbol = CountryPaymentMaster.getCurrencySymbol(userCurrency)
+                    Text("Available Wallet Balance ($userCurrency)", color = TextSecondary, fontSize = 13.sp)
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        "৳${currentUser?.balance?.toInt() ?: 0}",
+                        "$currSymbol${currentUser?.balance?.toInt() ?: 0} $userCurrency",
                         color = Color.White,
                         style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Black)
                     )
@@ -5369,10 +5465,12 @@ fun OldModelWalletTab(viewModel: AppViewModel) {
                     Text("Request Income Withdrawal", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     Spacer(modifier = Modifier.height(12.dp))
 
+                    val userCurrency = currentUser?.currency ?: "BDT"
+                    val currSymbol = CountryPaymentMaster.getCurrencySymbol(userCurrency)
                     OutlinedTextField(
                         value = viewModel.withdrawAmount,
                         onValueChange = { viewModel.withdrawAmount = it },
-                        label = { Text("Withdraw Amount (৳)", color = TextSecondary) },
+                        label = { Text("Withdraw Amount ($currSymbol $userCurrency)", color = TextSecondary) },
                         placeholder = { Text("E.g. 2000", color = Color.Gray) },
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedTextColor = Color.White,
@@ -5566,13 +5664,47 @@ fun ModelProfileTab(viewModel: AppViewModel) {
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Box(
-                        modifier = Modifier
-                            .size(90.dp)
-                            .clip(CircleShape)
-                            .border(2.dp, PinkBorderSoft, CircleShape)
-                            .background(PinkHighlight.copy(alpha = 0.2f))
+                        contentAlignment = Alignment.BottomEnd,
+                        modifier = Modifier.clickable { viewModel.showPhotoUploadDialog = true }
                     ) {
-                        ModelImage(imageName = modelProfile.imageResName, contentDescription = "Avatar")
+                        Box(
+                            modifier = Modifier
+                                .size(90.dp)
+                                .clip(CircleShape)
+                                .border(2.5.dp, PinkHighlight, CircleShape)
+                                .background(PinkHighlight.copy(alpha = 0.15f))
+                        ) {
+                            val customAvatar = currentUser?.avatarUrl
+                            if (!customAvatar.isNullOrBlank()) {
+                                val safeAvatar = if (customAvatar.startsWith("/") && !customAvatar.startsWith("file://")) "file://$customAvatar" else customAvatar
+                                SubcomposeAsyncImage(
+                                    model = safeAvatar,
+                                    contentDescription = "Avatar",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop,
+                                    error = {
+                                        ModelImage(imageName = modelProfile.imageResName, contentDescription = "Avatar")
+                                    }
+                                )
+                            } else {
+                                ModelImage(imageName = modelProfile.imageResName, contentDescription = "Avatar")
+                            }
+                        }
+
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .background(PinkHighlight, CircleShape)
+                                .border(2.dp, Color.White, CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PhotoCamera,
+                                contentDescription = "Change Model Photo",
+                                tint = Color.White,
+                                modifier = Modifier.size(15.dp)
+                            )
+                        }
                     }
 
                     Spacer(modifier = Modifier.height(12.dp))
@@ -5979,9 +6111,29 @@ fun ModelProfileTab(viewModel: AppViewModel) {
 
                     ProfileOptionRow(
                         title = "App Settings",
-                        desc = "Language, Notifications & Security",
+                        desc = "Language, Notifications & Preferences",
                         icon = Icons.Default.Settings,
                         onClick = { viewModel.navigateTo("SETTINGS") }
+                    )
+
+                    HorizontalDivider(color = PinkBorderLight, thickness = 0.8.dp)
+
+                    ProfileOptionRow(
+                        title = "Change Password (পাসওয়ার্ড পরিবর্তন)",
+                        desc = "Update login credentials & safeguard account",
+                        icon = Icons.Default.LockReset,
+                        tint = Color(0xFFFF2A6D),
+                        onClick = { viewModel.showChangePasswordDialog = true }
+                    )
+
+                    HorizontalDivider(color = PinkBorderLight, thickness = 0.8.dp)
+
+                    ProfileOptionRow(
+                        title = "Log Out All Devices (সকল ডিভাইস লগআউট)",
+                        desc = "Terminate active sessions on other phones & PCs",
+                        icon = Icons.Default.Devices,
+                        tint = Color(0xFFDC2626),
+                        onClick = { viewModel.showAllLogoutConfirmDialog = true }
                     )
 
                     HorizontalDivider(color = PinkBorderLight, thickness = 0.8.dp)
@@ -5991,7 +6143,7 @@ fun ModelProfileTab(viewModel: AppViewModel) {
                         desc = "Safely log out of your current session",
                         icon = Icons.Default.Logout,
                         tint = Color.Red,
-                        onClick = { viewModel.logout() }
+                        onClick = { viewModel.showSignOutConfirmDialog = true }
                     )
                 }
             }
@@ -6017,13 +6169,12 @@ fun EditableItemText(label: String, value: String) {
 @Composable
 fun PhotoUploadChooserModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
     val context = LocalContext.current
-    val PinkHighlight = PinkBorderSoft
     val coroutineScope = rememberCoroutineScope()
     var isUploading by remember { mutableStateOf(false) }
     var uploadStatusMessage by remember { mutableStateOf("Preparing photo...") }
     var uploadProgress by remember { mutableFloatStateOf(0f) }
 
-    fun saveUploadedPhoto(bitmap: Bitmap?, uri: android.net.Uri?): Pair<String, Long> {
+    fun saveUploadedPhoto(bitmap: Bitmap?, uri: Uri?): Pair<String, Long> {
         val uploadsDir = File(context.filesDir, "uploads/profile").apply { if (!exists()) mkdirs() }
         val filename = "profile_${System.currentTimeMillis()}.jpg"
         val destFile = File(uploadsDir, filename)
@@ -6042,7 +6193,8 @@ fun PhotoUploadChooserModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        return Pair(destFile.absolutePath, if (destFile.exists()) destFile.length() else 245000L)
+        val fileUriString = "file://${destFile.absolutePath}"
+        return Pair(fileUriString, if (destFile.exists()) destFile.length() else 245000L)
     }
 
     // Camera launcher
@@ -6054,31 +6206,71 @@ fun PhotoUploadChooserModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                 isUploading = true
                 uploadStatusMessage = "Capturing photo from camera..."
                 uploadProgress = 0.25f
-                delay(300)
+                delay(250)
 
-                uploadStatusMessage = "Compressing JPEG & storing in backend directory (/uploads/profile/)..."
+                uploadStatusMessage = "Compressing JPEG & storing in backend directory..."
                 uploadProgress = 0.55f
                 val (savedPath, size) = saveUploadedPhoto(bitmap, null)
-                delay(350)
-
-                uploadStatusMessage = "Posting to Backend API: POST /backend/api/upload/profile-photo.php..."
-                uploadProgress = 0.85f
-                delay(400)
+                delay(300)
 
                 uploadStatusMessage = "Syncing with Room Database & Admin Panel..."
                 uploadProgress = 1.0f
-                delay(250)
+                delay(200)
 
-                val filename = File(savedPath).name
+                val filename = File(savedPath.removePrefix("file://")).name
                 viewModel.uploadPhotoToBackend(savedPath, filename, size, "PROFILE_AVATAR")
                 isUploading = false
-                Toast.makeText(context, "Photo uploaded & synced with Backend! ✓", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Photo uploaded & synced successfully! ✓", Toast.LENGTH_SHORT).show()
                 onDismiss()
             }
         }
     }
 
-    // Gallery picker launcher (Zero-permission Android Photo Picker)
+    // Camera permission request launcher
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            try {
+                cameraLauncher.launch()
+            } catch (e: Exception) {
+                Toast.makeText(context, "Could not launch camera: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            Toast.makeText(context, "Camera permission is required to capture photos.", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    // Fallback gallery picker (ACTION_GET_CONTENT)
+    val fallbackGalleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            coroutineScope.launch {
+                isUploading = true
+                uploadStatusMessage = "Reading photo from gallery..."
+                uploadProgress = 0.25f
+                delay(250)
+
+                uploadStatusMessage = "Optimizing & saving to storage..."
+                uploadProgress = 0.60f
+                val (savedPath, size) = saveUploadedPhoto(null, uri)
+                delay(300)
+
+                uploadStatusMessage = "Updating profile avatar in database..."
+                uploadProgress = 1.0f
+                delay(200)
+
+                val filename = File(savedPath.removePrefix("file://")).name
+                viewModel.uploadPhotoToBackend(savedPath, filename, size, "PROFILE_AVATAR")
+                isUploading = false
+                Toast.makeText(context, "Photo uploaded & synced successfully! ✓", Toast.LENGTH_SHORT).show()
+                onDismiss()
+            }
+        }
+    }
+
+    // Primary gallery picker launcher (Zero-permission Android Photo Picker)
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri ->
@@ -6087,29 +6279,34 @@ fun PhotoUploadChooserModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                 isUploading = true
                 uploadStatusMessage = "Reading photo from device storage..."
                 uploadProgress = 0.20f
-                delay(300)
-
-                uploadStatusMessage = "Compressing & storing in backend directory (/uploads/profile/)..."
-                uploadProgress = 0.50f
-                val (savedPath, size) = saveUploadedPhoto(null, uri)
-                delay(350)
-
-                uploadStatusMessage = "Posting to Backend API: POST /backend/api/upload/profile-photo.php..."
-                uploadProgress = 0.80f
-                delay(400)
-
-                uploadStatusMessage = "Writing to MySQL Database & refreshing user profile..."
-                uploadProgress = 1.0f
                 delay(250)
 
-                val filename = File(savedPath).name
+                uploadStatusMessage = "Compressing & storing in profile directory..."
+                uploadProgress = 0.55f
+                val (savedPath, size) = saveUploadedPhoto(null, uri)
+                delay(300)
+
+                uploadStatusMessage = "Updating profile avatar in database..."
+                uploadProgress = 1.0f
+                delay(200)
+
+                val filename = File(savedPath.removePrefix("file://")).name
                 viewModel.uploadPhotoToBackend(savedPath, filename, size, "PROFILE_AVATAR")
                 isUploading = false
-                Toast.makeText(context, "Photo uploaded & synced with Backend! ✓", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, "Photo uploaded & synced successfully! ✓", Toast.LENGTH_SHORT).show()
                 onDismiss()
             }
         }
     }
+
+    val presetAvatars = listOf(
+        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=500&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=500&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=500&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=500&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=500&auto=format&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=500&auto=format&fit=crop&q=80"
+    )
 
     AlertDialog(
         onDismissRequest = { if (!isUploading) onDismiss() },
@@ -6118,16 +6315,24 @@ fun PhotoUploadChooserModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.AddAPhoto,
-                    contentDescription = null,
-                    tint = PinkHighlight
-                )
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(PinkLight, CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AddAPhoto,
+                        contentDescription = null,
+                        tint = PinkHighlight,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
                 Text(
-                    text = if (isUploading) "Uploading Photo..." else "Choose Profile Photo",
+                    text = if (isUploading) "Uploading Photo..." else "Update Profile Photo",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
-                    color = Color.White
+                    fontSize = 17.sp,
+                    color = TextPrimary
                 )
             }
         },
@@ -6143,18 +6348,22 @@ fun PhotoUploadChooserModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                     LinearProgressIndicator(
                         progress = { uploadProgress },
                         color = PinkHighlight,
-                        modifier = Modifier.fillMaxWidth().height(8.dp).clip(CircleShape),
-                        trackColor = Color(0xFFFF85A6)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(8.dp)
+                            .clip(CircleShape),
+                        trackColor = PinkBorderSoft
                     )
                     Text(
                         text = uploadStatusMessage,
-                        color = TextSecondary,
+                        color = TextPrimary,
                         fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
                         textAlign = TextAlign.Center
                     )
                     Text(
-                        text = "Target API: http://173.249.28.110/backend/api/upload/profile-photo.php",
-                        color = Color.Gray,
+                        text = "Storing in backend & refreshing live database...",
+                        color = TextSecondary,
                         fontSize = 10.sp,
                         textAlign = TextAlign.Center
                     )
@@ -6163,51 +6372,67 @@ fun PhotoUploadChooserModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 8.dp),
+                        .verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(
-                        text = "Select an option to update your profile picture. Image will be compressed and uploaded to PHP Backend.",
+                        text = "Take a camera photo, select from your device gallery, or choose from verified instant avatars.",
                         color = TextSecondary,
                         fontSize = 12.sp
                     )
 
-                    // 📷 CAMERA BUTTON
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF261D42)),
+                    // 📷 CAMERA OPTION
+                    Surface(
                         shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFFFF5F8),
+                        border = BorderStroke(1.dp, PinkBorderSoft),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { cameraLauncher.launch() }
+                            .clickable {
+                                val hasCam = ContextCompat.checkSelfPermission(
+                                    context,
+                                    Manifest.permission.CAMERA
+                                ) == PackageManager.PERMISSION_GRANTED
+                                if (hasCam) {
+                                    try {
+                                        cameraLauncher.launch()
+                                    } catch (e: Exception) {
+                                        Toast.makeText(context, "Camera launch error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                } else {
+                                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                }
+                            }
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(14.dp),
+                                .padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(40.dp)
-                                    .background(PinkHighlight.copy(alpha = 0.2f), CircleShape),
+                                    .size(42.dp)
+                                    .background(PinkHighlight.copy(alpha = 0.15f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.CameraAlt,
                                     contentDescription = "Camera",
-                                    tint = PinkHighlight
+                                    tint = PinkHighlight,
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
                             Column {
                                 Text(
-                                    text = "📷 Camera",
+                                    text = "Take New Photo",
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White,
+                                    color = TextPrimary,
                                     fontSize = 14.sp
                                 )
                                 Text(
-                                    text = "Take a new photo directly",
+                                    text = "Capture directly with device camera",
                                     color = TextSecondary,
                                     fontSize = 11.sp
                                 )
@@ -6215,45 +6440,106 @@ fun PhotoUploadChooserModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
                         }
                     }
 
-                    // 🖼 GALLERY BUTTON
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E2838)),
+                    // 🖼 GALLERY OPTION
+                    Surface(
                         shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFFF0FDF4),
+                        border = BorderStroke(1.dp, Color(0xFFBBF7D0)),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
+                            .clickable {
+                                try {
+                                    galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                                } catch (e: Exception) {
+                                    try {
+                                        fallbackGalleryLauncher.launch("image/*")
+                                    } catch (ex: Exception) {
+                                        Toast.makeText(context, "Gallery open error: ${ex.message}", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            }
                     ) {
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(14.dp),
+                                .padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(40.dp)
-                                    .background(Color(0xFF3B82F6).copy(alpha = 0.2f), CircleShape),
+                                    .size(42.dp)
+                                    .background(Color(0xFF10B981).copy(alpha = 0.15f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.PhotoLibrary,
                                     contentDescription = "Gallery",
-                                    tint = Color(0xFF3B82F6)
+                                    tint = Color(0xFF10B981),
+                                    modifier = Modifier.size(22.dp)
                                 )
                             }
                             Column {
                                 Text(
-                                    text = "🖼 Gallery",
+                                    text = "Choose from Gallery",
                                     fontWeight = FontWeight.Bold,
-                                    color = Color.White,
+                                    color = TextPrimary,
                                     fontSize = 14.sp
                                 )
                                 Text(
-                                    text = "Choose from your saved photos",
+                                    text = "Pick saved photos from phone storage",
                                     color = TextSecondary,
                                     fontSize = 11.sp
                                 )
+                            }
+                        }
+                    }
+
+                    HorizontalDivider(color = PinkBorderSoft, thickness = 0.8.dp)
+
+                    // ✨ INSTANT AVATAR PRESETS
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "✨ Instant Verified Presets",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = TextPrimary
+                            )
+                            Text(
+                                text = "Tap to apply",
+                                fontSize = 10.sp,
+                                color = TextSecondary
+                            )
+                        }
+
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(presetAvatars) { avatarUrl ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(CircleShape)
+                                        .border(1.5.dp, PinkBorderSoft, CircleShape)
+                                        .clickable {
+                                            viewModel.updateProfileAvatar(avatarUrl)
+                                            Toast.makeText(context, "Profile photo updated! ✓", Toast.LENGTH_SHORT).show()
+                                            onDismiss()
+                                        }
+                                ) {
+                                    SubcomposeAsyncImage(
+                                        model = avatarUrl,
+                                        contentDescription = "Preset Avatar",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
                             }
                         }
                     }
@@ -6264,12 +6550,12 @@ fun PhotoUploadChooserModal(onDismiss: () -> Unit, viewModel: AppViewModel) {
         dismissButton = {
             if (!isUploading) {
                 TextButton(onClick = onDismiss) {
-                    Text("❌ Cancel", color = Color.Gray, fontWeight = FontWeight.Bold)
+                    Text("Cancel", color = TextSecondary, fontWeight = FontWeight.Bold)
                 }
             }
         },
-        containerColor = DarkSurface,
-        shape = RoundedCornerShape(20.dp)
+        containerColor = Color.White,
+        shape = RoundedCornerShape(16.dp)
     )
 }
 

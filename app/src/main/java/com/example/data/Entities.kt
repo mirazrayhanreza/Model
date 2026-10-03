@@ -34,7 +34,9 @@ data class CurrentUser(
     val avatarUrl: String,
     val isVerified: Boolean,
     val email: String,
-    val city: String = "Dhaka"
+    val city: String = "Dhaka",
+    val country: String = "Bangladesh",
+    val currency: String = "BDT"
 )
 
 @Entity(tableName = "bookings")
@@ -185,19 +187,48 @@ data class PaymentAgent(
     val agentCode: String,
     val country: String,
     val phone: String,
-    val paymentMethod: String,
-    val accountNumber: String,
+    val paymentMethod: String = "bKash",
+    val accountNumber: String = "",
+    val city: String = "Dhaka",
+    val currency: String = "BDT",
     val accountHolder: String = "",
     val commissionRate: Double = 1.5,
-    val minLimit: Double = 100.0,
-    val maxLimit: Double = 100000.0,
+    val buyRate: Double = 122.50,
+    val sellRate: Double = 120.80,
+    val minLimit: Double = 500.0,
+    val maxLimit: Double = 500000.0,
     val availableBalance: Double = 50000.0,
-    val allowedMethods: String = "bKash, Bank, Nagad, Alipay",
+    val allowedMethods: String = "bKash, Nagad, Bank Transfer, Cash",
     val supportsDeposit: Boolean = true,
     val supportsWithdraw: Boolean = true,
     val verificationStatus: String = "VERIFIED", // "VERIFIED", "PENDING_VERIFICATION", "SUSPENDED"
     val isOnline: Boolean = true,
-    val rating: Float = 4.9f
+    val rating: Float = 4.95f,
+    val totalOrders: Int = 1250,
+    val completionRate: String = "99.4%",
+    val avgReleaseTime: String = "2.4 min"
+)
+
+data class CountryData(
+    val id: Int,
+    val countryName: String,
+    val isoCode: String,
+    val phoneCode: String,
+    val currencyCode: String,
+    val flag: String,
+    val status: String = "Active",
+    val paymentMethods: List<CountryPaymentMethod> = emptyList()
+)
+
+data class CountryPaymentMethod(
+    val id: Int = 0,
+    val countryId: Int = 0,
+    val methodName: String,
+    val methodType: String = "Mobile Wallet",
+    val logo: String = "",
+    val minAmount: Double = 100.0,
+    val maxAmount: Double = 500000.0,
+    val status: String = "Active"
 )
 
 @Entity(tableName = "b2b_orders")
@@ -234,6 +265,56 @@ data class B2BChatMessage(
     val imageUrl: String? = null,
     val timestamp: Long = System.currentTimeMillis()
 )
+
+data class GeneratedApiKey(
+    val id: String = "key_${System.currentTimeMillis()}",
+    var name: String,
+    val appType: String, // "WEBSITE", "MOBILE_APP", "AGENT_APP", "ECOMMERCE", "CUSTOM_SERVICE"
+    val apiKey: String, // Public Key / Client ID e.g. "mc_live_pk_..."
+    var apiSecret: String, // Secret Key e.g. "mc_live_sk_..."
+    var webhookUrl: String = "",
+    val scopes: List<String> = listOf("auth.otp", "users.read", "models.read", "agent.cash"),
+    val environment: String = "PRODUCTION", // "PRODUCTION", "SANDBOX"
+    var rateLimitPerMin: Int = 120,
+    var ipWhitelist: String = "0.0.0.0/0",
+    var status: String = "ACTIVE", // "ACTIVE", "PAUSED", "REVOKED"
+    val createdAt: Long = System.currentTimeMillis(),
+    var requestCount: Int = 0,
+    var lastUsedAt: Long? = null
+)
+
+data class ApiEndpointDoc(
+    val method: String, // "GET", "POST", "PUT", "DELETE"
+    val path: String,
+    val category: String, // "Authentication & OTP", "Models & Catalog", "Cash Agent & Wallet", "Escrow & Bookings", "Webhooks"
+    val description: String,
+    val requiresAuth: Boolean = true,
+    val sampleRequest: String = "",
+    val sampleResponse: String = ""
+)
+
+data class AdminPaymentGatewayConfig(
+    val id: String, // e.g. "google_pay", "alipay", "apple_pay", "gateway_custom_1"
+    var name: String, // e.g. "Google Pay", "Alipay", "Apple Pay"
+    var code: String, // e.g. "GOOGLE_PAY", "ALIPAY", "APPLE_PAY"
+    var iconType: String = "WALLET", // "GOOGLE_PAY", "ALIPAY", "APPLE_PAY", "PAYPAL", "STRIPE", "CARD", "WALLET", "CRYPTO", "BANK"
+    var isEnabled: Boolean = true,
+    var environment: String = "PRODUCTION", // "PRODUCTION", "SANDBOX"
+    var merchantId: String = "",
+    var merchantName: String = "Modol Connect",
+    var apiKey: String = "",
+    var secretKey: String = "",
+    var webhookUrl: String = "",
+    var publicKeyOrCert: String = "",
+    var supportedCurrencies: String = "BDT, USD, EUR, CNY, AED",
+    var transactionFeePercent: Double = 1.5,
+    var minAmount: Double = 100.0,
+    var maxAmount: Double = 500000.0,
+    var instructions: String = "",
+    var isSystemDefault: Boolean = false
+)
+
+
 
 
 

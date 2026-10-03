@@ -26,6 +26,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.geometry.Offset
@@ -70,6 +72,9 @@ fun WalletDashboardContent(
 
     // Calculate balances
     val availableBalance = currentUser?.balance ?: 0.0
+    val userCountry = currentUser?.country ?: "Bangladesh"
+    val userCurrency = currentUser?.currency ?: CountryPaymentMaster.getCurrencyForCountry(userCountry)
+    val currSymbol = CountryPaymentMaster.getCurrencySymbol(userCurrency)
     // Pending Balance: active bookings that are not completed/cancelled
     val pendingBalance = bookings.filter { 
         it.status == "PENDING" || it.status == "ACCEPTED" || it.status == "ONGOING" ||
@@ -296,10 +301,10 @@ fun WalletDashboardContent(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Column {
-                                    Text("Total Balance", color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                                    Text("Total Balance ($userCurrency)", color = Color.White.copy(alpha = 0.85f), fontSize = 13.sp, fontWeight = FontWeight.Medium)
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "৳ %,.2f".format(totalBalance),
+                                        text = "$currSymbol %,.2f".format(totalBalance),
                                         color = Color.White,
                                         fontSize = 28.sp,
                                         fontWeight = FontWeight.Black
@@ -327,7 +332,7 @@ fun WalletDashboardContent(
                                     Text("Available Balance", color = Color.White.copy(alpha = 0.85f), fontSize = 11.sp)
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "৳ %,.2f".format(availableBalance),
+                                        text = "$currSymbol %,.2f".format(availableBalance),
                                         color = Color.White,
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold
@@ -349,7 +354,7 @@ fun WalletDashboardContent(
                                     Text("Pending Balance", color = Color.White.copy(alpha = 0.85f), fontSize = 11.sp)
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
-                                        text = "৳ %,.2f".format(pendingBalance),
+                                        text = "$currSymbol %,.2f".format(pendingBalance),
                                         color = Color(0xFFFFF176),
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold
@@ -515,7 +520,7 @@ fun WalletDashboardContent(
 
                             val isPositive = tx.type == "DEPOSIT" || tx.type == "EARNING"
                             Text(
-                                text = if (isPositive) "+৳%,.2f".format(tx.amount) else "-৳%,.2f".format(tx.amount),
+                                text = if (isPositive) "+$currSymbol %,.2f".format(tx.amount) else "-$currSymbol %,.2f".format(tx.amount),
                                 color = if (isPositive) OnlineGreen else Color(0xFFFF5252),
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 15.sp
@@ -791,13 +796,20 @@ fun ModelDashboardScreen(viewModel: AppViewModel) {
                 .fillMaxWidth()
                 .statusBarsPadding()
                 .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { viewModel.navigateTo("DASHBOARD") }) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { viewModel.navigateTo("DASHBOARD") }) {
+                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Text("Model Host Dashboard", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
             }
-            Spacer(modifier = Modifier.width(12.dp))
-            Text("Model Host Dashboard", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+
+            IconButton(onClick = { viewModel.showSignOutConfirmDialog = true }) {
+                Icon(imageVector = Icons.Default.Logout, contentDescription = "Sign Out", tint = Color(0xFFEF4444))
+            }
         }
 
         LazyColumn(
@@ -922,13 +934,20 @@ fun AdminPanelScreen(viewModel: AppViewModel) {
                 .fillMaxWidth()
                 .statusBarsPadding()
                 .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { viewModel.navigateTo("DASHBOARD") }) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { viewModel.navigateTo("DASHBOARD") }) {
+                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Text("Admin Platform Panel", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
             }
-            Spacer(modifier = Modifier.width(12.dp))
-            Text("Admin Platform Panel", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+
+            IconButton(onClick = { viewModel.showSignOutConfirmDialog = true }) {
+                Icon(imageVector = Icons.Default.Logout, contentDescription = "Logout", tint = Color(0xFFEF4444))
+            }
         }
 
         LazyColumn(
@@ -1018,7 +1037,7 @@ fun SettingsScreen(viewModel: AppViewModel) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBg)
+            .background(Color(0xFFF8FAFC))
     ) {
         // Header
         Row(
@@ -1032,26 +1051,139 @@ fun SettingsScreen(viewModel: AppViewModel) {
                 onClick = { viewModel.navigateTo("DASHBOARD") },
                 modifier = Modifier
                     .background(Color.White, CircleShape)
-                    .border(1.dp, Color(0xFFFF85A6), CircleShape)
+                    .border(1.dp, Color(0xFFE2E8F0), CircleShape)
                     .size(38.dp)
             ) {
-                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = TextPrimary)
+                Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Color(0xFF0F172A))
             }
             Spacer(modifier = Modifier.width(12.dp))
-            Text("Settings & Support", color = TextPrimary, fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
+            Text("Settings & Security", color = Color(0xFF0F172A), fontWeight = FontWeight.ExtraBold, fontSize = 20.sp)
         }
 
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .weight(1f)
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            // =========================================================================
+            // 1. ACCOUNT SECURITY & PASSWORDS (CHANGE PASSWORD & ALL DEVICES LOGOUT)
+            // =========================================================================
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.2.dp, Color(0xFFFFE4EC)),
+                shape = RoundedCornerShape(18.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Box(
+                                modifier = Modifier
+                                    .size(28.dp)
+                                    .background(Color(0xFFFF2A6D).copy(alpha = 0.12f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(imageVector = Icons.Default.Shield, contentDescription = null, tint = Color(0xFFFF2A6D), modifier = Modifier.size(16.dp))
+                            }
+                            Column {
+                                Text("Account Security & Credentials", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("পাসওয়ার্ড ও সেশন ম্যানেজমেন্ট", color = Color(0xFF64748B), fontSize = 11.sp)
+                            }
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFFECFDF5),
+                            border = BorderStroke(0.8.dp, Color(0xFFA7F3D0))
+                        ) {
+                            Text(
+                                "${viewModel.activeSessionsList.size} Active",
+                                color = Color(0xFF059669),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
+                    HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+
+                    // Option 1: Change Password
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.showChangePasswordDialog = true }
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Surface(
+                                shape = CircleShape,
+                                color = Color(0xFFFF2A6D).copy(alpha = 0.10f),
+                                modifier = Modifier.size(38.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(imageVector = Icons.Default.LockReset, contentDescription = null, tint = Color(0xFFFF2A6D), modifier = Modifier.size(20.dp))
+                                }
+                            }
+                            Column {
+                                Text("Change Password (পাসওয়ার্ড পরিবর্তন)", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("Update your login password and protect account", color = Color(0xFF64748B), fontSize = 11.sp)
+                            }
+                        }
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color(0xFF94A3B8), modifier = Modifier.size(18.dp))
+                    }
+
+                    HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+
+                    // Option 2: Log Out From All Devices
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { viewModel.showAllLogoutConfirmDialog = true }
+                            .padding(vertical = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Surface(
+                                shape = CircleShape,
+                                color = Color(0xFFDC2626).copy(alpha = 0.10f),
+                                modifier = Modifier.size(38.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(imageVector = Icons.Default.Devices, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(20.dp))
+                                }
+                            }
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text("Log Out All Devices (সকল ডিভাইস থেকে লগআউট)", color = Color(0xFFDC2626), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Surface(shape = RoundedCornerShape(4.dp), color = Color(0xFFFEF2F2)) {
+                                        Text("${viewModel.activeSessionsList.size} Sessions", color = Color(0xFFDC2626), fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp))
+                                    }
+                                }
+                                Text("Terminate active sessions on other phones & browsers", color = Color(0xFF64748B), fontSize = 11.sp)
+                            }
+                        }
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(18.dp))
+                    }
+                }
+            }
+
             // Language selector
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.dp, Color(0xFFFF85A6)),
-                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(
@@ -1059,20 +1191,20 @@ fun SettingsScreen(viewModel: AppViewModel) {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("App Language", color = TextPrimary, fontWeight = FontWeight.Bold)
-                    
+                    Text("App Language", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold)
+
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         listOf("English", "Bangla").forEach { lang ->
                             val isSel = viewModel.appLanguage == lang
                             Box(
                                 modifier = Modifier
                                     .clip(RoundedCornerShape(8.dp))
-                                    .background(if (isSel) PinkHighlight else Color(0xFFF1F5F9))
-                                    .then(if (!isSel) Modifier.border(1.dp, Color(0xFFFF85A6), RoundedCornerShape(8.dp)) else Modifier)
+                                    .background(if (isSel) Color(0xFFFF2A6D) else Color(0xFFF1F5F9))
+                                    .then(if (!isSel) Modifier.border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(8.dp)) else Modifier)
                                     .clickable { viewModel.appLanguage = lang }
                                     .padding(horizontal = 12.dp, vertical = 6.dp)
                             ) {
-                                Text(lang, color = if (isSel) Color.White else TextPrimary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                                Text(lang, color = if (isSel) Color.White else Color(0xFF0F172A), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -1082,8 +1214,9 @@ fun SettingsScreen(viewModel: AppViewModel) {
             // Splash Screen Preview
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.dp, Color(0xFFFF85A6)),
-                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
@@ -1099,28 +1232,28 @@ fun SettingsScreen(viewModel: AppViewModel) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Surface(
                             shape = CircleShape,
-                            color = PinkHighlight.copy(alpha = 0.12f),
+                            color = Color(0xFFFF2A6D).copy(alpha = 0.12f),
                             modifier = Modifier.size(36.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Icon(
                                     imageVector = Icons.Default.Favorite,
                                     contentDescription = "Splash",
-                                    tint = PinkHighlight,
+                                    tint = Color(0xFFFF2A6D),
                                     modifier = Modifier.size(20.dp)
                                 )
                             }
                         }
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            Text("Welcome / Splash Screen", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            Text("Tap to view full-screen model splash design", color = TextSecondary, fontSize = 11.sp)
+                            Text("Welcome / Splash Screen", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Tap to view full-screen model splash design", color = Color(0xFF64748B), fontSize = 11.sp)
                         }
                     }
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowForward,
                         contentDescription = "Open",
-                        tint = PinkHighlight,
+                        tint = Color(0xFFFF2A6D),
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -1129,30 +1262,31 @@ fun SettingsScreen(viewModel: AppViewModel) {
             // About Us
             Card(
                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.dp, Color(0xFFFF85A6)),
-                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                shape = RoundedCornerShape(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
-                    Text("About MODOL CONNECT", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    Text("About MODOL CONNECT", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         "MODOL CONNECT is the World's #1 professional model marketplace app. We connect brands, fashion houses, and individuals with top professional talents worldwide seamlessly, with secure escrow payments.",
-                        color = TextSecondary,
+                        color = Color(0xFF64748B),
                         fontSize = 12.sp,
                         lineHeight = 18.sp
                     )
                 }
             }
 
-            // Sign Out / Logout Card
+            // Sign Out / Logout Card (This Device)
             Card(
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF0F3)),
-                border = BorderStroke(1.dp, Color(0xFFFFB3BA)),
-                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFFFEF2F2)),
+                border = BorderStroke(1.dp, Color(0xFFFECACA)),
+                shape = RoundedCornerShape(16.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { viewModel.logout() }
+                    .clickable { viewModel.showSignOutConfirmDialog = true }
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
@@ -1160,18 +1294,976 @@ fun SettingsScreen(viewModel: AppViewModel) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Default.Logout, contentDescription = "Logout", tint = Color(0xFFD32F2F))
+                        Icon(imageVector = Icons.Default.Logout, contentDescription = "Logout", tint = Color(0xFFDC2626))
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
-                            Text("Sign Out / Log Out", color = Color(0xFFD32F2F), fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                            Text("Safely exit your account session", color = TextSecondary, fontSize = 12.sp)
+                            Text("Sign Out (এই ডিভাইস থেকে সাইন আউট)", color = Color(0xFFDC2626), fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Safely exit your account on this device", color = Color(0xFF7F1D1D), fontSize = 11.sp)
                         }
                     }
-                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Exit", tint = Color(0xFFD32F2F), modifier = Modifier.size(18.dp))
+                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Exit", tint = Color(0xFFDC2626), modifier = Modifier.size(18.dp))
                 }
             }
         }
     }
+
+    // Dialogs
+    if (viewModel.showChangePasswordDialog) {
+        ChangePasswordModal(
+            onDismiss = { viewModel.showChangePasswordDialog = false },
+            viewModel = viewModel
+        )
+    }
+
+    if (viewModel.showAllLogoutConfirmDialog) {
+        AllDevicesLogoutModal(
+            onDismiss = { viewModel.showAllLogoutConfirmDialog = false },
+            viewModel = viewModel
+        )
+    }
+}
+
+// ============================================================================
+// CHANGE PASSWORD MODAL (পাসওয়ার্ড পরিবর্তন মোডাল)
+// ============================================================================
+
+@Composable
+fun ChangePasswordModal(
+    onDismiss: () -> Unit,
+    viewModel: AppViewModel
+) {
+    var oldPassword by remember { mutableStateOf("") }
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var showOldPassword by remember { mutableStateOf(false) }
+    var showNewPassword by remember { mutableStateOf(false) }
+    var showConfirmPassword by remember { mutableStateOf(false) }
+    var logoutOtherDevicesAfterChange by remember { mutableStateOf(true) }
+
+    // Password strength logic
+    val (strengthScore, strengthLabel, strengthColor) = remember(newPassword) {
+        if (newPassword.isEmpty()) {
+            Triple(0f, "Enter password (পাসওয়ার্ড লিখুন)", Color(0xFF94A3B8))
+        } else {
+            var score = 0
+            if (newPassword.length >= 6) score += 1
+            if (newPassword.length >= 8) score += 1
+            if (newPassword.any { it.isDigit() }) score += 1
+            if (newPassword.any { it.isUpperCase() }) score += 1
+            if (newPassword.any { !it.isLetterOrDigit() }) score += 1
+            when {
+                score <= 2 -> Triple(0.33f, "Weak (দুর্বল)", Color(0xFFEF4444))
+                score <= 3 -> Triple(0.66f, "Moderate (মাঝারি)", Color(0xFFF59E0B))
+                else -> Triple(1.0f, "Strong (খুব শক্তিশালী)", Color(0xFF10B981))
+            }
+        }
+    }
+
+    val passwordsMatch = newPassword.isNotEmpty() && confirmPassword.isNotEmpty() && newPassword == confirmPassword
+    val passwordsMismatch = newPassword.isNotEmpty() && confirmPassword.isNotEmpty() && newPassword != confirmPassword
+
+    AlertDialog(
+        onDismissRequest = {
+            viewModel.changePasswordError = null
+            viewModel.changePasswordSuccess = null
+            onDismiss()
+        },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(22.dp),
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFFFF2A6D).copy(alpha = 0.12f),
+                    modifier = Modifier.size(42.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.LockReset,
+                            contentDescription = null,
+                            tint = Color(0xFFFF2A6D),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+                Column {
+                    Text(
+                        "Change Password",
+                        color = Color(0xFF0F172A),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                    Text(
+                        "পাসওয়ার্ড পরিবর্তন ও অ্যাকাউন্ট সুরক্ষা",
+                        color = Color(0xFF64748B),
+                        fontSize = 11.sp
+                    )
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // Info banner
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Shield,
+                            contentDescription = null,
+                            tint = Color(0xFFFF2A6D),
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            "আপনার অ্যাকাউন্টের সর্বোচ্চ সুরক্ষায় নতুন পাসওয়ার্ডটি কমপক্ষে ৬ অক্ষরের হতে হবে। সংখ্যা এবং স্পেশাল চিহ্ন যোগ করা ভালো।",
+                            color = Color(0xFF475569),
+                            fontSize = 11.sp,
+                            lineHeight = 15.sp
+                        )
+                    }
+                }
+
+                // Error Banner
+                if (viewModel.changePasswordError != null) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFFEF2F2),
+                        border = BorderStroke(1.dp, Color(0xFFFECACA))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Warning,
+                                contentDescription = null,
+                                tint = Color(0xFFDC2626),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                viewModel.changePasswordError ?: "",
+                                color = Color(0xFFDC2626),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                }
+
+                // Success Banner
+                if (viewModel.changePasswordSuccess != null) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFECFDF5),
+                        border = BorderStroke(1.dp, Color(0xFFA7F3D0))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = Color(0xFF059669),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Column {
+                                Text(
+                                    viewModel.changePasswordSuccess ?: "পাসওয়ার্ড সফলভাবে পরিবর্তন করা হয়েছে!",
+                                    color = Color(0xFF059669),
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    "আপনার পাসওয়ার্ড আপডেট হয়েছে এবং নতুন সেশন কার্যকর হয়েছে।",
+                                    color = Color(0xFF047857),
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // 1. Current Password
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    OutlinedTextField(
+                        value = oldPassword,
+                        onValueChange = { oldPassword = it },
+                        label = { Text("Current Password (বর্তমান পাসওয়ার্ড)") },
+                        visualTransformation = if (showOldPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { showOldPassword = !showOldPassword }) {
+                                Icon(
+                                    imageVector = if (showOldPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = "Toggle password",
+                                    tint = Color(0xFF94A3B8)
+                                )
+                            }
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF0F172A),
+                            focusedBorderColor = Color(0xFFFF2A6D),
+                            unfocusedBorderColor = Color(0xFFCBD5E1)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+                }
+
+                // 2. New Password
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    OutlinedTextField(
+                        value = newPassword,
+                        onValueChange = { newPassword = it },
+                        label = { Text("New Password (নতুন পাসওয়ার্ড)") },
+                        visualTransformation = if (showNewPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { showNewPassword = !showNewPassword }) {
+                                Icon(
+                                    imageVector = if (showNewPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = "Toggle password",
+                                    tint = Color(0xFF94A3B8)
+                                )
+                            }
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF0F172A),
+                            focusedBorderColor = Color(0xFFFF2A6D),
+                            unfocusedBorderColor = Color(0xFFCBD5E1)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    // Strength Indicator Bar
+                    if (newPassword.isNotEmpty()) {
+                        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 2.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "Password Strength:",
+                                    color = Color(0xFF64748B),
+                                    fontSize = 11.sp
+                                )
+                                Text(
+                                    strengthLabel,
+                                    color = strengthColor,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            LinearProgressIndicator(
+                                progress = { strengthScore },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(5.dp)
+                                    .clip(RoundedCornerShape(3.dp)),
+                                color = strengthColor,
+                                trackColor = Color(0xFFE2E8F0)
+                            )
+                        }
+                    }
+                }
+
+                // 3. Confirm Password
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    OutlinedTextField(
+                        value = confirmPassword,
+                        onValueChange = { confirmPassword = it },
+                        label = { Text("Confirm New Password (পুনরায় লিখুন)") },
+                        visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                        trailingIcon = {
+                            IconButton(onClick = { showConfirmPassword = !showConfirmPassword }) {
+                                Icon(
+                                    imageVector = if (showConfirmPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                    contentDescription = "Toggle password",
+                                    tint = Color(0xFF94A3B8)
+                                )
+                            }
+                        },
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color(0xFF0F172A),
+                            unfocusedTextColor = Color(0xFF0F172A),
+                            focusedBorderColor = if (passwordsMatch) Color(0xFF10B981) else if (passwordsMismatch) Color(0xFFEF4444) else Color(0xFFFF2A6D),
+                            unfocusedBorderColor = if (passwordsMatch) Color(0xFF10B981) else if (passwordsMismatch) Color(0xFFEF4444) else Color(0xFFCBD5E1)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true
+                    )
+
+                    if (passwordsMatch) {
+                        Text(
+                            "✓ Passwords match (পাসওয়ার্ড মিলেছে)",
+                            color = Color(0xFF059669),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    } else if (passwordsMismatch) {
+                        Text(
+                            "⚠ Passwords do not match (পাসওয়ার্ড মিলছে না)",
+                            color = Color(0xFFDC2626),
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(start = 4.dp)
+                        )
+                    }
+                }
+
+                // 4. Logout from all other devices option (Security best practice)
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFFFF1F2),
+                    border = BorderStroke(1.dp, Color(0xFFFFE4E6)),
+                    modifier = Modifier.clickable { logoutOtherDevicesAfterChange = !logoutOtherDevicesAfterChange }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Checkbox(
+                            checked = logoutOtherDevicesAfterChange,
+                            onCheckedChange = { logoutOtherDevicesAfterChange = it },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = Color(0xFFFF2A6D),
+                                checkmarkColor = Color.White
+                            )
+                        )
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "Log out all other devices after change",
+                                color = Color(0xFF9F1239),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp
+                            )
+                            Text(
+                                "অন্যান্য ডিভাইসের পুরনো সেশন তাৎক্ষণিক বাতিল করুন",
+                                color = Color(0xFFBE123C),
+                                fontSize = 10.sp
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    viewModel.changePassword(
+                        oldPass = oldPassword,
+                        newPass = newPassword,
+                        confirmPass = confirmPassword,
+                        logoutOtherDevicesAfterChange = logoutOtherDevicesAfterChange,
+                        onSuccess = {
+                            oldPassword = ""
+                            newPassword = ""
+                            confirmPassword = ""
+                        }
+                    )
+                },
+                enabled = !viewModel.isChangingPassword,
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF2A6D)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.height(44.dp)
+            ) {
+                if (viewModel.isChangingPassword) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = Color.White,
+                        strokeWidth = 2.dp
+                    )
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Updating...", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                } else {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Icon(imageVector = Icons.Default.LockReset, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Text("Update Password", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                    }
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = {
+                viewModel.changePasswordError = null
+                viewModel.changePasswordSuccess = null
+                onDismiss()
+            }) {
+                Text("Close", color = Color(0xFF64748B), fontWeight = FontWeight.SemiBold)
+            }
+        }
+    )
+}
+
+// ============================================================================
+// ALL DEVICES LOGOUT MODAL (সকল ডিভাইস থেকে লগআউট মোডাল)
+// ============================================================================
+
+@Composable
+fun AllDevicesLogoutModal(
+    onDismiss: () -> Unit,
+    viewModel: AppViewModel
+) {
+    val activeSessions = viewModel.activeSessionsList
+    val currentSession = activeSessions.firstOrNull { it.isCurrent }
+    val otherSessions = activeSessions.filterNot { it.isCurrent }
+
+    AlertDialog(
+        onDismissRequest = {
+            viewModel.allLogoutSuccessMessage = null
+            onDismiss()
+        },
+        containerColor = Color.White,
+        shape = RoundedCornerShape(22.dp),
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFFDC2626).copy(alpha = 0.12f),
+                    modifier = Modifier.size(42.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Devices,
+                            contentDescription = null,
+                            tint = Color(0xFFDC2626),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+                Column {
+                    Text(
+                        "Active Devices & Logout",
+                        color = Color(0xFF0F172A),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                    Text(
+                        "ডিভাইস ম্যানেজমেন্ট ও সেশন বাতিল",
+                        color = Color(0xFF64748B),
+                        fontSize = 11.sp
+                    )
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                // Informational banner
+                Surface(
+                    shape = RoundedCornerShape(10.dp),
+                    color = Color(0xFFFEF2F2),
+                    border = BorderStroke(1.dp, Color(0xFFFECACA))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Security,
+                            contentDescription = null,
+                            tint = Color(0xFFDC2626),
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            "আপনার অ্যাকাউন্টে মোট ${activeSessions.size}টি সেশন সক্রিয় রয়েছে। সন্দেহজনক কোনো ডিভাইস থাকলে 'Revoke' চাপুন অথবা এক ক্লিকে অন্য সব ডিভাইস থেকে লগআউট করুন।",
+                            color = Color(0xFF991B1B),
+                            fontSize = 11.sp,
+                            lineHeight = 15.sp
+                        )
+                    }
+                }
+
+                // Success Message Banner (e.g. session revoked or other devices logged out)
+                if (viewModel.allLogoutSuccessMessage != null) {
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = Color(0xFFECFDF5),
+                        border = BorderStroke(1.dp, Color(0xFFA7F3D0))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = Color(0xFF059669),
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Text(
+                                viewModel.allLogoutSuccessMessage ?: "",
+                                color = Color(0xFF059669),
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                // --- 1. CURRENT DEVICE ---
+                Text(
+                    "Current Device (বর্তমান ডিভাইস):",
+                    color = Color(0xFF0F172A),
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp
+                )
+
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.5.dp, Color(0xFF10B981).copy(alpha = 0.4f))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFF10B981).copy(alpha = 0.15f),
+                            modifier = Modifier.size(38.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.PhoneAndroid,
+                                    contentDescription = null,
+                                    tint = Color(0xFF059669),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text(
+                                    currentSession?.deviceType ?: "This Device (Android)",
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF0F172A),
+                                    fontSize = 13.sp
+                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(7.dp)
+                                        .background(Color(0xFF10B981), CircleShape)
+                                )
+                            }
+                            Text(
+                                "${currentSession?.os ?: "Android"} • ${currentSession?.location ?: "Dhaka, Bangladesh"}",
+                                color = Color(0xFF64748B),
+                                fontSize = 10.sp
+                            )
+                            Text(
+                                "IP: ${currentSession?.ip ?: "103.145.172.45"}",
+                                color = Color(0xFF94A3B8),
+                                fontSize = 9.sp
+                            )
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = Color(0xFFECFDF5),
+                            border = BorderStroke(0.8.dp, Color(0xFFA7F3D0))
+                        ) {
+                            Text(
+                                "Active Now",
+                                color = Color(0xFF059669),
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
+                }
+
+                // --- 2. OTHER ACTIVE SESSIONS ---
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Other Active Devices (${otherSessions.size}):",
+                        color = Color(0xFF0F172A),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+                    if (otherSessions.isNotEmpty()) {
+                        Text(
+                            "অন্যান্য সক্রিয় ডিভাইস",
+                            color = Color(0xFF64748B),
+                            fontSize = 10.sp
+                        )
+                    }
+                }
+
+                if (otherSessions.isEmpty()) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, Color(0xFFBBF7D0)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Shield,
+                                contentDescription = null,
+                                tint = Color(0xFF16A34A),
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Column {
+                                Text(
+                                    "No other active sessions detected",
+                                    color = Color(0xFF15803D),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp
+                                )
+                                Text(
+                                    "আপনার অ্যাকাউন্ট শুধুমাত্র বর্তমান ফোনেই সংযুক্ত রয়েছে।",
+                                    color = Color(0xFF166534),
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    otherSessions.forEach { session ->
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                            shape = RoundedCornerShape(12.dp),
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(10.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = Color(0xFFE2E8F0),
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = when {
+                                                session.deviceType.contains("Web", ignoreCase = true) -> Icons.Default.Computer
+                                                session.deviceType.contains("Tab", ignoreCase = true) -> Icons.Default.TabletAndroid
+                                                else -> Icons.Default.PhoneAndroid
+                                            },
+                                            contentDescription = null,
+                                            tint = Color(0xFF475569),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        session.deviceType,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF0F172A),
+                                        fontSize = 12.sp
+                                    )
+                                    Text(
+                                        "${session.os} • ${session.location}",
+                                        color = Color(0xFF64748B),
+                                        fontSize = 10.sp
+                                    )
+                                    Text(
+                                        "Last active: ${session.lastActive} (IP: ${session.ip})",
+                                        color = Color(0xFF94A3B8),
+                                        fontSize = 9.sp
+                                    )
+                                }
+
+                                // Revoke button for individual session
+                                OutlinedButton(
+                                    onClick = { viewModel.revokeSingleSession(session.id) },
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFDC2626)),
+                                    border = BorderStroke(1.dp, Color(0xFFFECACA)),
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp),
+                                    modifier = Modifier.height(30.dp)
+                                ) {
+                                    Text("Revoke", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // --- 3. DUAL LOGOUT OPTIONS (Log out other devices vs Log out all devices) ---
+                Spacer(modifier = Modifier.height(4.dp))
+                HorizontalDivider(color = Color(0xFFF1F5F9), thickness = 1.dp)
+
+                // Option A: Log Out Other Devices (Keeps current device logged in)
+                OutlinedButton(
+                    onClick = { viewModel.logoutOtherDevices() },
+                    enabled = !viewModel.isLoggingOutOtherDevices && otherSessions.isNotEmpty(),
+                    border = BorderStroke(1.2.dp, Color(0xFFFF2A6D)),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFFFF2A6D),
+                        containerColor = Color(0xFFFFF1F2)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth().height(44.dp)
+                ) {
+                    if (viewModel.isLoggingOutOtherDevices) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = Color(0xFFFF2A6D),
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Revoking Other Devices...", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(imageVector = Icons.Default.Devices, contentDescription = null, tint = Color(0xFFFF2A6D), modifier = Modifier.size(16.dp))
+                            Text(
+                                "Log Out Other Devices Only (অন্য ডিভাইসগুলো লগআউট)",
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                // Option B: Log Out From ALL Devices (Including this phone)
+                Button(
+                    onClick = { viewModel.logoutAllDevices() },
+                    enabled = !viewModel.isLoggingOutAll,
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth().height(44.dp)
+                ) {
+                    if (viewModel.isLoggingOutAll) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Logging Out All...", color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Icon(imageVector = Icons.Default.Logout, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                            Text(
+                                "Log Out From ALL Devices (সব ডিভাইস থেকে সম্পূর্ণ লগআউট)",
+                                color = Color.White,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = {
+                viewModel.allLogoutSuccessMessage = null
+                onDismiss()
+            }) {
+                Text("Close", color = Color(0xFF64748B), fontWeight = FontWeight.SemiBold)
+            }
+        }
+    )
+}
+
+// ============================================================================
+// SIGN OUT CONFIRM MODAL (লগআউট নিশ্চিতকরণ মোডাল)
+// ============================================================================
+
+@Composable
+fun SignOutConfirmModal(
+    onDismiss: () -> Unit,
+    viewModel: AppViewModel
+) {
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+    val roleDisplay = when (currentUser?.role) {
+        "ADMIN" -> "Admin Panel (অ্যাডমিন প্যানেল)"
+        "MODEL" -> "Model Host (মডেল হোস্ট)"
+        "CASH_AGENT" -> "Cash Agent (ক্যাশ এজেন্ট)"
+        else -> "Client User (ইউজার)"
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(22.dp),
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color(0xFFFEF2F2),
+                    border = BorderStroke(1.dp, Color(0xFFFECACA)),
+                    modifier = Modifier.size(42.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            imageVector = Icons.Default.Logout,
+                            contentDescription = null,
+                            tint = Color(0xFFDC2626),
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                }
+                Column {
+                    Text(
+                        "Sign Out Account",
+                        color = Color(0xFF0F172A),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                    Text(
+                        roleDisplay,
+                        color = Color(0xFFDC2626),
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 11.sp
+                    )
+                }
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFF8FAFC),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFFFF2A6D).copy(alpha = 0.15f),
+                            modifier = Modifier.size(38.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = Color(0xFFFF2A6D),
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                currentUser?.name ?: "Current User",
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF0F172A),
+                                fontSize = 13.sp
+                            )
+                            Text(
+                                "Role: $roleDisplay",
+                                color = Color(0xFF64748B),
+                                fontSize = 11.sp
+                            )
+                            Text(
+                                currentUser?.email?.ifEmpty { "user@modolconnect.com" } ?: "Active Session",
+                                color = Color(0xFF94A3B8),
+                                fontSize = 10.sp
+                            )
+                        }
+                    }
+                }
+
+                Text(
+                    "আপনি কীভাবে লগআউট করতে চান নির্বাচন করুন:",
+                    color = Color(0xFF475569),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Medium
+                )
+
+                // Option 1: Standard Logout (This Device Only)
+                Button(
+                    onClick = {
+                        onDismiss()
+                        viewModel.logout()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth().height(46.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Icon(imageVector = Icons.Default.Logout, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Text("Log Out This Device (এই ফোন থেকে লগআউট)", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                }
+
+                // Option 2: All Devices Logout
+                OutlinedButton(
+                    onClick = {
+                        onDismiss()
+                        viewModel.showAllLogoutConfirmDialog = true
+                    },
+                    border = BorderStroke(1.2.dp, Color(0xFFEF4444)),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color(0xFFDC2626),
+                        containerColor = Color(0xFFFFF1F2)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth().height(46.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Icon(imageVector = Icons.Default.Devices, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(16.dp))
+                        Text("Log Out All Devices (সকল ডিভাইস থেকে লগআউট)", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel (বাতিল)", color = Color(0xFF64748B), fontWeight = FontWeight.SemiBold)
+            }
+        }
+    )
 }
 
 // ============================================================================
@@ -1298,6 +2390,23 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
                                     Text("12", color = Color.White, fontSize = 8.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
+
+                            // Quick Admin Sign Out Button
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .background(Color(0xFFDC2626).copy(alpha = 0.15f), CircleShape)
+                                    .border(1.dp, Color(0xFFDC2626).copy(alpha = 0.4f), CircleShape)
+                                    .clickable { viewModel.showSignOutConfirmDialog = true },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Logout,
+                                    contentDescription = "Logout",
+                                    tint = Color(0xFFDC2626),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
                         }
                     }
 
@@ -1354,7 +2463,14 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
                 border = BorderStroke(1.5.dp, Color(0xFF00E676).copy(alpha = 0.7f)),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { viewModel.selectedTab = 1 }
+                    .clickable {
+                        if (viewModel.currentUser.value?.role == "ADMIN") {
+                            viewModel.selectedTab = 1
+                        } else {
+                            viewModel.selectedTab = 5
+                        }
+                        viewModel.navigateTo("DASHBOARD")
+                    }
             ) {
                 Column(
                     modifier = Modifier.padding(14.dp),
@@ -2386,6 +3502,36 @@ fun AdminUsersTab(viewModel: AppViewModel) {
             }
         }
 
+        // Master Role OTP Quick Bar
+        Surface(
+            shape = RoundedCornerShape(10.dp),
+            color = Color(0xFF1E293B),
+            border = BorderStroke(1.dp, PinkHighlight.copy(alpha = 0.5f)),
+            modifier = Modifier.fillMaxWidth().clickable { tabSelected = 6 }
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Icon(Icons.Default.VpnKey, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Column {
+                        Text("Backend Master One-Time Passwords (OTPs):", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                        Text("👑 Admin: ${viewModel.adminMasterOtp} • 💃 Model: ${viewModel.modelMasterOtp} • 👤 User: ${viewModel.userMasterOtp} • 💼 Agent: ${viewModel.cashAgentMasterOtp}", color = PinkHighlight, fontSize = 10.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .background(PinkHighlight.copy(alpha = 0.2f), RoundedCornerShape(6.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text("Manage OTPs ⚙️", color = PinkHighlight, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
         // Sub-tabs Row
         Row(
             modifier = Modifier
@@ -2397,7 +3543,8 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                 "Verification Center ($totalPendingCount)" to 0,
                 "All Users (${managedUsers.size})" to 1,
                 "Models (${models.size})" to 2,
-                "Cash Agents" to 3,
+                "Cash Agents (${dbAgents.size})" to 3,
+                "🔐 Role OTPs" to 6,
                 "Uploaded Photos (${viewModel.backendUploadedPhotos.size})" to 4,
                 "📍 Live Tracking (3 Active)" to 5
             ).forEach { (label, idx) ->
@@ -2548,7 +3695,34 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                                                     Text("👑 Admin Approved", color = Color(0xFF00E676), fontSize = 9.sp, fontWeight = FontWeight.Bold)
                                                 }
                                             }
-                                            Text("Role: ${user.role} • ID: #${user.id}", color = TextSecondary, fontSize = 10.sp)
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(4.dp),
+                                                    color = when {
+                                                        user.id.startsWith("AGENT") -> Color(0xFF2196F3).copy(alpha = 0.2f)
+                                                        user.id.startsWith("MDL") -> Color(0xFFFF2A6D).copy(alpha = 0.2f)
+                                                        else -> Color(0xFF10B981).copy(alpha = 0.2f)
+                                                    },
+                                                    border = BorderStroke(0.8.dp, when {
+                                                        user.id.startsWith("AGENT") -> Color(0xFF2196F3)
+                                                        user.id.startsWith("MDL") -> Color(0xFFFF2A6D)
+                                                        else -> Color(0xFF10B981)
+                                                    })
+                                                ) {
+                                                    Text(
+                                                        text = "AUTO ID: ${user.id}",
+                                                        color = when {
+                                                            user.id.startsWith("AGENT") -> Color(0xFF90CAF9)
+                                                            user.id.startsWith("MDL") -> Color(0xFFFF80AB)
+                                                            else -> Color(0xFFA7F3D0)
+                                                        },
+                                                        fontSize = 9.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                    )
+                                                }
+                                                Text("• Role: ${user.role}", color = TextSecondary, fontSize = 10.sp)
+                                            }
                                         }
                                     }
 
@@ -2611,8 +3785,9 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                                     }
                                 }
 
-                                // Active Manual Code Badge if present
-                                if (!user.pendingPhoneOtp.isNullOrEmpty() || !user.pendingEmailOtp.isNullOrEmpty()) {
+                                // Active One-Time Password (OTP) Badge if present
+                                val activeUserOtp = user.oneTimePassword ?: user.pendingPhoneOtp ?: user.pendingEmailOtp
+                                if (!activeUserOtp.isNullOrEmpty()) {
                                     Surface(
                                         color = Color(0xFF2A1B60),
                                         shape = RoundedCornerShape(8.dp),
@@ -2628,22 +3803,32 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                                                 Icon(Icons.Default.VpnKey, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(14.dp))
                                                 Spacer(modifier = Modifier.width(6.dp))
                                                 Text(
-                                                    text = "Active Manual OTP: ${user.pendingPhoneOtp ?: user.pendingEmailOtp}",
+                                                    text = "Active One-Time Password (OTP): $activeUserOtp",
                                                     color = PinkHighlight,
                                                     fontWeight = FontWeight.Bold,
                                                     fontSize = 11.sp
                                                 )
                                             }
-                                            TextButton(
-                                                onClick = {
-                                                    val code = user.pendingPhoneOtp ?: user.pendingEmailOtp ?: ""
-                                                    val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
-                                                    clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("OTP", code))
-                                                    Toast.makeText(context, "Code $code copied to clipboard!", Toast.LENGTH_SHORT).show()
-                                                },
-                                                contentPadding = PaddingValues(0.dp)
-                                            ) {
-                                                Text("Copy Code", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                TextButton(
+                                                    onClick = {
+                                                        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                                        clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("OTP", activeUserOtp))
+                                                        Toast.makeText(context, "OTP $activeUserOtp copied to clipboard!", Toast.LENGTH_SHORT).show()
+                                                    },
+                                                    contentPadding = PaddingValues(0.dp)
+                                                ) {
+                                                    Text("Copy", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                                TextButton(
+                                                    onClick = {
+                                                        viewModel.backendRevokeOneTimePassword(user.id)
+                                                        Toast.makeText(context, "OTP cleared for ${user.name}", Toast.LENGTH_SHORT).show()
+                                                    },
+                                                    contentPadding = PaddingValues(0.dp)
+                                                ) {
+                                                    Text("Clear", color = Color(0xFFEF4444), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                                }
                                             }
                                         }
                                     }
@@ -2651,17 +3836,17 @@ fun AdminUsersTab(viewModel: AppViewModel) {
 
                                 HorizontalDivider(color = Color.White.copy(alpha = 0.08f), thickness = 0.8.dp)
 
-                                // Action Buttons Row: [🔑 Send Manual Code] [✓ Direct Verify]
+                                // Action Buttons Row: [🔑 Set One-Time Password] [✓ Direct Verify]
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    // Button 1: Send Manual Code
+                                    // Button 1: Set / Send OTP
                                     OutlinedButton(
                                         onClick = {
                                             manualCodeModalUser = user
                                             manualCodeType = if (!user.isPhoneVerified) "PHONE" else "EMAIL"
-                                            manualCodeInput = "${(100000..999999).random()}"
+                                            manualCodeInput = user.oneTimePassword ?: "${(100000..999999).random()}"
                                         },
                                         shape = RoundedCornerShape(8.dp),
                                         border = BorderStroke(1.dp, PinkHighlight),
@@ -2670,7 +3855,7 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                                     ) {
                                         Icon(Icons.Default.VpnKey, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(14.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
-                                        Text("Send Manual Code", color = PinkHighlight, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        Text("Set / Edit OTP", color = PinkHighlight, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                     }
 
                                     // Button 2: Direct Verify
@@ -2722,43 +3907,110 @@ fun AdminUsersTab(viewModel: AppViewModel) {
             } else if (tabSelected == 2) {
                 // Models Tab
                 items(models) { m ->
+                    val linkedUser = managedUsers.firstOrNull { it.id == "model_${m.id}" || it.name.equals(m.name, true) }
+                    val activeOtp = linkedUser?.oneTimePassword ?: viewModel.modelMasterOtp
                     Card(
                         colors = CardDefaults.cardColors(containerColor = DarkSurface),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Row(
-                            modifier = Modifier.padding(12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .background(Color(0xFFFF85A6), CircleShape)
-                                ) {
-                                    Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = Color.LightGray, modifier = Modifier.align(Alignment.Center))
-                                }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(m.name, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                                    Text("Hourly: ৳${m.hourlyRate} • ${m.location}", color = TextSecondary, fontSize = 10.sp)
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Box(modifier = Modifier.size(6.dp).background(if (m.isOnline) OnlineGreen else Color.Gray, CircleShape))
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(if (m.isOnline) "Active" else "Offline", color = TextSecondary, fontSize = 9.sp)
+                        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .background(Color(0xFFFF85A6), CircleShape)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Person, contentDescription = null, tint = Color.LightGray, modifier = Modifier.align(Alignment.Center))
                                     }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Text(m.name, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                        Text("Hourly: ৳${m.hourlyRate} • ${m.location}", color = TextSecondary, fontSize = 10.sp)
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Box(modifier = Modifier.size(6.dp).background(if (m.isOnline) OnlineGreen else Color.Gray, CircleShape))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(if (m.isOnline) "Active" else "Offline", color = TextSecondary, fontSize = 9.sp)
+                                        }
+                                    }
+                                }
+
+                                Button(
+                                    onClick = { viewModel.verifyModel(m.id) },
+                                    colors = ButtonDefaults.buttonColors(containerColor = if (m.isVerified) Color(0xFF4CAF50) else PinkHighlight),
+                                    shape = RoundedCornerShape(8.dp),
+                                    modifier = Modifier.height(32.dp)
+                                ) {
+                                    Text(if (m.isVerified) "Verified ✓" else "Verify Model", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
 
-                            Button(
-                                onClick = { viewModel.verifyModel(m.id) },
-                                colors = ButtonDefaults.buttonColors(containerColor = if (m.isVerified) Color(0xFF4CAF50) else PinkHighlight),
+                            // Model OTP Row
+                            Surface(
+                                color = Color(0xFF2A1B60),
                                 shape = RoundedCornerShape(8.dp),
-                                modifier = Modifier.height(32.dp)
+                                border = BorderStroke(1.dp, PinkHighlight.copy(alpha = 0.4f)),
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text(if (m.isVerified) "Verified ✓" else "Verify Model", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(Icons.Default.VpnKey, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(13.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "Model One-Time Password: $activeOtp",
+                                            color = PinkHighlight,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp
+                                        )
+                                    }
+                                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        TextButton(
+                                            onClick = {
+                                                val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                                clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("Model OTP", activeOtp))
+                                                Toast.makeText(context, "Model OTP $activeOtp copied!", Toast.LENGTH_SHORT).show()
+                                            },
+                                            contentPadding = PaddingValues(0.dp)
+                                        ) {
+                                            Text("Copy", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                        OutlinedButton(
+                                            onClick = {
+                                                val userToEdit = linkedUser ?: run {
+                                                    val newU = com.example.viewmodel.ManagedUser(
+                                                        id = "model_${m.id}",
+                                                        name = m.name,
+                                                        role = "MODEL",
+                                                        phone = "+880 1911 234 567",
+                                                        email = "${m.name.lowercase().replace(" ", "")}@modol.pro",
+                                                        isPhoneVerified = true,
+                                                        isEmailVerified = true,
+                                                        oneTimePassword = activeOtp
+                                                    )
+                                                    managedUsers.add(newU)
+                                                    newU
+                                                }
+                                                manualCodeModalUser = userToEdit
+                                                manualCodeInput = "${(100000..999999).random()}"
+                                            },
+                                            border = BorderStroke(0.8.dp, PinkHighlight),
+                                            shape = RoundedCornerShape(6.dp),
+                                            contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+                                            modifier = Modifier.height(26.dp)
+                                        ) {
+                                            Text("🔑 Set OTP", color = PinkHighlight, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -2768,27 +4020,94 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         dbAgents.forEach { agent ->
+                            val linkedUser = managedUsers.firstOrNull { it.id == agent.id || it.phone == agent.phone || it.name.equals(agent.name, true) || it.role == "AGENT" }
+                            val activeOtp = linkedUser?.oneTimePassword ?: viewModel.cashAgentMasterOtp
                             Card(
                                 colors = CardDefaults.cardColors(containerColor = DarkSurface),
                                 shape = RoundedCornerShape(12.dp),
                                 border = BorderStroke(1.dp, PinkBorderSoft)
                             ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth().padding(14.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(agent.name, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                        Text("${agent.paymentMethod} • Acc: ${agent.accountNumber}", color = Color.White.copy(alpha = 0.85f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                                        Text("Float Balance: ৳ %,.0f • ${agent.country}".format(agent.availableBalance), color = Color(0xFF00E676), fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                    }
-                                    Box(
-                                        modifier = Modifier
-                                            .background(Color(0xFF2196F3).copy(alpha = 0.15f), RoundedCornerShape(6.dp))
-                                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text("${agent.commissionRate}% Commission", color = Color(0xFF2196F3), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(agent.name, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                            Text("${agent.paymentMethod} • Acc: ${agent.accountNumber}", color = Color.White.copy(alpha = 0.85f), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                                            Text("Float Balance: ৳ %,.0f • ${agent.country}".format(agent.availableBalance), color = Color(0xFF00E676), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .background(Color(0xFF2196F3).copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                                        ) {
+                                            Text("${agent.commissionRate}% Commission", color = Color(0xFF2196F3), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+
+                                    // Cash Agent OTP Row
+                                    Surface(
+                                        color = Color(0xFF1E293B),
+                                        shape = RoundedCornerShape(8.dp),
+                                        border = BorderStroke(1.dp, Color(0xFF2196F3).copy(alpha = 0.5f)),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Icon(Icons.Default.VpnKey, contentDescription = null, tint = Color(0xFF2196F3), modifier = Modifier.size(13.dp))
+                                                Spacer(modifier = Modifier.width(6.dp))
+                                                Text(
+                                                    text = "Agent One-Time Password: $activeOtp",
+                                                    color = Color(0xFF90CAF9),
+                                                    fontWeight = FontWeight.Bold,
+                                                    fontSize = 11.sp
+                                                )
+                                            }
+                                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                TextButton(
+                                                    onClick = {
+                                                        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                                        clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("Agent OTP", activeOtp))
+                                                        Toast.makeText(context, "Agent OTP $activeOtp copied!", Toast.LENGTH_SHORT).show()
+                                                    },
+                                                    contentPadding = PaddingValues(0.dp)
+                                                ) {
+                                                    Text("Copy", color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                                OutlinedButton(
+                                                    onClick = {
+                                                        val userToEdit = linkedUser ?: run {
+                                                            val newU = com.example.viewmodel.ManagedUser(
+                                                                id = agent.id,
+                                                                name = agent.name,
+                                                                role = "AGENT",
+                                                                phone = agent.phone,
+                                                                email = "agent.${agent.name.lowercase().replace(" ", "")}@modol.cash",
+                                                                isPhoneVerified = true,
+                                                                isEmailVerified = true,
+                                                                oneTimePassword = activeOtp
+                                                            )
+                                                            managedUsers.add(newU)
+                                                            newU
+                                                        }
+                                                        manualCodeModalUser = userToEdit
+                                                        manualCodeInput = "${(100000..999999).random()}"
+                                                    },
+                                                    border = BorderStroke(0.8.dp, Color(0xFF2196F3)),
+                                                    shape = RoundedCornerShape(6.dp),
+                                                    contentPadding = PaddingValues(horizontal = 6.dp, vertical = 0.dp),
+                                                    modifier = Modifier.height(26.dp)
+                                                ) {
+                                                    Text("🔑 Set OTP", color = Color(0xFF90CAF9), fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -2837,11 +4156,17 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                                                 .clip(RoundedCornerShape(8.dp))
                                                 .background(Color(0xFF374151))
                                         ) {
+                                            val safeUrl = if (item.fileUrl.startsWith("/") && !item.fileUrl.startsWith("file://")) "file://${item.fileUrl}" else item.fileUrl
                                             SubcomposeAsyncImage(
-                                                model = item.fileUrl,
+                                                model = safeUrl,
                                                 contentDescription = "Uploaded photo",
                                                 contentScale = ContentScale.Crop,
-                                                modifier = Modifier.fillMaxSize()
+                                                modifier = Modifier.fillMaxSize(),
+                                                error = {
+                                                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                                        Icon(imageVector = Icons.Default.BrokenImage, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(24.dp))
+                                                    }
+                                                }
                                             )
                                         }
                                         Spacer(modifier = Modifier.width(10.dp))
@@ -2901,6 +4226,184 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                 item {
                     UserToModelLiveTrackingContent(viewModel = viewModel)
                 }
+            } else if (tabSelected == 6) {
+                // Tab 6: Master Role One-Time Passwords (OTP) Center for Admin, Model, User, Cash Agent
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(1.dp, PinkHighlight.copy(alpha = 0.5f))
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(Icons.Default.VpnKey, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(24.dp))
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Text("Backend Role Master OTP Center", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                                        Text("One-Time Passwords for Admin, Model, User, and Cash Agent", color = TextSecondary, fontSize = 11.sp)
+                                    }
+                                }
+
+                                Text(
+                                    "⚡ How it works: Admins can set or randomize master One-Time Passwords for each platform role. Users, models, cash agents, and admins can use these OTPs to immediately log in or complete account verification without SMS gateway delays.",
+                                    color = Color(0xFF00E676),
+                                    fontSize = 11.sp,
+                                    lineHeight = 16.sp
+                                )
+                            }
+                        }
+
+                        // 4 Role Master OTP Cards
+                        listOf(
+                            Triple("ADMIN", "👑 Admin Master One-Time Password", viewModel.adminMasterOtp to Color(0xFFFF2A6D)),
+                            Triple("MODEL", "💃 Model Master One-Time Password", viewModel.modelMasterOtp to Color(0xFFFF85A6)),
+                            Triple("CLIENT", "👤 User / Client Master One-Time Password", viewModel.userMasterOtp to Color(0xFF10B981)),
+                            Triple("CASH_AGENT", "💼 Cash Agent Master One-Time Password", viewModel.cashAgentMasterOtp to Color(0xFF2196F3))
+                        ).forEach { (roleKey, title, pair) ->
+                            val (currentOtp, accentColor) = pair
+                            var editOtpValue by remember(currentOtp) { mutableStateOf(currentOtp) }
+                            var isEditing by remember { mutableStateOf(false) }
+
+                            Card(
+                                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, accentColor.copy(alpha = 0.4f))
+                            ) {
+                                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(title, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                        Surface(
+                                            color = accentColor.copy(alpha = 0.15f),
+                                            shape = RoundedCornerShape(6.dp)
+                                        ) {
+                                            Text(
+                                                "ACTIVE IN BACKEND",
+                                                color = accentColor,
+                                                fontSize = 9.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
+                                        }
+                                    }
+
+                                    if (isEditing) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            OutlinedTextField(
+                                                value = editOtpValue,
+                                                onValueChange = { if (it.length <= 6) editOtpValue = it },
+                                                label = { Text("New 6-Digit OTP") },
+                                                colors = OutlinedTextFieldDefaults.colors(
+                                                    focusedTextColor = Color.White,
+                                                    unfocusedTextColor = Color.White,
+                                                    focusedBorderColor = accentColor,
+                                                    unfocusedBorderColor = Color.Gray
+                                                ),
+                                                modifier = Modifier.weight(1f),
+                                                singleLine = true
+                                            )
+                                            Button(
+                                                onClick = { editOtpValue = "${(100000..999999).random()}" },
+                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF374151)),
+                                                shape = RoundedCornerShape(8.dp)
+                                            ) {
+                                                Text("🎲", fontSize = 14.sp)
+                                            }
+                                        }
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.End,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            TextButton(onClick = { isEditing = false }) {
+                                                Text("Cancel", color = TextSecondary, fontSize = 11.sp)
+                                            }
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Button(
+                                                onClick = {
+                                                    viewModel.backendSetRoleMasterOtp(roleKey, editOtpValue)
+                                                    isEditing = false
+                                                    Toast.makeText(context, "$title updated to $editOtpValue!", Toast.LENGTH_SHORT).show()
+                                                },
+                                                colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                                                shape = RoundedCornerShape(8.dp)
+                                            ) {
+                                                Text("Save & Apply", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    } else {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                Text(
+                                                    text = currentOtp,
+                                                    color = accentColor,
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    fontSize = 22.sp,
+                                                    letterSpacing = 2.sp
+                                                )
+                                                Spacer(modifier = Modifier.width(8.dp))
+                                                IconButton(
+                                                    onClick = {
+                                                        val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
+                                                        clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("OTP", currentOtp))
+                                                        Toast.makeText(context, "$title [$currentOtp] copied to clipboard!", Toast.LENGTH_SHORT).show()
+                                                    },
+                                                    modifier = Modifier.size(32.dp)
+                                                ) {
+                                                    Icon(Icons.Default.ContentCopy, contentDescription = "Copy", tint = Color.LightGray, modifier = Modifier.size(16.dp))
+                                                }
+                                            }
+
+                                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                                OutlinedButton(
+                                                    onClick = {
+                                                        val generated = viewModel.backendGenerateRoleMasterOtp(roleKey)
+                                                        Toast.makeText(context, "New random OTP [$generated] set for $roleKey!", Toast.LENGTH_SHORT).show()
+                                                    },
+                                                    border = BorderStroke(1.dp, Color(0xFF64748B)),
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                                    modifier = Modifier.height(34.dp)
+                                                ) {
+                                                    Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.LightGray, modifier = Modifier.size(14.dp))
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text("🎲 Random", color = Color.White, fontSize = 11.sp)
+                                                }
+
+                                                Button(
+                                                    onClick = {
+                                                        editOtpValue = currentOtp
+                                                        isEditing = true
+                                                    },
+                                                    colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                                    modifier = Modifier.height(34.dp)
+                                                ) {
+                                                    Icon(Icons.Default.Edit, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                    Text("Change", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -2915,13 +4418,13 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Default.VpnKey, contentDescription = null, tint = PinkHighlight)
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Generate Manual OTP Code", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+                    Text("Set One-Time Password (OTP)", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
                 }
             },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "Issue a manual verification code for ${targetUser.name}. If user reported SMS/Email gateway failure, this code can be entered directly in their profile or provided to them.",
+                        text = "Set an active One-Time Password for ${targetUser.name} (${targetUser.role}). This OTP can be used directly for login, account verification, and security bypass.",
                         color = TextSecondary,
                         fontSize = 12.sp
                     )
@@ -2958,7 +4461,7 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                         OutlinedTextField(
                             value = manualCodeInput,
                             onValueChange = { if (it.length <= 6) manualCodeInput = it },
-                            label = { Text("6-Digit Manual OTP") },
+                            label = { Text("6-Digit One-Time Password") },
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedTextColor = TextPrimary,
                                 unfocusedTextColor = TextPrimary,
@@ -2980,7 +4483,7 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                     }
 
                     Text(
-                        text = "⚡ Dispatched code is saved to user's profile and active immediately.",
+                        text = "⚡ Dispatched code is saved to user's profile and active immediately for login & verification.",
                         color = Color(0xFF00E676),
                         fontSize = 10.sp
                     )
@@ -2989,20 +4492,32 @@ fun AdminUsersTab(viewModel: AppViewModel) {
             confirmButton = {
                 Button(
                     onClick = {
-                        val code = viewModel.adminSendManualCode(targetUser.id, manualCodeType, manualCodeInput)
+                        val code = viewModel.backendSetOneTimePassword(targetUser.id, manualCodeInput)
+                        viewModel.adminSendManualCode(targetUser.id, manualCodeType, code)
                         val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as? android.content.ClipboardManager
                         clipboard?.setPrimaryClip(android.content.ClipData.newPlainText("Manual OTP", code))
-                        Toast.makeText(context, "Manual code [$code] issued and copied to clipboard!", Toast.LENGTH_LONG).show()
+                        Toast.makeText(context, "One-Time Password [$code] assigned to ${targetUser.name} and copied!", Toast.LENGTH_LONG).show()
                         manualCodeModalUser = null
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight)
                 ) {
-                    Text("Dispatch Code & Copy ✓", fontWeight = FontWeight.Bold)
+                    Text("Save & Copy OTP ✓", fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
-                TextButton(onClick = { manualCodeModalUser = null }) {
-                    Text("Cancel", color = TextSecondary)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (targetUser.oneTimePassword != null) {
+                        TextButton(onClick = {
+                            viewModel.backendRevokeOneTimePassword(targetUser.id)
+                            Toast.makeText(context, "OTP revoked for ${targetUser.name}", Toast.LENGTH_SHORT).show()
+                            manualCodeModalUser = null
+                        }) {
+                            Text("Revoke OTP", color = Color(0xFFEF4444), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    TextButton(onClick = { manualCodeModalUser = null }) {
+                        Text("Cancel", color = TextSecondary, fontSize = 11.sp)
+                    }
                 }
             }
         )
@@ -3500,20 +5015,55 @@ fun DepositWorkflowDialog(
     onDismiss: () -> Unit
 ) {
     val allAgents by viewModel.paymentAgents.collectAsStateWithLifecycle()
+    val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
+    val userCountry = currentUser?.country ?: "Bangladesh"
+    val userCurrency = currentUser?.currency ?: CountryPaymentMaster.getCurrencyForCountry(userCountry)
+    val currSymbol = CountryPaymentMaster.getCurrencySymbol(userCurrency)
     
     // Payment method choice: "GOOGLE_PAY", "ALIPAY", "CASH_AGENT"
     var selectedTopGateway by remember { mutableStateOf("GOOGLE_PAY") }
     
     // Cash Agent Flow states
-    var selectedCountry by remember { mutableStateOf("Bangladesh") }
-    val availableCountries = listOf("Bangladesh", "China", "USA", "UK", "UAE", "India", "Other")
+    var selectedCountry by remember { mutableStateOf(userCountry) }
+    val availableCountries = remember { CountryPaymentMaster.allCountries.map { it.countryName } }
     
     val countryAgents = remember(allAgents, selectedCountry) {
-        allAgents.filter { it.country.equals(selectedCountry, ignoreCase = true) }
+        val filtered = allAgents.filter { it.country.equals(selectedCountry, ignoreCase = true) }
+        if (filtered.isNotEmpty()) filtered
+        else {
+            val cData = CountryPaymentMaster.getCountry(selectedCountry) ?: CountryPaymentMaster.allCountries.first()
+            val primaryMethod = cData.paymentMethods.firstOrNull()?.methodName ?: "Bank Transfer"
+            listOf(
+                PaymentAgent(
+                    id = "AGT_${cData.isoCode}_1",
+                    name = "Verified Cash Agent (${cData.countryName})",
+                    agentCode = "${cData.phoneCode.filter { it.isDigit() }}01",
+                    country = cData.countryName,
+                    phone = "${cData.phoneCode} 1700000000",
+                    paymentMethod = primaryMethod,
+                    accountNumber = "${cData.phoneCode} 1900000000",
+                    accountHolder = "Authorized Cash Agent",
+                    city = "Capital",
+                    commissionRate = 1.0,
+                    minLimit = 100.0,
+                    maxLimit = 100000.0
+                )
+            )
+        }
     }
     
     var selectedAgent by remember(countryAgents) {
-        mutableStateOf(countryAgents.firstOrNull() ?: allAgents.firstOrNull() ?: PaymentAgent("DEF", "Default Agent", "00", "Bangladesh", "01700000000", "bKash", "01700000000"))
+        mutableStateOf(
+            countryAgents.firstOrNull() ?: allAgents.firstOrNull() ?: PaymentAgent(
+                id = "DEF",
+                name = "Default Agent",
+                agentCode = "00",
+                country = "Bangladesh",
+                phone = "01700000000",
+                paymentMethod = "bKash",
+                accountNumber = "01700000000"
+            )
+        )
     }
     
     var depositAmountInput by remember { mutableStateOf("1000") }
@@ -3665,7 +5215,57 @@ fun DepositWorkflowDialog(
                     }
                 }
 
-                // 3. Cash Agent
+                // 3. Apple Pay
+                val isApplePaySelected = selectedTopGateway == "APPLE_PAY"
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            selectedTopGateway = "APPLE_PAY"
+                            gatewayErrorNotice = null
+                            gatewaySuccessNotice = null
+                        },
+                    colors = CardDefaults.cardColors(
+                        containerColor = if (isApplePaySelected) Color.White.copy(alpha = 0.15f) else DarkSurface
+                    ),
+                    border = BorderStroke(1.5.dp, if (isApplePaySelected) Color.White else Color(0xFFFF85A6)),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .background(Color.White, CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("", color = Color.Black, fontWeight = FontWeight.Black, fontSize = 20.sp)
+                            }
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text("⚪ Apple Pay", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                Text("Face ID / Touch ID Instant Payment", color = TextSecondary, fontSize = 11.sp)
+                            }
+                        }
+                        RadioButton(
+                            selected = isApplePaySelected,
+                            onClick = {
+                                selectedTopGateway = "APPLE_PAY"
+                                gatewayErrorNotice = null
+                                gatewaySuccessNotice = null
+                            },
+                            colors = RadioButtonDefaults.colors(selectedColor = Color.White)
+                        )
+                    }
+                }
+
+                // 4. Cash Agent
                 val isCashAgentSelected = selectedTopGateway == "CASH_AGENT"
                 Card(
                     modifier = Modifier
@@ -3718,8 +5318,13 @@ fun DepositWorkflowDialog(
                 HorizontalDivider(color = Color.White.copy(alpha = 0.1f))
 
                 // --- GATEWAY SPECIFIC UI CONTENT ---
-                if (selectedTopGateway == "GOOGLE_PAY" || selectedTopGateway == "ALIPAY") {
-                    val gwName = if (selectedTopGateway == "GOOGLE_PAY") "Google Pay" else "Alipay"
+                if (selectedTopGateway != "CASH_AGENT") {
+                    val gwName = when (selectedTopGateway) {
+                        "GOOGLE_PAY" -> "Google Pay"
+                        "ALIPAY" -> "Alipay"
+                        "APPLE_PAY" -> "Apple Pay"
+                        else -> selectedTopGateway
+                    }
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Text("Enter Amount ($gwName Automatic Checkout):", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         OutlinedTextField(
@@ -3826,7 +5431,8 @@ fun DepositWorkflowDialog(
                                         }
                                         .padding(horizontal = 12.dp, vertical = 6.dp)
                                 ) {
-                                    Text(c, color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    val cFlag = CountryPaymentMaster.getFlagForCountry(c)
+                                    Text("$cFlag $c", color = TextPrimary, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
@@ -3959,8 +5565,21 @@ fun DepositWorkflowDialog(
             }
         },
         confirmButton = {
-            if (selectedTopGateway == "GOOGLE_PAY" || selectedTopGateway == "ALIPAY") {
-                val gwName = if (selectedTopGateway == "GOOGLE_PAY") "Google Pay" else "Alipay"
+            if (selectedTopGateway != "CASH_AGENT") {
+                val gwName = when (selectedTopGateway) {
+                    "GOOGLE_PAY" -> "Google Pay"
+                    "ALIPAY" -> "Alipay"
+                    "APPLE_PAY" -> "Apple Pay"
+                    else -> selectedTopGateway
+                }
+                val btnColor = when (selectedTopGateway) {
+                    "GOOGLE_PAY" -> Color(0xFF00E676)
+                    "ALIPAY" -> Color(0xFF1E88E5)
+                    "APPLE_PAY" -> Color.White
+                    else -> PinkHighlight
+                }
+                val textColor = if (selectedTopGateway == "GOOGLE_PAY" || selectedTopGateway == "APPLE_PAY") Color.Black else Color.White
+
                 Button(
                     onClick = {
                         isProcessingGateway = true
@@ -3977,11 +5596,9 @@ fun DepositWorkflowDialog(
                         }
                     },
                     enabled = !isProcessingGateway,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (selectedTopGateway == "GOOGLE_PAY") Color(0xFF00E676) else Color(0xFF1E88E5)
-                    )
+                    colors = ButtonDefaults.buttonColors(containerColor = btnColor)
                 ) {
-                    Text("Proceed with $gwName", color = Color.Black, fontWeight = FontWeight.Bold)
+                    Text("Proceed with $gwName", color = textColor, fontWeight = FontWeight.Bold)
                 }
             } else {
                 Button(
@@ -4029,9 +5646,18 @@ fun WithdrawalWorkflowDialog(
 ) {
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
     val availableBalance = currentUser?.balance ?: 1500.0
+    val userCountry = currentUser?.country ?: "Bangladesh"
+    val userCurrency = currentUser?.currency ?: CountryPaymentMaster.getCurrencyForCountry(userCountry)
+    val currSymbol = CountryPaymentMaster.getCurrencySymbol(userCurrency)
+    val countryFlag = CountryPaymentMaster.getFlagForCountry(userCountry)
+
+    val countryMethods = remember(userCountry) {
+        val methods = CountryPaymentMaster.getPaymentMethodsForCountry(userCountry).map { it.methodName }
+        if (methods.isNotEmpty()) methods else listOf("Bank Transfer", "Cash")
+    }
 
     var withdrawAmountInput by remember { mutableStateOf("500") }
-    var selectedMethod by remember { mutableStateOf("bKash Personal") }
+    var selectedMethod by remember(countryMethods) { mutableStateOf(countryMethods.first()) }
     var accountNumberInput by remember { mutableStateOf("01712345678") }
     var accountHolderInput by remember { mutableStateOf(currentUser?.name ?: "Miraz Reza") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -4051,8 +5677,8 @@ fun WithdrawalWorkflowDialog(
                 }
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
-                    Text("Withdraw Funds", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
-                    Text("Available Wallet Balance: ৳${availableBalance.toInt()}", color = Color(0xFF4CAF50), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    Text("Withdraw Funds ($countryFlag $userCountry)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                    Text("Available Wallet Balance: $currSymbol${availableBalance.toInt()} $userCurrency", color = Color(0xFF4CAF50), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                 }
             }
         },
@@ -4085,14 +5711,14 @@ fun WithdrawalWorkflowDialog(
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Text("🌐 Open B2B Cash Agent Marketplace", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                Text("Withdraw BDT/USD via B2B Cash Agents with live chat & escrow", color = TextSecondary, fontSize = 10.sp)
+                                Text("Withdraw $userCurrency via B2B Cash Agents with live chat & escrow", color = TextSecondary, fontSize = 10.sp)
                             }
                         }
                         Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = Color.White)
                     }
                 }
 
-                Text("Withdrawal Amount (BDT):", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Text("Withdrawal Amount ($userCurrency • $currSymbol):", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 OutlinedTextField(
                     value = withdrawAmountInput,
                     onValueChange = { withdrawAmountInput = it; errorMessage = null },
@@ -4103,18 +5729,23 @@ fun WithdrawalWorkflowDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Text("Payment Channel:", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf("bKash Personal", "Nagad Personal", "City Bank", "Rocket").forEach { m ->
+                Text("Payment Channel ($userCountry Wallets):", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    countryMethods.forEach { m ->
                         val isSel = selectedMethod == m
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(6.dp))
                                 .background(if (isSel) PinkHighlight else Color(0xFFFF85A6))
                                 .clickable { selectedMethod = m }
-                                .padding(horizontal = 8.dp, vertical = 6.dp)
+                                .padding(horizontal = 10.dp, vertical = 6.dp)
                         ) {
-                            Text(m, color = Color.White, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            Text(m, color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -4233,6 +5864,16 @@ fun AdminCollectionsTab(viewModel: AppViewModel) {
                     modifier = Modifier.height(32.dp)
                 ) {
                     Text("Master Ledger (${ledgerEntries.size})", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                }
+
+                Button(
+                    onClick = { activeTab = 2 },
+                    colors = ButtonDefaults.buttonColors(containerColor = if (activeTab == 2) PinkHighlight else Color(0xFFFF85A6)),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text("Gateways (${viewModel.adminPaymentGateways.size})", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -4377,7 +6018,7 @@ fun AdminCollectionsTab(viewModel: AppViewModel) {
                     }
                 }
             }
-        } else {
+        } else if (activeTab == 1) {
             // Master Ledger Tab
             LazyColumn(
                 modifier = Modifier.fillMaxWidth().weight(1f),
@@ -4427,6 +6068,16 @@ fun AdminCollectionsTab(viewModel: AppViewModel) {
                         }
                     }
                 }
+            }
+        } else {
+            // Payment Gateways Tab (Google Pay, Alipay, Apple Pay & Custom Gateways)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                AdminPaymentGatewaysSection(viewModel = viewModel)
             }
         }
     }
@@ -4920,47 +6571,89 @@ fun AdminWalletsTab(viewModel: AppViewModel) {
     var showProofModalForWithdrawal by remember { mutableStateOf<WithdrawalRequest?>(null) }
     var proofUrlInput by remember { mutableStateOf("https://images.unsplash.com/photo-1559526324-4b87b5e36e44") }
     var refInput by remember { mutableStateOf("FT20260809-901") }
+    var selectedWalletSubTab by remember { mutableIntStateOf(0) } // 0 = Payouts, 1 = Payment Gateways (Google Pay, Alipay, Apple Pay & New)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(DarkBg)
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        Text("Wallet & Withdrawal Approvals", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-
-        Card(
-            colors = CardDefaults.cardColors(containerColor = DarkSurface),
-            shape = RoundedCornerShape(12.dp)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text("Total Withdrawal Requests", color = TextSecondary, fontSize = 11.sp)
-                    Text("${withdrawals.size} Requests", color = TextPrimary, fontWeight = FontWeight.Black, fontSize = 18.sp)
+            Column {
+                Text("Wallets & Payment Gateways", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                Text("Approvals & Google Pay, Alipay, Apple Pay, New Config", color = TextSecondary, fontSize = 11.sp)
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Button(
+                    onClick = { selectedWalletSubTab = 0 },
+                    colors = ButtonDefaults.buttonColors(containerColor = if (selectedWalletSubTab == 0) PinkHighlight else Color(0xFF334155)),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text("Payouts (${withdrawals.count { it.status == "PENDING" }})", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("Pending Payout Volume", color = TextSecondary, fontSize = 11.sp)
-                    Text("৳${withdrawals.filter { it.status == "PENDING" || it.status == "PROOF_UPLOADED" }.sumOf { it.amount }.toInt()}", color = PinkHighlight, fontWeight = FontWeight.Black, fontSize = 18.sp)
+
+                Button(
+                    onClick = { selectedWalletSubTab = 1 },
+                    colors = ButtonDefaults.buttonColors(containerColor = if (selectedWalletSubTab == 1) PinkHighlight else Color(0xFF334155)),
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Text("💳 Gateways (${viewModel.adminPaymentGateways.size})", fontSize = 10.sp, fontWeight = FontWeight.Bold)
                 }
             }
         }
 
-        Text("Pending & Processed Withdrawals", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-
-        if (withdrawals.isEmpty()) {
-            Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-                Text("All withdrawal requests cleared! ✓", color = TextSecondary, fontSize = 12.sp)
+        if (selectedWalletSubTab == 1) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                AdminPaymentGatewaysSection(viewModel = viewModel)
             }
         } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+            Card(
+                colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                items(withdrawals) { wd ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column {
+                        Text("Total Withdrawal Requests", color = TextSecondary, fontSize = 11.sp)
+                        Text("${withdrawals.size} Requests", color = TextPrimary, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("Pending Payout Volume", color = TextSecondary, fontSize = 11.sp)
+                        Text("৳${withdrawals.filter { it.status == "PENDING" || it.status == "PROOF_UPLOADED" }.sumOf { it.amount }.toInt()}", color = PinkHighlight, fontWeight = FontWeight.Black, fontSize = 18.sp)
+                    }
+                }
+            }
+
+            Text("Pending & Processed Withdrawals", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+
+            if (withdrawals.isEmpty()) {
+                Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
+                    Text("All withdrawal requests cleared! ✓", color = TextSecondary, fontSize = 12.sp)
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    items(withdrawals) { wd ->
                     Card(
                         colors = CardDefaults.cardColors(containerColor = DarkSurface),
                         shape = RoundedCornerShape(12.dp)
@@ -5049,6 +6742,7 @@ fun AdminWalletsTab(viewModel: AppViewModel) {
             }
         }
     }
+}
 
     if (showProofModalForWithdrawal != null) {
         val wd = showProofModalForWithdrawal!!
@@ -5104,6 +6798,240 @@ fun AdminSettingsTab(viewModel: AppViewModel) {
                     .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Text("ADMIN ONLY", color = Color(0xFF00E676), fontWeight = FontWeight.ExtraBold, fontSize = 9.sp)
+            }
+        }
+
+        // =========================================================================
+        // 🌐 BACKEND TO API GENERATOR SYSTEM (FOR WEBSITE & OTHER APPS) QUICK ACCESS
+        // =========================================================================
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            color = Color(0xFF0F172A),
+            border = BorderStroke(1.5.dp, PinkHighlight),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { viewModel.selectedTab = 8 }
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .background(
+                                Brush.linearGradient(
+                                    listOf(Color(0xFF3B82F6), Color(0xFF8B5CF6), PinkHighlight)
+                                ),
+                                shape = RoundedCornerShape(10.dp)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(imageVector = Icons.Default.Code, contentDescription = null, tint = Color.White, modifier = Modifier.size(22.dp))
+                    }
+
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Text(
+                                "API Generator System",
+                                color = Color.White,
+                                fontWeight = FontWeight.ExtraBold,
+                                fontSize = 14.sp
+                            )
+                            Surface(
+                                shape = RoundedCornerShape(4.dp),
+                                color = Color(0xFF10B981).copy(alpha = 0.2f),
+                                border = BorderStroke(1.dp, Color(0xFF10B981))
+                            ) {
+                                Text("NEW TAB", color = Color(0xFF10B981), fontSize = 8.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp))
+                            }
+                        }
+                        Text(
+                            "Generate REST APIs, Webhooks & Auth Keys for Website & Other Apps",
+                            color = Color(0xFF94A3B8),
+                            fontSize = 10.sp,
+                            lineHeight = 14.sp
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = PinkHighlight,
+                    modifier = Modifier.clickable { viewModel.selectedTab = 8 }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text("Open Tab", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color.White, modifier = Modifier.size(12.dp))
+                    }
+                }
+            }
+        }
+        // =========================================================================
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+            shape = RoundedCornerShape(14.dp),
+            border = BorderStroke(1.2.dp, Color(0xFF334155))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(Color(0xFFFF2A6D).copy(alpha = 0.2f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Shield,
+                                contentDescription = null,
+                                tint = Color(0xFFFF2A6D),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Column {
+                            Text("Admin Security & Active Sessions", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("পাসওয়ার্ড পরিবর্তন ও সেশন ম্যানেজমেন্ট", color = Color(0xFF94A3B8), fontSize = 11.sp)
+                        }
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFFFF2A6D).copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            "${viewModel.activeSessionsList.size} Devices",
+                            color = Color(0xFFFF2A6D),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Button(
+                        onClick = { viewModel.showChangePasswordDialog = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF2A6D)),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(imageVector = Icons.Default.LockReset, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Change Password", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+
+                    OutlinedButton(
+                        onClick = { viewModel.showAllLogoutConfirmDialog = true },
+                        border = BorderStroke(1.2.dp, Color(0xFFEF4444)),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFEF4444)),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Icon(imageVector = Icons.Default.Devices, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("All Logout", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                // Direct Admin Sign Out Button
+                Button(
+                    onClick = { viewModel.showSignOutConfirmDialog = true },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626)),
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth().height(42.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.Logout, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Sign Out Admin Panel (অ্যাডমিন লগআউট)", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                }
+            }
+        }
+
+        // =========================================================================
+        // 📍 0. LIVE GPS BOTTOM NAVIGATION TAB VISIBILITY (ADMIN MASTER CONTROL)
+        // =========================================================================
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF0F172A)),
+            shape = RoundedCornerShape(14.dp),
+            border = BorderStroke(1.5.dp, if (viewModel.showLiveGpsBottomTab) Color(0xFF00E676) else Color(0xFF334155))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(Color(0xFF00E676).copy(alpha = 0.2f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.LocationOn,
+                                contentDescription = null,
+                                tint = Color(0xFF00E676),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Column {
+                            Text("Live GPS Bottom Navigation Tab", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text(
+                                text = if (viewModel.showLiveGpsBottomTab) "Status: VISIBLE in User & Model Bottom Bar" else "Status: HIDDEN by default (Admin Controlled)",
+                                color = if (viewModel.showLiveGpsBottomTab) Color(0xFF00E676) else TextSecondary,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+                    Switch(
+                        checked = viewModel.showLiveGpsBottomTab,
+                        onCheckedChange = { viewModel.setLiveGpsBottomTabVisibility(it) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.White,
+                            checkedTrackColor = Color(0xFF00E676),
+                            uncheckedThumbColor = Color.Gray,
+                            uncheckedTrackColor = Color(0xFF1E293B)
+                        )
+                    )
+                }
+                Text(
+                    text = "Controls whether the 'Live GPS' tab appears in the bottom navigation bar for Clients and Models. You can also toggle this remotely via the PHP Web Backend under Settings / Live GPS.",
+                    color = TextSecondary,
+                    fontSize = 11.sp,
+                    lineHeight = 15.sp
+                )
             }
         }
 
@@ -5514,6 +7442,127 @@ fun AdminSettingsTab(viewModel: AppViewModel) {
         }
 
         // =========================================================================
+        // 🔐 1.1 BACKEND MASTER ONE-TIME PASSWORDS (ADMIN, MODEL, USER, CASH AGENT)
+        // =========================================================================
+        Card(
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1E293B)),
+            shape = RoundedCornerShape(14.dp),
+            border = BorderStroke(1.2.dp, PinkHighlight.copy(alpha = 0.5f))
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(PinkHighlight.copy(alpha = 0.2f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.VpnKey,
+                                contentDescription = null,
+                                tint = PinkHighlight,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        Column {
+                            Text("Backend Master Role One-Time Passwords", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("One-Time Passwords for Admin, Model, User, and Cash Agent", color = Color(0xFF94A3B8), fontSize = 11.sp)
+                        }
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFF00E676).copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            "LIVE IN DB",
+                            color = Color(0xFF00E676),
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                Text(
+                    text = "These master OTPs allow instant login and identity verification for each platform role without SMS gateway latency. Accounts can use these codes in the OTP verification screen or as a temporary login password.",
+                    color = Color(0xFF94A3B8),
+                    fontSize = 11.sp,
+                    lineHeight = 15.sp
+                )
+
+                // 4 Role Master OTP Input Rows
+                listOf(
+                    Triple("ADMIN", "👑 Admin Master OTP", viewModel.adminMasterOtp to Color(0xFFFF2A6D)),
+                    Triple("MODEL", "💃 Model Master OTP", viewModel.modelMasterOtp to Color(0xFFFF85A6)),
+                    Triple("CLIENT", "👤 User / Client Master OTP", viewModel.userMasterOtp to Color(0xFF10B981)),
+                    Triple("CASH_AGENT", "💼 Cash Agent Master OTP", viewModel.cashAgentMasterOtp to Color(0xFF2196F3))
+                ).forEach { (roleKey, title, pair) ->
+                    val (currentOtp, accentColor) = pair
+                    var tempOtp by remember(currentOtp) { mutableStateOf(currentOtp) }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1.5f)) {
+                            Text(title, color = accentColor, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Spacer(modifier = Modifier.height(3.dp))
+                            OutlinedTextField(
+                                value = tempOtp,
+                                onValueChange = { if (it.length <= 6) tempOtp = it },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedTextColor = Color.White,
+                                    unfocusedTextColor = Color.White,
+                                    focusedBorderColor = accentColor,
+                                    unfocusedBorderColor = Color(0xFF334155)
+                                ),
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+
+                        Button(
+                            onClick = {
+                                val generated = viewModel.backendGenerateRoleMasterOtp(roleKey)
+                                tempOtp = generated
+                                Toast.makeText(context, "$title randomized to $generated!", Toast.LENGTH_SHORT).show()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF334155)),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.padding(top = 16.dp).height(42.dp)
+                        ) {
+                            Text("🎲 Random", fontSize = 10.sp)
+                        }
+
+                        Button(
+                            onClick = {
+                                viewModel.backendSetRoleMasterOtp(roleKey, tempOtp)
+                                Toast.makeText(context, "$title saved as $tempOtp!", Toast.LENGTH_SHORT).show()
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.padding(top = 16.dp).height(42.dp)
+                        ) {
+                            Text("Save", fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
+        }
+
+        // =========================================================================
         // 2. COMMISSION RATES CARD
         // =========================================================================
         Card(
@@ -5579,6 +7628,11 @@ fun AdminSettingsTab(viewModel: AppViewModel) {
                 }
             }
         }
+
+        // =========================================================================
+        // 4. 💳 ONLINE PAYMENT GATEWAYS (GOOGLE PAY, ALIPAY, APPLE PAY & NEW GATEWAYS)
+        // =========================================================================
+        AdminPaymentGatewaysSection(viewModel = viewModel)
     }
 }
 
@@ -5656,35 +7710,57 @@ fun CashAgentDashboardTab(viewModel: AppViewModel) {
                     Text("B2B Cash Agent Platform", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 20.sp)
                 }
 
-                // Online/Offline Toggle Button
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = if (isAgentOnline) Color(0xFF00E676).copy(alpha = 0.15f) else Color.White.copy(alpha = 0.08f),
-                    border = BorderStroke(1.dp, if (isAgentOnline) Color(0xFF00E676) else Color.Gray),
-                    modifier = Modifier.clickable {
-                        isAgentOnline = !isAgentOnline
-                        Toast.makeText(
-                            context,
-                            if (isAgentOnline) "🟢 Agent Status: Online (Ready to accept B2B orders)" else "⚪ Agent Status: Offline (Hidden from marketplace)",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    // Online/Offline Toggle Button
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = if (isAgentOnline) Color(0xFF00E676).copy(alpha = 0.15f) else Color.White.copy(alpha = 0.08f),
+                        border = BorderStroke(1.dp, if (isAgentOnline) Color(0xFF00E676) else Color.Gray),
+                        modifier = Modifier.clickable {
+                            isAgentOnline = !isAgentOnline
+                            Toast.makeText(
+                                context,
+                                if (isAgentOnline) "🟢 Agent Status: Online (Ready to accept B2B orders)" else "⚪ Agent Status: Offline (Hidden from marketplace)",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(8.dp)
-                                .background(if (isAgentOnline) Color(0xFF00E676) else Color.Gray, CircleShape)
-                        )
-                        Text(
-                            if (isAgentOnline) "Online" else "Offline",
-                            color = if (isAgentOnline) Color(0xFF00E676) else Color.Gray,
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 11.sp
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(if (isAgentOnline) Color(0xFF00E676) else Color.Gray, CircleShape)
+                            )
+                            Text(
+                                if (isAgentOnline) "Online" else "Offline",
+                                color = if (isAgentOnline) Color(0xFF00E676) else Color.Gray,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
+                        }
+                    }
+
+                    // Quick Cash Agent Sign Out Button
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(Color(0xFFDC2626).copy(alpha = 0.2f), CircleShape)
+                            .border(1.dp, Color(0xFFEF4444).copy(alpha = 0.4f), CircleShape)
+                            .clickable { viewModel.showSignOutConfirmDialog = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Logout,
+                            contentDescription = "Sign Out",
+                            tint = Color(0xFFEF4444),
+                            modifier = Modifier.size(16.dp)
                         )
                     }
                 }
@@ -6649,19 +8725,183 @@ fun CashAgentProfileTab(viewModel: AppViewModel) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
-                    modifier = Modifier
-                        .size(60.dp)
-                        .background(PinkLight, CircleShape)
-                        .border(1.5.dp, PinkBorderSoft, CircleShape),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.BottomEnd,
+                    modifier = Modifier.clickable { viewModel.showPhotoUploadDialog = true }
                 ) {
-                    Icon(imageVector = Icons.Default.SupportAgent, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(32.dp))
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .background(PinkLight, CircleShape)
+                            .border(1.5.dp, PinkHighlight, CircleShape)
+                            .clip(CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        val agentAvatar = currentUser?.avatarUrl
+                        if (!agentAvatar.isNullOrBlank()) {
+                            val safeAvatar = if (agentAvatar.startsWith("/") && !agentAvatar.startsWith("file://")) "file://$agentAvatar" else agentAvatar
+                            SubcomposeAsyncImage(
+                                model = safeAvatar,
+                                contentDescription = "Agent Avatar",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop,
+                                error = {
+                                    Icon(imageVector = Icons.Default.SupportAgent, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(32.dp))
+                                }
+                            )
+                        } else {
+                            Icon(imageVector = Icons.Default.SupportAgent, contentDescription = null, tint = PinkHighlight, modifier = Modifier.size(32.dp))
+                        }
+                    }
+
+                    Box(
+                        modifier = Modifier
+                            .size(22.dp)
+                            .background(PinkHighlight, CircleShape)
+                            .border(1.5.dp, Color.White, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(imageVector = Icons.Default.PhotoCamera, contentDescription = "Edit Photo", tint = Color.White, modifier = Modifier.size(12.dp))
+                    }
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column {
                     Text(currentUser?.name ?: "Agent Sumon", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 15.sp)
                     Text("Role: Cash Collection Agent", color = TextSecondary, fontSize = 11.sp)
                     Text("ID: agent_584", color = TextSecondary, fontSize = 11.sp)
+                }
+            }
+        }
+
+        // =========================================================================
+        // 🔐 CASH AGENT SECURITY & LOGOUT CONTROLS
+        // =========================================================================
+        Card(
+            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.5.dp, PinkBorderSoft),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(Color(0xFFFF2A6D).copy(alpha = 0.2f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(imageVector = Icons.Default.Shield, contentDescription = null, tint = Color(0xFFFF2A6D), modifier = Modifier.size(20.dp))
+                        }
+                        Column {
+                            Text("Agent Security & Active Sessions", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                            Text("Password & session management", color = TextSecondary, fontSize = 11.sp)
+                        }
+                    }
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = Color(0xFFFF2A6D).copy(alpha = 0.15f)
+                    ) {
+                        Text(
+                            "${viewModel.activeSessionsList.size} Devices",
+                            color = Color(0xFFFF2A6D),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
+                }
+
+                HorizontalDivider(color = PinkBorderSoft, thickness = 0.8.dp)
+
+                // 1. Change Password Row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.showChangePasswordDialog = true }
+                        .padding(vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFFFF2A6D).copy(alpha = 0.15f),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(imageVector = Icons.Default.LockReset, contentDescription = null, tint = Color(0xFFFF2A6D), modifier = Modifier.size(18.dp))
+                            }
+                        }
+                        Column {
+                            Text("Change Password", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("Update login credentials & safeguard account", color = TextSecondary, fontSize = 11.sp)
+                        }
+                    }
+                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(18.dp))
+                }
+
+                HorizontalDivider(color = PinkBorderSoft, thickness = 0.8.dp)
+
+                // 2. All Devices Logout Row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.showAllLogoutConfirmDialog = true }
+                        .padding(vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFFDC2626).copy(alpha = 0.15f),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(imageVector = Icons.Default.Devices, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(18.dp))
+                            }
+                        }
+                        Column {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                Text("Log Out All Devices", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
+                            Text("Terminate active sessions on other phones & PCs", color = TextSecondary, fontSize = 11.sp)
+                        }
+                    }
+                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp))
+                }
+
+                HorizontalDivider(color = PinkBorderSoft, thickness = 0.8.dp)
+
+                // 3. Direct Sign Out Row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.showSignOutConfirmDialog = true }
+                        .padding(vertical = 6.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color(0xFFDC2626).copy(alpha = 0.15f),
+                            modifier = Modifier.size(36.dp)
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(imageVector = Icons.Default.Logout, contentDescription = null, tint = Color(0xFFDC2626), modifier = Modifier.size(18.dp))
+                            }
+                        }
+                        Column {
+                            Text("Sign Out", color = Color(0xFFEF4444), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            Text("Safely exit cash agent session on this device", color = TextSecondary, fontSize = 11.sp)
+                        }
+                    }
+                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(18.dp))
                 }
             }
         }
@@ -9836,147 +12076,58 @@ fun B2BCashAgentMarketplaceContent(
     val currentUser by viewModel.currentUser.collectAsStateWithLifecycle()
 
     var activeTopTab by remember { mutableStateOf("BUY") } // "BUY", "SELL", "AGENTS", "ORDERS"
-    var activeFilterChip by remember { mutableStateOf("ALL") } // "ALL", "ONLINE", "VERIFIED", "BDT", "USD"
     var searchQuery by remember { mutableStateOf("") }
     var isSearchActive by remember { mutableStateOf(false) }
+
+    val selectedCountry = viewModel.p2pSelectedCountry
+    val availableCountries = viewModel.p2pAvailableCountries
+    var showCountryDialog by remember { mutableStateOf(false) }
+    var activePaymentMethodFilter by remember { mutableStateOf("ALL") }
+    var onlineOnlyFilter by remember { mutableStateOf(false) }
+    var verifiedOnlyFilter by remember { mutableStateOf(false) }
 
     var selectedOrderForChat by remember { mutableStateOf<B2BOrder?>(null) }
     var selectedAgentForOrder by remember { mutableStateOf<PaymentAgent?>(null) }
     var showTopUpDialog by remember { mutableStateOf(false) }
     var showWithdrawDialog by remember { mutableStateOf(false) }
+    var showSystemsGuideDialog by remember { mutableStateOf(false) }
 
-    // Preloaded high-fidelity B2B Cash Agents matching the exact reference photo
-    val photoAgents = remember {
-        listOf(
-            MarketplaceAgentItem(
-                id = "agent_rahim",
-                name = "Rahim Agent",
-                avatarUrl = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
-                country = "Bangladesh",
-                location = "Dhaka, Bangladesh",
-                flagEmoji = "🇧🇩",
-                rating = 4.9,
-                reviewsCount = 320,
-                ordersCount = 1250,
-                buyRate = 122.50,
-                sellRate = 120.80,
-                currency = "BDT",
-                currencySymbol = "৳",
-                minLimit = 5000.0,
-                maxLimit = 500000.0,
-                paymentMethods = listOf("bKash", "Nagad", "Bank", "Cash"),
-                buttonLabel = "Buy Now",
-                isOnline = true,
-                isVerified = true,
-                accountNumber = "01755123456"
-            ),
-            MarketplaceAgentItem(
-                id = "agent_dubai",
-                name = "Dubai Cash Pro",
-                avatarUrl = "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d",
-                country = "UAE",
-                location = "Dubai, UAE",
-                flagEmoji = "🇦🇪",
-                rating = 4.8,
-                reviewsCount = 210,
-                ordersCount = 980,
-                buyRate = 1.004,
-                sellRate = 0.997,
-                currency = "USD",
-                currencySymbol = "$",
-                minLimit = 100.0,
-                maxLimit = 50000.0,
-                paymentMethods = listOf("Bank", "Cash", "USDT", "Wire"),
-                buttonLabel = "Trade",
-                isOnline = true,
-                isVerified = true,
-                accountNumber = "+971501234567"
-            ),
-            MarketplaceAgentItem(
-                id = "agent_bd_exchange",
-                name = "BD Exchange Hub",
-                avatarUrl = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e",
-                country = "Bangladesh",
-                location = "Chittagong, Bangladesh",
-                flagEmoji = "🇧🇩",
-                rating = 4.7,
-                reviewsCount = 186,
-                ordersCount = 640,
-                buyRate = 122.20,
-                sellRate = 121.00,
-                currency = "BDT",
-                currencySymbol = "৳",
-                minLimit = 10000.0,
-                maxLimit = 1000000.0,
-                paymentMethods = listOf("bKash", "Nagad", "Bank", "Cash"),
-                buttonLabel = "Buy Now",
-                isOnline = true,
-                isVerified = true,
-                accountNumber = "01819987654"
-            ),
-            MarketplaceAgentItem(
-                id = "agent_global",
-                name = "Global Pay Agent",
-                avatarUrl = "https://images.unsplash.com/photo-1534528741775-53994a69daeb",
-                country = "Singapore",
-                location = "Singapore, Singapore",
-                flagEmoji = "🇸🇬",
-                rating = 4.9,
-                reviewsCount = 412,
-                ordersCount = 2300,
-                buyRate = 1.003,
-                sellRate = 0.996,
-                currency = "USD",
-                currencySymbol = "$",
-                minLimit = 500.0,
-                maxLimit = 100000.0,
-                paymentMethods = listOf("Bank", "USDT", "Wise", "Cash"),
-                buttonLabel = "Trade",
-                isOnline = true,
-                isVerified = true,
-                accountNumber = "+6581234567"
-            ),
-            MarketplaceAgentItem(
-                id = "agent_sumon",
-                name = "Agent Sumon",
-                avatarUrl = "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7",
-                country = "Bangladesh",
-                location = "Dhaka, Bangladesh",
-                flagEmoji = "🇧🇩",
-                rating = 4.9,
-                reviewsCount = 428,
-                ordersCount = 1840,
-                buyRate = 122.40,
-                sellRate = 120.90,
-                currency = "BDT",
-                currencySymbol = "৳",
-                minLimit = 2000.0,
-                maxLimit = 300000.0,
-                paymentMethods = listOf("bKash", "Nagad", "Rocket", "Bank", "Cash"),
-                buttonLabel = "Buy Now",
-                isOnline = true,
-                isVerified = true,
-                accountNumber = "01711204899"
-            )
-        )
+    // Sync countries and payment methods from backend
+    LaunchedEffect(Unit) {
+        viewModel.syncCountriesFromBackend()
     }
 
-    // Filter agents based on active filter chip and search query
-    val displayedAgents = remember(activeFilterChip, searchQuery, photoAgents) {
-        photoAgents.filter { agent ->
-            val matchFilter = when (activeFilterChip) {
-                "ONLINE" -> agent.isOnline
-                "VERIFIED" -> agent.isVerified
-                "BDT" -> agent.currency == "BDT"
-                "USD" -> agent.currency == "USD"
-                else -> true
+    // Reset payment method filter whenever selected country changes
+    LaunchedEffect(selectedCountry.countryName) {
+        activePaymentMethodFilter = "ALL"
+    }
+
+    // Dynamic localized agents matching selected Country, Currency & Payment Methods
+    val countryAgents = remember(selectedCountry, allAgents) {
+        getMarketplaceAgentsForCountry(selectedCountry, allAgents)
+    }
+
+    // Filter agents based on payment method filter, online/verified status, and search query
+    val displayedAgents = remember(
+        countryAgents,
+        activePaymentMethodFilter,
+        onlineOnlyFilter,
+        verifiedOnlyFilter,
+        searchQuery
+    ) {
+        countryAgents.filter { agent ->
+            val matchMethod = if (activePaymentMethodFilter == "ALL") true else {
+                agent.paymentMethods.any { it.equals(activePaymentMethodFilter, ignoreCase = true) }
             }
+            val matchOnline = if (onlineOnlyFilter) agent.isOnline else true
+            val matchVerified = if (verifiedOnlyFilter) agent.isVerified else true
             val matchQuery = if (searchQuery.isBlank()) true else {
                 agent.name.contains(searchQuery, ignoreCase = true) ||
                 agent.location.contains(searchQuery, ignoreCase = true) ||
-                agent.currency.contains(searchQuery, ignoreCase = true)
+                agent.currency.contains(searchQuery, ignoreCase = true) ||
+                agent.paymentMethods.any { it.contains(searchQuery, ignoreCase = true) }
             }
-            matchFilter && matchQuery
+            matchMethod && matchOnline && matchVerified && matchQuery
         }
     }
 
@@ -9986,562 +12137,693 @@ fun B2BCashAgentMarketplaceContent(
 
     Surface(
         modifier = Modifier.fillMaxSize(),
-        color = Color(0xFFFFF5F7) // Soft blush pink background matching photo
+        color = Color(0xFFF8FAFC) // Soft modern clean canvas
     ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .then(if (onClose != null) Modifier.windowInsetsPadding(WindowInsets.statusBars) else Modifier)
-                    .padding(horizontal = 16.dp, vertical = if (onClose != null) 10.dp else 4.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .then(if (onClose != null) Modifier.windowInsetsPadding(WindowInsets.statusBars) else Modifier)
+                .padding(horizontal = 14.dp, vertical = if (onClose != null) 10.dp else 4.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // ==========================================
+            // 1. TOP APP BAR (Logo, Country, Search & Bell)
+            // ==========================================
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                // ==========================================
-                // 1. TOP APP BAR (Logo, Title, Search & Bell)
-                // ==========================================
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        // Heart 'M' Logo Box
-                        Box(
-                            modifier = Modifier
-                                .size(42.dp)
-                                .background(
-                                    brush = Brush.linearGradient(
-                                        colors = listOf(Color(0xFFFF2A6D), Color(0xFFFF5E8A), Color(0xFFC2185B))
-                                    ),
-                                    shape = RoundedCornerShape(13.dp)
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Favorite,
-                                contentDescription = "Logo",
-                                tint = Color.White,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-
-                        Column {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("MODOL ", color = Color(0xFF1E1E1E), fontWeight = FontWeight.Black, fontSize = 17.sp)
-                                Text("CONNECT", color = Color(0xFFFF2A6D), fontWeight = FontWeight.Black, fontSize = 17.sp)
-                            }
-                            Text("B2B Cash Agent Marketplace", color = Color(0xFF757575), fontWeight = FontWeight.Medium, fontSize = 11.sp)
-                        }
-                    }
-
-                    // Action Icons (Search, Notification, Close)
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(
-                            shape = CircleShape,
-                            color = Color.White,
-                            border = BorderStroke(1.dp, Color(0xFFF0D8E0)),
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clickable { isSearchActive = !isSearchActive }
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Search,
-                                    contentDescription = "Search",
-                                    tint = Color(0xFF555555),
-                                    modifier = Modifier.size(19.dp)
-                                )
-                            }
-                        }
-
-                        Surface(
-                            shape = CircleShape,
-                            color = Color.White,
-                            border = BorderStroke(1.dp, Color(0xFFF0D8E0)),
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clickable {
-                                    Toast.makeText(context, "You have 2 new B2B Market updates", Toast.LENGTH_SHORT).show()
-                                }
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.NotificationsNone,
-                                    contentDescription = "Notifications",
-                                    tint = Color(0xFF555555),
-                                    modifier = Modifier.size(19.dp)
-                                )
-                                // Red/Pink Notification Dot
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .background(Color(0xFFFF2A6D), CircleShape)
-                                        .align(Alignment.TopEnd)
-                                        .padding(top = 4.dp, end = 4.dp)
-                                )
-                            }
-                        }
-
-                        if (onClose != null) {
-                            Surface(
-                                shape = CircleShape,
-                                color = Color.White,
-                                border = BorderStroke(1.dp, Color(0xFFF0D8E0)),
-                                modifier = Modifier
-                                    .size(38.dp)
-                                    .clickable { onClose() }
-                            ) {
-                                Box(contentAlignment = Alignment.Center) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Close",
-                                        tint = Color(0xFF555555),
-                                        modifier = Modifier.size(19.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Search Bar Expandable
-                if (isSearchActive) {
-                    OutlinedTextField(
-                        value = searchQuery,
-                        onValueChange = { searchQuery = it },
-                        placeholder = { Text("Search by agent name, city, or currency...", fontSize = 12.sp, color = Color.Gray) },
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFFFF2A6D),
-                            unfocusedBorderColor = Color(0xFFE5D5DC),
-                            focusedContainerColor = Color.White,
-                            unfocusedContainerColor = Color.White,
-                            focusedTextColor = Color(0xFF1E1E1E),
-                            unfocusedTextColor = Color(0xFF1E1E1E)
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth().height(48.dp),
-                        singleLine = true
-                    )
-                }
-
-                // ==========================================
-                // 2. SEGMENT TABS (Buy, Sell, Agents, Orders)
-                // ==========================================
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    val tabs = listOf(
-                        "BUY" to Triple("Buy", Icons.Default.ArrowDownward, Color(0xFFFF2A6D)),
-                        "SELL" to Triple("Sell", Icons.Default.ArrowUpward, Color(0xFF555555)),
-                        "AGENTS" to Triple("Agents", Icons.Default.Group, Color(0xFF555555)),
-                        "ORDERS" to Triple("Orders", Icons.Default.ReceiptLong, Color(0xFF555555))
-                    )
-
-                    tabs.forEach { (tabKey, tabData) ->
-                        val isSelected = activeTopTab == tabKey
-                        val (label, icon, _) = tabData
-
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = if (isSelected) Color(0xFFFF2A6D) else Color.White,
-                            border = BorderStroke(1.dp, if (isSelected) Color(0xFFFF2A6D) else Color(0xFFE8D8E0)),
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(38.dp)
-                                .clickable { activeTopTab = tabKey }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 8.dp),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = icon,
-                                    contentDescription = null,
-                                    tint = if (isSelected) Color.White else Color(0xFF555555),
-                                    modifier = Modifier.size(15.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = label,
-                                    color = if (isSelected) Color.White else Color(0xFF444444),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 12.sp
-                                )
-                                if (tabKey == "ORDERS" && activeOrders.isNotEmpty()) {
-                                    Spacer(modifier = Modifier.width(3.dp))
-                                    Box(
-                                        modifier = Modifier
-                                            .size(14.dp)
-                                            .background(if (isSelected) Color.White else Color(0xFFFF2A6D), CircleShape),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            "${activeOrders.size}",
-                                            color = if (isSelected) Color(0xFFFF2A6D) else Color.White,
-                                            fontSize = 8.sp,
-                                            fontWeight = FontWeight.Black
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // ==========================================
-                // 3. B2B WALLET BALANCE CARD (Exact Gradient)
-                // ==========================================
-                Card(
-                    shape = RoundedCornerShape(22.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                    border = BorderStroke(1.dp, Color(0xFFFFC0D0)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
+                    // Heart 'M' Logo Box
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .size(42.dp)
                             .background(
-                                brush = Brush.horizontalGradient(
-                                    colors = listOf(
-                                        Color(0xFFFFDFE8),
-                                        Color(0xFFFFF0F4),
-                                        Color(0xFFFFDFE8)
-                                    )
-                                )
-                            )
-                            .padding(horizontal = 16.dp, vertical = 14.dp)
+                                brush = Brush.linearGradient(
+                                    colors = listOf(Color(0xFFFF2A6D), Color(0xFFFF5E8A), Color(0xFF9333EA))
+                                ),
+                                shape = RoundedCornerShape(13.dp)
+                            ),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // Left: Wallet Icon + Balance Text
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                Surface(
-                                    shape = RoundedCornerShape(14.dp),
-                                    color = Color(0xFFFF2A6D),
-                                    modifier = Modifier.size(46.dp)
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = Icons.Default.AccountBalanceWallet,
-                                            contentDescription = null,
-                                            tint = Color.White,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    }
-                                }
+                        Icon(
+                            imageVector = Icons.Default.Favorite,
+                            contentDescription = "Logo",
+                            tint = Color.White,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
 
-                                val userBalance = currentUser?.balance ?: 1500.0
-                                Column {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("B2B Wallet Balance", color = Color(0xFFC2185B), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                        Spacer(modifier = Modifier.width(6.dp))
-                                        Box(
-                                            modifier = Modifier
-                                                .background(Color(0xFF00E676).copy(alpha = 0.2f), RoundedCornerShape(4.dp))
-                                                .padding(horizontal = 4.dp, vertical = 1.dp)
-                                        ) {
-                                            Text("SHARED", color = Color(0xFF00897B), fontSize = 8.sp, fontWeight = FontWeight.Black)
-                                        }
-                                    }
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        modifier = Modifier.clickable {
-                                            Toast.makeText(context, "Wallet Balance: ৳${"%,.2f".format(userBalance)} (Synced with Personal Wallet)", Toast.LENGTH_SHORT).show()
-                                        }
-                                    ) {
-                                        Text(
-                                            "৳ %,.2f".format(userBalance),
-                                            color = Color(0xFF1E1E1E),
-                                            fontWeight = FontWeight.Black,
-                                            fontSize = 22.sp
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Icon(
-                                            imageVector = Icons.Default.ChevronRight,
-                                            contentDescription = null,
-                                            tint = Color(0xFF888888),
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                    val usdVal = userBalance / 122.5
-                                    Text("≈ $ %,.2f USD • Same as Personal Wallet".format(usdVal), color = Color(0xFF64748B), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
-                                }
-                            }
-
-                            // Right: Top Up & Withdraw Buttons
-                            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                // Top Up
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier.clickable { showTopUpDialog = true }
-                                ) {
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = Color(0xFFFF2A6D),
-                                        modifier = Modifier.size(34.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(imageVector = Icons.Default.Add, contentDescription = "Top Up", tint = Color.White, modifier = Modifier.size(18.dp))
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.height(3.dp))
-                                    Text("Top Up", color = Color(0xFF1E293B), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                }
-
-                                // Withdraw
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    modifier = Modifier.clickable { showWithdrawDialog = true }
-                                ) {
-                                    Surface(
-                                        shape = CircleShape,
-                                        color = Color.White,
-                                        border = BorderStroke(1.dp, Color(0xFFFF9EB5)),
-                                        modifier = Modifier.size(34.dp)
-                                    ) {
-                                        Box(contentAlignment = Alignment.Center) {
-                                            Icon(imageVector = Icons.Default.CallMade, contentDescription = "Withdraw", tint = Color(0xFFFF2A6D), modifier = Modifier.size(16.dp))
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.height(3.dp))
-                                    Text("Withdraw", color = Color(0xFF1E293B), fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                }
-                            }
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("MODOL ", color = Color(0xFF0F172A), fontWeight = FontWeight.Black, fontSize = 17.sp)
+                            Text("CONNECT", color = Color(0xFFFF2A6D), fontWeight = FontWeight.Black, fontSize = 17.sp)
                         }
+                        Text("B2B Cash Agent Marketplace", color = Color(0xFF64748B), fontWeight = FontWeight.SemiBold, fontSize = 11.sp)
                     }
                 }
 
-                // ==========================================
-                // 4. HORIZONTAL FILTER CHIPS ROW
-                // ==========================================
+                // Action Icons (Country Switcher, Search, Notification, Close)
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    val filterChips = listOf(
-                        "ALL" to "All",
-                        "ONLINE" to "● Online",
-                        "VERIFIED" to "Verified",
-                        "BDT" to "🇧🇩 BDT",
-                        "USD" to "🇺🇸 USD"
-                    )
-
-                    filterChips.forEach { (chipKey, chipLabel) ->
-                        val isSelected = activeFilterChip == chipKey
-                        Surface(
-                            shape = RoundedCornerShape(20.dp),
-                            color = if (isSelected) Color(0xFFFF2A6D) else Color.White,
-                            border = BorderStroke(1.dp, if (isSelected) Color(0xFFFF2A6D) else Color(0xFFE8D8E0)),
-                            modifier = Modifier.clickable { activeFilterChip = chipKey }
+                    // P2P Country / Currency Switcher Button (Soft & Prominent)
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color.White,
+                        border = BorderStroke(1.2.dp, Color(0xFFFF2A6D).copy(alpha = 0.4f)),
+                        shadowElevation = 1.dp,
+                        modifier = Modifier
+                            .height(38.dp)
+                            .clickable { showCountryDialog = true }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 9.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
                         ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 7.dp),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                if (chipKey == "ONLINE" && !isSelected) {
-                                    Box(modifier = Modifier.size(7.dp).background(Color(0xFF00A86B), CircleShape))
-                                }
-                                if (chipKey == "VERIFIED") {
-                                    Icon(
-                                        imageVector = Icons.Default.CheckCircle,
-                                        contentDescription = null,
-                                        tint = if (isSelected) Color.White else Color(0xFFFF2A6D),
-                                        modifier = Modifier.size(13.dp)
-                                    )
-                                }
-                                Text(
-                                    chipLabel.replace("● ", ""),
-                                    color = if (isSelected) Color.White else Color(0xFF444444),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 11.sp
-                                )
-                            }
+                            Text(selectedCountry.flag, fontSize = 15.sp)
+                            Text(
+                                selectedCountry.currencyCode,
+                                color = Color(0xFFFF2A6D),
+                                fontWeight = FontWeight.Black,
+                                fontSize = 12.sp
+                            )
+                            Icon(
+                                imageVector = Icons.Default.ArrowDropDown,
+                                contentDescription = "Select Country",
+                                tint = Color(0xFFFF2A6D),
+                                modifier = Modifier.size(16.dp)
+                            )
                         }
                     }
 
-                    // Filter icon button
                     Surface(
                         shape = CircleShape,
                         color = Color.White,
-                        border = BorderStroke(1.dp, Color(0xFFE8D8E0)),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        shadowElevation = 1.dp,
                         modifier = Modifier
-                            .size(32.dp)
+                            .size(38.dp)
+                            .clickable { isSearchActive = !isSearchActive }
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = "Search",
+                                tint = Color(0xFF475569),
+                                modifier = Modifier.size(19.dp)
+                            )
+                        }
+                    }
+
+                    Surface(
+                        shape = CircleShape,
+                        color = Color.White,
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                        shadowElevation = 1.dp,
+                        modifier = Modifier
+                            .size(38.dp)
                             .clickable {
-                                activeFilterChip = if (activeFilterChip == "ALL") "BDT" else "ALL"
+                                Toast.makeText(context, "B2B Escrow System: 100% Protected & Active", Toast.LENGTH_SHORT).show()
                             }
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Icon(imageVector = Icons.Default.FilterList, contentDescription = "Filter", tint = Color(0xFF555555), modifier = Modifier.size(16.dp))
+                            Icon(
+                                imageVector = Icons.Default.NotificationsNone,
+                                contentDescription = "Notifications",
+                                tint = Color(0xFF475569),
+                                modifier = Modifier.size(19.dp)
+                            )
+                            // Notification Dot
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .background(Color(0xFFFF2A6D), CircleShape)
+                                    .align(Alignment.TopEnd)
+                                    .padding(top = 4.dp, end = 4.dp)
+                            )
+                        }
+                    }
+
+                    if (onClose != null) {
+                        Surface(
+                            shape = CircleShape,
+                            color = Color.White,
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                            shadowElevation = 1.dp,
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clickable { onClose() }
+                        ) {
+                            Box(contentAlignment = Alignment.Center) {
+                                Icon(
+                                    imageVector = Icons.Default.Close,
+                                    contentDescription = "Close",
+                                    tint = Color(0xFF475569),
+                                    modifier = Modifier.size(19.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Search Bar Expandable
+            if (isSearchActive) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search by agent name, city, wallet, currency...", fontSize = 12.sp, color = Color(0xFF94A3B8)) },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFFFF2A6D),
+                        unfocusedBorderColor = Color(0xFFCBD5E1),
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White,
+                        focusedTextColor = Color(0xFF0F172A),
+                        unfocusedTextColor = Color(0xFF0F172A)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    singleLine = true
+                )
+            }
+
+            // ==========================================
+            // 2. SEGMENT TABS (Buy, Sell, Agents, Orders)
+            // ==========================================
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val tabs = listOf(
+                    "BUY" to Triple("Buy / Cash In", Icons.Default.ArrowDownward, Color(0xFFFF2A6D)),
+                    "SELL" to Triple("Sell / Cash Out", Icons.Default.ArrowUpward, Color(0xFF475569)),
+                    "AGENTS" to Triple("Agent List", Icons.Default.Group, Color(0xFF475569)),
+                    "ORDERS" to Triple("My Orders", Icons.Default.ReceiptLong, Color(0xFF475569))
+                )
+
+                tabs.forEach { (tabKey, tabData) ->
+                    val isSelected = activeTopTab == tabKey
+                    val (label, icon, _) = tabData
+
+                    Surface(
+                        shape = RoundedCornerShape(16.dp),
+                        color = if (isSelected) Color(0xFFFF2A6D) else Color.White,
+                        border = BorderStroke(1.2.dp, if (isSelected) Color(0xFFFF2A6D) else Color(0xFFE2E8F0)),
+                        shadowElevation = if (isSelected) 2.dp else 1.dp,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(40.dp)
+                            .clickable { activeTopTab = tabKey }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 6.dp),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = if (isSelected) Color.White else Color(0xFF475569),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = label,
+                                color = if (isSelected) Color.White else Color(0xFF334155),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (tabKey == "ORDERS" && activeOrders.isNotEmpty()) {
+                                Spacer(modifier = Modifier.width(3.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .background(if (isSelected) Color.White else Color(0xFFFF2A6D), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        "${activeOrders.size}",
+                                        color = if (isSelected) Color(0xFFFF2A6D) else Color.White,
+                                        fontSize = 9.sp,
+                                        fontWeight = FontWeight.Black
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ==========================================
+            // 4. B2B WALLET BALANCE CARD (Dynamic & Soft)
+            // ==========================================
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                border = BorderStroke(1.2.dp, Color(0xFFFFD5E2)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            brush = Brush.horizontalGradient(
+                                colors = listOf(
+                                    Color(0xFFFFF0F5),
+                                    Color(0xFFFFFFFF),
+                                    Color(0xFFFFF5F7)
+                                )
+                            )
+                        )
+                        .padding(horizontal = 16.dp, vertical = 14.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Left: Wallet Icon + Balance Text
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = Color(0xFFFF2A6D),
+                                shadowElevation = 2.dp,
+                                modifier = Modifier.size(46.dp)
+                            ) {
+                                Box(contentAlignment = Alignment.Center) {
+                                    Icon(
+                                        imageVector = Icons.Default.AccountBalanceWallet,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+
+                            val userBalance = currentUser?.balance ?: 1500.0
+                            val curSymbol = CountryPaymentMaster.getCurrencySymbol(selectedCountry.currencyCode)
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("B2B Wallet Balance", color = Color(0xFFC2185B), fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .background(Color(0xFF10B981).copy(alpha = 0.15f), RoundedCornerShape(4.dp))
+                                            .padding(horizontal = 5.dp, vertical = 1.dp)
+                                    ) {
+                                        Text("ESCROW READY", color = Color(0xFF047857), fontSize = 8.sp, fontWeight = FontWeight.Black)
+                                    }
+                                }
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.clickable {
+                                        Toast.makeText(context, "Wallet: $curSymbol${"%,.2f".format(userBalance)} (${selectedCountry.currencyCode})", Toast.LENGTH_SHORT).show()
+                                    }
+                                ) {
+                                    Text(
+                                        "$curSymbol %,.2f".format(userBalance),
+                                        color = Color(0xFF0F172A),
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 22.sp
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        selectedCountry.currencyCode,
+                                        color = Color(0xFFFF2A6D),
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                                val usdVal = userBalance / 122.5
+                                Text("≈ $ %,.2f USD • Account Balance".format(usdVal), color = Color(0xFF64748B), fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+
+                        // Right: Top Up & Withdraw Buttons
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            // Top Up
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.clickable { showTopUpDialog = true }
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = Color(0xFFFF2A6D),
+                                    shadowElevation = 2.dp,
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(imageVector = Icons.Default.Add, contentDescription = "Top Up", tint = Color.White, modifier = Modifier.size(18.dp))
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(3.dp))
+                                Text("Cash In", color = Color(0xFF0F172A), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+
+                            // Withdraw
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.clickable { showWithdrawDialog = true }
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = Color.White,
+                                    border = BorderStroke(1.2.dp, Color(0xFFFF2A6D)),
+                                    shadowElevation = 1.dp,
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(imageVector = Icons.Default.CallMade, contentDescription = "Withdraw", tint = Color(0xFFFF2A6D), modifier = Modifier.size(16.dp))
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(3.dp))
+                                Text("Cash Out", color = Color(0xFF0F172A), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ==========================================
+            // 5. HORIZONTAL FILTER CHIPS ROW (Soft & Clear)
+            // ==========================================
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Country Picker Quick Chip
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White,
+                    border = BorderStroke(1.2.dp, Color(0xFFFF2A6D).copy(alpha = 0.5f)),
+                    shadowElevation = 1.dp,
+                    modifier = Modifier.clickable { showCountryDialog = true }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Text(selectedCountry.flag, fontSize = 14.sp)
+                        Text(
+                            selectedCountry.countryName,
+                            color = Color(0xFF0F172A),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        )
+                        Icon(
+                            imageVector = Icons.Default.ArrowDropDown,
+                            contentDescription = null,
+                            tint = Color(0xFFFF2A6D),
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+                }
+
+                // "All Methods" Chip
+                val isAllSelected = activePaymentMethodFilter == "ALL"
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (isAllSelected) Color(0xFFFF2A6D) else Color.White,
+                    border = BorderStroke(1.dp, if (isAllSelected) Color(0xFFFF2A6D) else Color(0xFFCBD5E1)),
+                    shadowElevation = if (isAllSelected) 1.5.dp else 0.5.dp,
+                    modifier = Modifier.clickable { activePaymentMethodFilter = "ALL" }
+                ) {
+                    Text(
+                        "All Methods",
+                        color = if (isAllSelected) Color.White else Color(0xFF334155),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 11.sp,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp)
+                    )
+                }
+
+                // Dynamic Payment Methods for Selected Country
+                selectedCountry.paymentMethods.forEach { method ->
+                    val isSelected = activePaymentMethodFilter.equals(method.methodName, ignoreCase = true)
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = if (isSelected) Color(0xFFFF2A6D) else Color.White,
+                        border = BorderStroke(1.dp, if (isSelected) Color(0xFFFF2A6D) else Color(0xFFCBD5E1)),
+                        shadowElevation = if (isSelected) 1.5.dp else 0.5.dp,
+                        modifier = Modifier.clickable {
+                            activePaymentMethodFilter = if (isSelected) "ALL" else method.methodName
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            val ic = when (method.methodType) {
+                                "Mobile Wallet" -> Icons.Default.Smartphone
+                                "Bank Transfer" -> Icons.Default.AccountBalance
+                                "Instant Bank" -> Icons.Default.FlashOn
+                                "Cash" -> Icons.Default.Payments
+                                "Card" -> Icons.Default.CreditCard
+                                "Crypto/USDT" -> Icons.Default.CurrencyBitcoin
+                                else -> Icons.Default.Payment
+                            }
+                            Icon(
+                                imageVector = ic,
+                                contentDescription = null,
+                                tint = if (isSelected) Color.White else Color(0xFFFF2A6D),
+                                modifier = Modifier.size(12.dp)
+                            )
+                            Text(
+                                method.methodName,
+                                color = if (isSelected) Color.White else Color(0xFF334155),
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp
+                            )
                         }
                     }
                 }
 
-                // ==========================================
-                // 5. MAIN CONTENT AREA (AGENTS OR ORDERS)
-                // ==========================================
-                if (activeTopTab == "ORDERS") {
-                    // Orders View
-                    if (allOrders.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            contentAlignment = Alignment.Center
+                // Online Only Filter Chip
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (onlineOnlyFilter) Color(0xFF10B981) else Color.White,
+                    border = BorderStroke(1.dp, if (onlineOnlyFilter) Color(0xFF10B981) else Color(0xFFCBD5E1)),
+                    shadowElevation = if (onlineOnlyFilter) 1.5.dp else 0.5.dp,
+                    modifier = Modifier.clickable { onlineOnlyFilter = !onlineOnlyFilter }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Box(modifier = Modifier.size(7.dp).background(if (onlineOnlyFilter) Color.White else Color(0xFF10B981), CircleShape))
+                        Text(
+                            "Online Only",
+                            color = if (onlineOnlyFilter) Color.White else Color(0xFF334155),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+
+                // Verified Only Filter Chip
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = if (verifiedOnlyFilter) Color(0xFFFF2A6D) else Color.White,
+                    border = BorderStroke(1.dp, if (verifiedOnlyFilter) Color(0xFFFF2A6D) else Color(0xFFCBD5E1)),
+                    shadowElevation = if (verifiedOnlyFilter) 1.5.dp else 0.5.dp,
+                    modifier = Modifier.clickable { verifiedOnlyFilter = !verifiedOnlyFilter }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = if (verifiedOnlyFilter) Color.White else Color(0xFFFF2A6D),
+                            modifier = Modifier.size(13.dp)
+                        )
+                        Text(
+                            "Verified Only",
+                            color = if (verifiedOnlyFilter) Color.White else Color(0xFF334155),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+            }
+
+            // ==========================================
+            // 6. MAIN CONTENT AREA (AGENTS OR ORDERS)
+            // ==========================================
+            if (activeTopTab == "ORDERS") {
+                // Orders View
+                if (allOrders.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                            modifier = Modifier.padding(24.dp)
                         ) {
                             Column(
+                                modifier = Modifier.padding(24.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                Icon(imageVector = Icons.Default.Inbox, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(40.dp))
-                                Text("No Active B2B Orders", color = Color(0xFF333333), fontWeight = FontWeight.Bold, fontSize = 14.sp)
-                                Text("Select an agent from the marketplace to start a trade.", color = Color.Gray, fontSize = 12.sp)
-                            }
-                        }
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxWidth().weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(10.dp)
-                        ) {
-                            items(allOrders) { order ->
-                                Card(
-                                    colors = CardDefaults.cardColors(containerColor = Color.White),
-                                    shape = RoundedCornerShape(16.dp),
-                                    border = BorderStroke(1.dp, Color(0xFFF0D8E0)),
-                                    modifier = Modifier.fillMaxWidth().clickable { selectedOrderForChat = order }
-                                ) {
-                                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Text("Order #${order.orderId.takeLast(8)}", fontWeight = FontWeight.Bold, color = Color(0xFF1E1E1E), fontSize = 13.sp)
-                                            val (stCol, stTxt) = when (order.status) {
-                                                "RELEASED" -> Color(0xFF00A86B) to "COMPLETED"
-                                                "PAYMENT_SUBMITTED" -> Color(0xFF2196F3) to "SUBMITTED"
-                                                "DISPUTED" -> Color(0xFFEF4444) to "DISPUTED"
-                                                else -> Color(0xFFFF9800) to "PENDING"
-                                            }
-                                            Box(
-                                                modifier = Modifier
-                                                    .background(stCol.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
-                                                    .padding(horizontal = 8.dp, vertical = 3.dp)
-                                            ) {
-                                                Text(stTxt, color = stCol, fontWeight = FontWeight.Bold, fontSize = 9.sp)
-                                            }
-                                        }
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween
-                                        ) {
-                                            Text("${order.type} • ${order.agentName}", color = Color(0xFF666666), fontSize = 11.sp)
-                                            Text("৳${order.amount.toInt()} (${order.currency})", color = Color(0xFFFF2A6D), fontWeight = FontWeight.Black, fontSize = 13.sp)
-                                        }
-                                        Button(
-                                            onClick = { selectedOrderForChat = order },
-                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF2A6D)),
-                                            shape = RoundedCornerShape(8.dp),
-                                            modifier = Modifier.fillMaxWidth().height(34.dp)
-                                        ) {
-                                            Text("Open Live Chat & Escrow", fontSize = 11.sp, fontWeight = FontWeight.Bold)
-                                        }
-                                    }
-                                }
+                                Icon(imageVector = Icons.Default.Inbox, contentDescription = null, tint = Color(0xFF94A3B8), modifier = Modifier.size(44.dp))
+                                Text("No Active B2B Orders", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                                Text("Select an agent from the marketplace to start Cash In or Cash Out.", color = Color(0xFF64748B), fontSize = 12.sp, textAlign = TextAlign.Center)
                             }
                         }
                     }
                 } else {
-                    // Marketplace Agents List (Exact 1:1 match with photo)
                     LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        items(displayedAgents) { agent ->
+                        items(allOrders) { order ->
                             Card(
                                 colors = CardDefaults.cardColors(containerColor = Color.White),
-                                shape = RoundedCornerShape(22.dp),
-                                border = BorderStroke(1.dp, Color(0xFFF3E5EB)),
+                                shape = RoundedCornerShape(18.dp),
+                                border = BorderStroke(1.2.dp, Color(0xFFE2E8F0)),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth().clickable { selectedOrderForChat = order }
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(14.dp),
-                                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                                ) {
-                                    // Row 1: Left Avatar + Middle Info + Right Rates
+                                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Row(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.Top
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        // Left: Avatar and Online Status Pill
-                                        Column(
-                                            horizontalAlignment = Alignment.CenterHorizontally,
-                                            modifier = Modifier.padding(end = 12.dp)
+                                        Text("Order #${order.orderId.takeLast(8)}", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), fontSize = 13.sp)
+                                        val (stCol, stTxt) = when (order.status) {
+                                            "RELEASED" -> Color(0xFF10B981) to "COMPLETED & RELEASED"
+                                            "PAYMENT_SUBMITTED" -> Color(0xFF2563EB) to "PAYMENT SUBMITTED"
+                                            "DISPUTED" -> Color(0xFFEF4444) to "DISPUTED"
+                                            else -> Color(0xFFF59E0B) to "PENDING PAYMENT"
+                                        }
+                                        Box(
+                                            modifier = Modifier
+                                                .background(stCol.copy(alpha = 0.15f), RoundedCornerShape(6.dp))
+                                                .padding(horizontal = 8.dp, vertical = 3.dp)
                                         ) {
+                                            Text(stTxt, color = stCol, fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                                        }
+                                    }
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text("${order.type} • ${order.agentName}", color = Color(0xFF475569), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                                        Text("৳${order.amount.toInt()} (${order.currency})", color = Color(0xFFFF2A6D), fontWeight = FontWeight.Black, fontSize = 14.sp)
+                                    }
+                                    Button(
+                                        onClick = { selectedOrderForChat = order },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF2A6D)),
+                                        shape = RoundedCornerShape(10.dp),
+                                        modifier = Modifier.fillMaxWidth().height(36.dp)
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Icon(imageVector = Icons.Default.Forum, contentDescription = null, tint = Color.White, modifier = Modifier.size(15.dp))
+                                            Text("Live Chat & Escrow Security", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                // =========================================================================
+                // MARKETPLACE AGENTS LIST (SOFT, HIGH-CONTRAST, SUPER VISIBLE & ELEGANT)
+                // =========================================================================
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(displayedAgents) { agent ->
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            shape = RoundedCornerShape(20.dp),
+                            border = BorderStroke(1.2.dp, Color(0xFFE2E8F0)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(14.dp),
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                // -------------------------------------------------------------
+                                // 1. AGENT IDENTITY HEADER (Avatar, Name, Location, Rating)
+                                // -------------------------------------------------------------
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        // Avatar with Online Badge
+                                        Box {
                                             SubcomposeAsyncImage(
                                                 model = agent.avatarUrl,
                                                 contentDescription = agent.name,
                                                 contentScale = ContentScale.Crop,
                                                 modifier = Modifier
-                                                    .size(58.dp)
+                                                    .size(52.dp)
                                                     .clip(CircleShape)
-                                                    .border(1.5.dp, Color(0xFFFFC0D0), CircleShape)
+                                                    .border(1.5.dp, Color(0xFFFF2A6D).copy(alpha = 0.5f), CircleShape)
                                             )
-                                            Spacer(modifier = Modifier.height(6.dp))
-                                            Surface(
-                                                shape = RoundedCornerShape(12.dp),
-                                                color = Color(0xFFE8F8F0),
-                                                modifier = Modifier.padding(top = 2.dp)
-                                            ) {
-                                                Row(
-                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                                                ) {
-                                                    Box(modifier = Modifier.size(6.dp).background(Color(0xFF00A86B), CircleShape))
-                                                    Text("Online", color = Color(0xFF00A86B), fontWeight = FontWeight.Bold, fontSize = 9.sp)
-                                                }
-                                            }
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(12.dp)
+                                                    .background(if (agent.isOnline) Color(0xFF10B981) else Color(0xFF94A3B8), CircleShape)
+                                                    .border(1.5.dp, Color.White, CircleShape)
+                                                    .align(Alignment.BottomEnd)
+                                            )
                                         }
 
-                                        // Middle: Agent Name, Location, Ratings
-                                        Column(
-                                            modifier = Modifier.weight(1f),
-                                            verticalArrangement = Arrangement.spacedBy(3.dp)
-                                        ) {
+                                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
                                                 Text(
                                                     agent.name,
-                                                    color = Color(0xFF1E1E1E),
+                                                    color = Color(0xFF0F172A),
                                                     fontWeight = FontWeight.Bold,
                                                     fontSize = 15.sp
                                                 )
                                                 Spacer(modifier = Modifier.width(4.dp))
                                                 Icon(
                                                     imageVector = Icons.Default.CheckCircle,
-                                                    contentDescription = "Verified",
-                                                    tint = Color(0xFFFF2A6D),
-                                                    modifier = Modifier.size(16.dp)
+                                                    contentDescription = "Verified Agent",
+                                                    tint = Color(0xFF2563EB),
+                                                    modifier = Modifier.size(15.dp)
                                                 )
                                             }
 
@@ -10551,203 +12833,277 @@ fun B2BCashAgentMarketplaceContent(
                                                 Text(agent.location, color = Color(0xFF475569), fontSize = 11.sp, fontWeight = FontWeight.Medium)
                                             }
 
-                                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                                Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = Color(0xFFF59E0B), modifier = Modifier.size(13.dp))
-                                                Spacer(modifier = Modifier.width(3.dp))
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                Icon(imageVector = Icons.Default.Star, contentDescription = null, tint = Color(0xFFF59E0B), modifier = Modifier.size(12.dp))
                                                 Text(
-                                                    "${agent.rating} (%,d reviews)".format(agent.reviewsCount),
-                                                    color = Color(0xFF334155),
-                                                    fontSize = 10.sp,
+                                                    "${agent.rating}",
+                                                    color = Color(0xFF0F172A),
+                                                    fontSize = 11.sp,
                                                     fontWeight = FontWeight.Bold
                                                 )
-                                                Text("  •  %,d trades".format(agent.ordersCount), color = Color(0xFF64748B), fontSize = 10.sp, fontWeight = FontWeight.Medium)
-                                            }
-                                        }
-
-                                        // Right: Rates Column
-                                        Column(
-                                            horizontalAlignment = Alignment.End,
-                                            verticalArrangement = Arrangement.spacedBy(2.dp)
-                                        ) {
-                                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                Text("(${agent.ordersCount} trades)", color = Color(0xFF64748B), fontSize = 10.sp)
+                                                Text("•", color = Color(0xFF94A3B8), fontSize = 9.sp)
                                                 Surface(
-                                                    shape = RoundedCornerShape(8.dp),
-                                                    color = Color(0xFFDCFCE7),
-                                                    border = BorderStroke(0.8.dp, Color(0xFF86EFAC))
+                                                    shape = RoundedCornerShape(4.dp),
+                                                    color = Color(0xFFECFDF5)
                                                 ) {
-                                                    Column(
-                                                        horizontalAlignment = Alignment.End,
-                                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
-                                                    ) {
-                                                        Text(
-                                                            "Buy Rate",
-                                                            fontSize = 9.sp,
-                                                            color = Color(0xFF16A34A),
-                                                            fontWeight = FontWeight.Bold
-                                                        )
-                                                        Text(
-                                                            "${agent.currencySymbol}${agent.buyRate}",
-                                                            fontSize = 13.sp,
-                                                            fontWeight = FontWeight.Black,
-                                                            color = Color(0xFF15803D)
-                                                        )
-                                                    }
-                                                }
-
-                                                Surface(
-                                                    shape = RoundedCornerShape(8.dp),
-                                                    color = Color(0xFFFFE4E6),
-                                                    border = BorderStroke(0.8.dp, Color(0xFFFDA4AF))
-                                                ) {
-                                                    Column(
-                                                        horizontalAlignment = Alignment.End,
-                                                        modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
-                                                    ) {
-                                                        Text(
-                                                            "Sell Rate",
-                                                            fontSize = 9.sp,
-                                                            color = Color(0xFFE11D48),
-                                                            fontWeight = FontWeight.Bold
-                                                        )
-                                                        Text(
-                                                            "${agent.currencySymbol}${agent.sellRate}",
-                                                            fontSize = 13.sp,
-                                                            fontWeight = FontWeight.Black,
-                                                            color = Color(0xFFBE123C)
-                                                        )
-                                                    }
+                                                    Text(
+                                                        "${agent.completionRate} completion",
+                                                        color = Color(0xFF059669),
+                                                        fontSize = 9.sp,
+                                                        fontWeight = FontWeight.Bold,
+                                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                    )
                                                 }
                                             }
                                         }
                                     }
 
-                                    // Row 2: Badges (Escrow Safe, Fast Release, Verified)
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    // Online Pill
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = if (agent.isOnline) Color(0xFFECFDF5) else Color(0xFFF1F5F9),
+                                        border = BorderStroke(0.8.dp, if (agent.isOnline) Color(0xFFA7F3D0) else Color(0xFFCBD5E1))
                                     ) {
-                                        Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFFFE8F0)) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Box(modifier = Modifier.size(6.dp).background(if (agent.isOnline) Color(0xFF10B981) else Color(0xFF94A3B8), CircleShape))
                                             Text(
-                                                "✓ Escrow Safe",
-                                                color = Color(0xFFFF2A6D),
-                                                fontSize = 9.sp,
+                                                if (agent.isOnline) "Active" else "Offline",
+                                                color = if (agent.isOnline) Color(0xFF065F46) else Color(0xFF64748B),
                                                 fontWeight = FontWeight.Bold,
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                            )
-                                        }
-
-                                        Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFF3E8FF)) {
-                                            Text(
-                                                "⚡ Fast Release",
-                                                color = Color(0xFF9C27B0),
-                                                fontSize = 9.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                            )
-                                        }
-
-                                        Surface(shape = RoundedCornerShape(6.dp), color = Color(0xFFE8F8F0)) {
-                                            Text(
-                                                "✓ Verified",
-                                                color = Color(0xFF00A86B),
-                                                fontSize = 9.sp,
-                                                fontWeight = FontWeight.Bold,
-                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                                fontSize = 9.sp
                                             )
                                         }
                                     }
+                                }
 
-                                    // Row 3: Payment Channels (Left) + Limit & Action Button (Right)
+                                // -------------------------------------------------------------
+                                // 2. SYSTEM RATES CONTAINER (Crystal Clear, Soft & Prominent)
+                                // -------------------------------------------------------------
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = Color(0xFFF8FAFC),
+                                    border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
                                     Row(
-                                        modifier = Modifier.fillMaxWidth(),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(10.dp),
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        // Payment methods row
-                                        Row(
-                                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.weight(1f)
+                                        // Buy Rate Box
+                                        Column(
+                                            modifier = Modifier.weight(1f),
+                                            horizontalAlignment = Alignment.Start
                                         ) {
-                                            agent.paymentMethods.forEach { method ->
-                                                val (pillBg, pillTint) = when (method.lowercase()) {
-                                                    "bkash" -> Color(0xFFFFE8F0) to Color(0xFFE91E63)
-                                                    "nagad" -> Color(0xFFFFF3E0) to Color(0xFFFF9800)
-                                                    "bank", "wire" -> Color(0xFFE3F2FD) to Color(0xFF1976D2)
-                                                    "usdt" -> Color(0xFFE0F2F1) to Color(0xFF00897B)
-                                                    "wise" -> Color(0xFFE1F5FE) to Color(0xFF0288D1)
-                                                    else -> Color(0xFFE8F8F0) to Color(0xFF00A86B)
-                                                }
-
-                                                Surface(
-                                                    shape = RoundedCornerShape(6.dp),
-                                                    color = pillBg,
-                                                    border = BorderStroke(0.5.dp, pillTint.copy(alpha = 0.3f))
+                                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .background(Color(0xFFDCFCE7), RoundedCornerShape(4.dp))
+                                                        .padding(horizontal = 5.dp, vertical = 2.dp)
                                                 ) {
-                                                    Row(
-                                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
-                                                        verticalAlignment = Alignment.CenterVertically,
-                                                        horizontalArrangement = Arrangement.spacedBy(2.dp)
-                                                    ) {
-                                                        val icon = when (method.lowercase()) {
-                                                            "bank", "wire" -> Icons.Default.AccountBalance
-                                                            "cash" -> Icons.Default.Payments
-                                                            "usdt" -> Icons.Default.CurrencyBitcoin
-                                                            else -> Icons.Default.Payment
-                                                        }
-                                                        Icon(imageVector = icon, contentDescription = null, tint = pillTint, modifier = Modifier.size(10.dp))
-                                                        Text(method, color = pillTint, fontSize = 9.sp, fontWeight = FontWeight.Bold)
-                                                    }
+                                                    Text("BUY / CASH IN", color = Color(0xFF15803D), fontWeight = FontWeight.Bold, fontSize = 9.sp)
                                                 }
                                             }
+                                            Spacer(modifier = Modifier.height(3.dp))
+                                            Text(
+                                                "${agent.currencySymbol}${agent.buyRate}",
+                                                color = Color(0xFF15803D),
+                                                fontWeight = FontWeight.Black,
+                                                fontSize = 16.sp
+                                            )
                                         }
 
-                                        Spacer(modifier = Modifier.width(8.dp))
+                                        // Divider
+                                        Box(
+                                            modifier = Modifier
+                                                .width(1.dp)
+                                                .height(32.dp)
+                                                .background(Color(0xFFE2E8F0))
+                                        )
 
-                                        // Limit and Action Button
+                                        // Sell Rate Box
                                         Column(
-                                            horizontalAlignment = Alignment.End,
-                                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                                            modifier = Modifier.weight(1f),
+                                            horizontalAlignment = Alignment.End
                                         ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .background(Color(0xFFFFE4E6), RoundedCornerShape(4.dp))
+                                                        .padding(horizontal = 5.dp, vertical = 2.dp)
+                                                ) {
+                                                    Text("SELL / CASH OUT", color = Color(0xFFBE123C), fontWeight = FontWeight.Bold, fontSize = 9.sp)
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.height(3.dp))
                                             Text(
-                                                "Limit: ${agent.currencySymbol}%,d - %,d".format(agent.minLimit.toInt(), agent.maxLimit.toInt()),
-                                                color = Color(0xFF334155),
-                                                fontSize = 10.sp,
+                                                "${agent.currencySymbol}${agent.sellRate}",
+                                                color = Color(0xFFBE123C),
+                                                fontWeight = FontWeight.Black,
+                                                fontSize = 16.sp
+                                            )
+                                        }
+                                    }
+                                }
+
+                                // -------------------------------------------------------------
+                                // 3. SYSTEM LIMITS & TIMINGS (Clear & Readable)
+                                // -------------------------------------------------------------
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(
+                                            "Trade Limit: ${agent.currencySymbol}%,d - %,d".format(agent.minLimit.toInt(), agent.maxLimit.toInt()),
+                                            color = Color(0xFF334155),
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        Text(
+                                            "Reserve Pool: ${agent.currencySymbol}%,.0f".format(agent.availableBalance),
+                                            color = Color(0xFF64748B),
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Color(0xFFF3E8FF),
+                                        border = BorderStroke(0.6.dp, Color(0xFFD8B4FE))
+                                    ) {
+                                        Text(
+                                            "⚡ ${agent.avgReleaseTime} Release",
+                                            color = Color(0xFF7E22CE),
+                                            fontSize = 9.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+
+                                // -------------------------------------------------------------
+                                // 4. PAYMENT METHODS ROW
+                                // -------------------------------------------------------------
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .horizontalScroll(rememberScrollState()),
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    agent.paymentMethods.forEach { method ->
+                                        val (pillBg, pillTint) = when (method.lowercase()) {
+                                            "bkash" -> Color(0xFFFFE8F0) to Color(0xFFE91E63)
+                                            "nagad" -> Color(0xFFFFF3E0) to Color(0xFFFF9800)
+                                            "bank", "wire", "bank transfer" -> Color(0xFFE3F2FD) to Color(0xFF1976D2)
+                                            "usdt" -> Color(0xFFE0F2F1) to Color(0xFF00897B)
+                                            "wise" -> Color(0xFFE1F5FE) to Color(0xFF0288D1)
+                                            else -> Color(0xFFECFDF5) to Color(0xFF059669)
+                                        }
+
+                                        Surface(
+                                            shape = RoundedCornerShape(6.dp),
+                                            color = pillBg,
+                                            border = BorderStroke(0.5.dp, pillTint.copy(alpha = 0.35f))
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(3.dp)
+                                            ) {
+                                                val icon = when (method.lowercase()) {
+                                                    "bank", "wire", "bank transfer" -> Icons.Default.AccountBalance
+                                                    "cash" -> Icons.Default.Payments
+                                                    "usdt" -> Icons.Default.CurrencyBitcoin
+                                                    else -> Icons.Default.Payment
+                                                }
+                                                Icon(imageVector = icon, contentDescription = null, tint = pillTint, modifier = Modifier.size(11.dp))
+                                                Text(method, color = pillTint, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                            }
+                                        }
+                                    }
+                                }
+
+                                // -------------------------------------------------------------
+                                // 5. ESCROW GUARANTEE BADGE & ACTION BUTTON
+                                // -------------------------------------------------------------
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = Color(0xFFECFDF5),
+                                        border = BorderStroke(0.8.dp, Color(0xFFA7F3D0))
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            Icon(imageVector = Icons.Default.Shield, contentDescription = null, tint = Color(0xFF059669), modifier = Modifier.size(12.dp))
+                                            Text(
+                                                "100% Escrow Protected",
+                                                color = Color(0xFF065F46),
+                                                fontSize = 9.sp,
                                                 fontWeight = FontWeight.Bold
                                             )
+                                        }
+                                    }
 
-                                            val btnLabel = when (activeTopTab) {
-                                                "SELL" -> "Sell Now"
-                                                "BUY" -> if (agent.currency == "BDT") "Buy Now" else "Trade"
-                                                else -> agent.buttonLabel
-                                            }
+                                    val btnLabel = when (activeTopTab) {
+                                        "SELL" -> "Sell / Cash Out"
+                                        "BUY" -> "Buy / Cash In"
+                                        else -> "Start Trade"
+                                    }
 
-                                            Button(
-                                                onClick = {
-                                                    // Map MarketplaceAgentItem to PaymentAgent for order creation
-                                                    val matchedPaymentAgent = PaymentAgent(
-                                                        id = agent.id,
-                                                        name = agent.name,
-                                                        agentCode = agent.id.takeLast(4),
-                                                        country = agent.country,
-                                                        phone = agent.accountNumber,
-                                                        paymentMethod = agent.paymentMethods.firstOrNull() ?: "bKash",
-                                                        accountNumber = agent.accountNumber,
-                                                        accountHolder = agent.name,
-                                                        commissionRate = 1.5,
-                                                        minLimit = agent.minLimit,
-                                                        maxLimit = agent.maxLimit,
-                                                        availableBalance = 50000.0,
-                                                        allowedMethods = agent.paymentMethods.joinToString(", ")
-                                                    )
-                                                    selectedAgentForOrder = matchedPaymentAgent
-                                                },
-                                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF2A6D)),
-                                                shape = RoundedCornerShape(12.dp),
-                                                modifier = Modifier.height(36.dp).widthIn(min = 100.dp)
-                                            ) {
-                                                Text(btnLabel, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                            }
+                                    Button(
+                                        onClick = {
+                                            val matchedPaymentAgent = PaymentAgent(
+                                                id = agent.id,
+                                                name = agent.name,
+                                                agentCode = agent.id.takeLast(4),
+                                                country = agent.country,
+                                                currency = agent.currency,
+                                                phone = agent.accountNumber,
+                                                paymentMethod = agent.paymentMethods.firstOrNull() ?: "Bank Transfer",
+                                                accountNumber = agent.accountNumber,
+                                                accountHolder = agent.name,
+                                                commissionRate = 1.5,
+                                                buyRate = agent.buyRate,
+                                                sellRate = agent.sellRate,
+                                                minLimit = agent.minLimit,
+                                                maxLimit = agent.maxLimit,
+                                                availableBalance = agent.availableBalance,
+                                                allowedMethods = agent.paymentMethods.joinToString(", "),
+                                                totalOrders = agent.ordersCount,
+                                                completionRate = agent.completionRate,
+                                                avgReleaseTime = agent.avgReleaseTime,
+                                                rating = agent.rating.toFloat(),
+                                                isOnline = agent.isOnline,
+                                                verificationStatus = if (agent.isVerified) "VERIFIED" else "PENDING_VERIFICATION"
+                                            )
+                                            selectedAgentForOrder = matchedPaymentAgent
+                                        },
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF2A6D)),
+                                        shape = RoundedCornerShape(12.dp),
+                                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
+                                        modifier = Modifier.height(38.dp).widthIn(min = 130.dp)
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Text(btnLabel, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                            Icon(imageVector = Icons.Default.ArrowForward, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
                                         }
                                     }
                                 }
@@ -10757,6 +13113,143 @@ fun B2BCashAgentMarketplaceContent(
                 }
             }
         }
+    }
+
+    // =========================================================================
+    // MODAL: HOW B2B ESCROW SYSTEM WORKS
+    // =========================================================================
+    if (showSystemsGuideDialog) {
+        AlertDialog(
+            onDismissRequest = { showSystemsGuideDialog = false },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(20.dp),
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(Color(0xFFFF2A6D).copy(alpha = 0.12f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(imageVector = Icons.Default.VerifiedUser, contentDescription = null, tint = Color(0xFFFF2A6D), modifier = Modifier.size(18.dp))
+                    }
+                    Text(
+                        "B2B Escrow System Guide",
+                        color = Color(0xFF0F172A),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
+                }
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(
+                        "Our B2B Cash Agent Marketplace is operated under 100% automated smart escrow security. There is zero risk of fund loss for either party.",
+                        color = Color(0xFF475569),
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+
+                    // Step 1
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                    ) {
+                        Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Box(modifier = Modifier.size(24.dp).background(Color(0xFFFF2A6D), CircleShape), contentAlignment = Alignment.Center) {
+                                Text("1", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            }
+                            Column {
+                                Text("Select Agent & Payment Method", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), fontSize = 12.sp)
+                                Text("Select your preferred verified agent based on country rates, trade limits, and payment methods (bKash/Nagad/Bank Transfer, etc.).", color = Color(0xFF64748B), fontSize = 11.sp)
+                            }
+                        }
+                    }
+
+                    // Step 2
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                    ) {
+                        Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Box(modifier = Modifier.size(24.dp).background(Color(0xFF2563EB), CircleShape), contentAlignment = Alignment.Center) {
+                                Text("2", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            }
+                            Column {
+                                Text("Smart Escrow Lock (Escrow Vault)", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), fontSize = 12.sp)
+                                Text("When a trade order is placed, the funds are safely locked inside the system escrow vault until the trade completes.", color = Color(0xFF64748B), fontSize = 11.sp)
+                            }
+                        }
+                    }
+
+                    // Step 3
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                    ) {
+                        Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Box(modifier = Modifier.size(24.dp).background(Color(0xFFF59E0B), CircleShape), contentAlignment = Alignment.Center) {
+                                Text("3", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            }
+                            Column {
+                                Text("Payment & Proof Upload in Live Chat", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), fontSize = 12.sp)
+                                Text("Send payment to the agent's account and upload the screenshot/reference ID in the trade chat. For withdrawals, the agent transfers payment to you.", color = Color(0xFF64748B), fontSize = 11.sp)
+                            }
+                        }
+                    }
+
+                    // Step 4
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                        shape = RoundedCornerShape(12.dp),
+                        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                    ) {
+                        Row(modifier = Modifier.padding(10.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Box(modifier = Modifier.size(24.dp).background(Color(0xFF10B981), CircleShape), contentAlignment = Alignment.Center) {
+                                Text("4", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                            }
+                            Column {
+                                Text("Instant Release & Wallet Credit", fontWeight = FontWeight.Bold, color = Color(0xFF0F172A), fontSize = 12.sp)
+                                Text("Once payment is verified, clicking Release immediately transfers the balance to your wallet without delay.", color = Color(0xFF64748B), fontSize = 11.sp)
+                            }
+                        }
+                    }
+
+                    // Policy Badge
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFECFDF5),
+                        border = BorderStroke(1.dp, Color(0xFFA7F3D0))
+                    ) {
+                        Text(
+                            "🛡️ In case of any issue, our 24/7 Admin Dispute Team inspects trade chats & proofs for instant resolution.",
+                            color = Color(0xFF065F46),
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = { showSystemsGuideDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF2A6D)),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Got It", fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
 
     // Modal 1: Create B2B Trade Order Dialog
     if (selectedAgentForOrder != null) {
@@ -10888,7 +13381,7 @@ fun B2BCashAgentMarketplaceContent(
                             Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = Color(0xFFF57F17), modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                "ক্যাশ এজেন্ট রিলিজ না করা পর্যন্ত ব্যালেন্স যোগ হবে না। পেমেন্ট প্রুফ জমা দিলে এজেন্ট যাচাই করে রিলিজ করলেই ব্যালেন্স ওয়ালেটে যোগ হবে।",
+                                "Funds will not be credited until the Cash Agent confirms release. Once you submit payment proof and the agent verifies and releases it, the balance will be instantly added to your wallet.",
                                 color = Color(0xFFE65100),
                                 fontSize = 11.sp,
                                 lineHeight = 15.sp,
@@ -11026,7 +13519,7 @@ fun B2BCashAgentMarketplaceContent(
                             Icon(imageVector = Icons.Default.Info, contentDescription = null, tint = Color(0xFF0284C7), modifier = Modifier.size(16.dp))
                             Spacer(modifier = Modifier.width(6.dp))
                             Text(
-                                "উইথড্র রিকোয়েস্টে ব্যালেন্স তাৎক্ষণিক কাটা হবে না। Release অনুমোদন দিলে ওয়ালেট থেকে ব্যালেন্স কেটে ক্যাশ এজেন্টের কাছে যাবে এবং এজেন্ট আপনাকে নগদ/বিকাশে টাকা প্রদান করবে।",
+                                "Balance is not immediately deducted upon withdrawal request. When Release is approved, funds are debited from your wallet to the Cash Agent, and the agent sends cash/mobile payment directly to you.",
                                 color = Color(0xFF0369A1),
                                 fontSize = 11.sp,
                                 lineHeight = 15.sp,
@@ -11071,9 +13564,23 @@ fun B2BCashAgentMarketplaceContent(
             }
         )
     }
+
+    // Modal 4: Binance P2P Country & Region Selector
+    if (showCountryDialog) {
+        CountrySelectionDialog(
+            currentCountry = selectedCountry,
+            availableCountries = availableCountries,
+            onSelectCountry = { c ->
+                viewModel.setP2PCountry(c)
+                activePaymentMethodFilter = "ALL"
+                showCountryDialog = false
+            },
+            onDismiss = { showCountryDialog = false }
+        )
+    }
 }
 
-// Data class to support rich marketplace agent cards matching photo
+// Data class to support rich Binance-style marketplace agent cards matching photo
 data class MarketplaceAgentItem(
     val id: String,
     val name: String,
@@ -11090,12 +13597,340 @@ data class MarketplaceAgentItem(
     val currencySymbol: String,
     val minLimit: Double,
     val maxLimit: Double,
+    val availableBalance: Double = 50000.0,
     val paymentMethods: List<String>,
     val buttonLabel: String,
     val isOnline: Boolean = true,
     val isVerified: Boolean = true,
+    val completionRate: String = "99.4%",
+    val avgReleaseTime: String = "2.4 min",
     val accountNumber: String = ""
 )
+
+/**
+ * Dialog to select any of the 61 supported countries/regions with dynamic fiat currency
+ * and dynamic P2P payment methods (Binance-style).
+ */
+@Composable
+fun CountrySelectionDialog(
+    currentCountry: CountryData,
+    availableCountries: List<CountryData>,
+    onSelectCountry: (CountryData) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var searchQuery by remember { mutableStateOf("") }
+    val filteredCountries = remember(searchQuery, availableCountries) {
+        if (searchQuery.isBlank()) availableCountries
+        else availableCountries.filter {
+            it.countryName.contains(searchQuery, ignoreCase = true) ||
+            it.isoCode.contains(searchQuery, ignoreCase = true) ||
+            it.currencyCode.contains(searchQuery, ignoreCase = true)
+        }
+    }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(22.dp),
+            color = Color.White,
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.80f)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            "Select Country / Currency",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 17.sp,
+                            color = Color(0xFF1E1E1E)
+                        )
+                        Text(
+                            "Binance-Style Dynamic Payment Hub (${availableCountries.size} Countries)",
+                            color = Color(0xFFFF2A6D),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 11.sp
+                        )
+                    }
+                    Surface(
+                        shape = CircleShape,
+                        color = Color(0xFFF1F5F9),
+                        modifier = Modifier.size(32.dp).clickable { onDismiss() }
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = Color(0xFF64748B), modifier = Modifier.size(16.dp))
+                        }
+                    }
+                }
+
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search country, ISO code, or currency (e.g. BD, UAE, MYR, USD)...", fontSize = 11.sp, color = Color.Gray) },
+                    leadingIcon = {
+                        Icon(imageVector = Icons.Default.Search, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(18.dp))
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(imageVector = Icons.Default.Clear, contentDescription = "Clear", tint = Color.Gray, modifier = Modifier.size(16.dp))
+                            }
+                        }
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFFFF2A6D),
+                        unfocusedBorderColor = Color(0xFFE2E8F0),
+                        focusedContainerColor = Color(0xFFFFF5F7),
+                        unfocusedContainerColor = Color(0xFFF8FAFC),
+                        focusedTextColor = Color(0xFF1E1E1E),
+                        unfocusedTextColor = Color(0xFF1E1E1E)
+                    ),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    singleLine = true
+                )
+
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(filteredCountries) { country ->
+                        val isSelected = country.countryName.equals(currentCountry.countryName, ignoreCase = true)
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = if (isSelected) Color(0xFFFF2A6D).copy(alpha = 0.08f) else Color.White,
+                            border = BorderStroke(
+                                1.dp,
+                                if (isSelected) Color(0xFFFF2A6D) else Color(0xFFF1F5F9)
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onSelectCountry(country)
+                                }
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Text(country.flag, fontSize = 24.sp)
+                                    Column {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                country.countryName,
+                                                fontWeight = if (isSelected) FontWeight.Black else FontWeight.Bold,
+                                                color = if (isSelected) Color(0xFFFF2A6D) else Color(0xFF1E293B),
+                                                fontSize = 13.sp
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = Color(0xFFF1F5F9)
+                                            ) {
+                                                Text(
+                                                    country.isoCode,
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFF64748B),
+                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                )
+                                            }
+                                        }
+                                        Text(
+                                            "${country.paymentMethods.size} payment methods (${country.paymentMethods.take(3).joinToString { it.methodName }}${if (country.paymentMethods.size > 3) "..." else ""})",
+                                            color = Color(0xFF64748B),
+                                            fontSize = 10.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = if (isSelected) Color(0xFFFF2A6D) else Color(0xFFFF2A6D).copy(alpha = 0.1f)
+                                    ) {
+                                        Text(
+                                            country.currencyCode,
+                                            color = if (isSelected) Color.White else Color(0xFFFF2A6D),
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.Black,
+                                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                                        )
+                                    }
+                                    if (isSelected) {
+                                        Icon(
+                                            imageVector = Icons.Default.CheckCircle,
+                                            contentDescription = "Selected",
+                                            tint = Color(0xFFFF2A6D),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Returns dynamic B2B Cash Agents matching the selected Country, Currency,
+ * and localized Payment Methods (Binance P2P style).
+ */
+fun getMarketplaceAgentsForCountry(
+    country: CountryData,
+    dbAgents: List<PaymentAgent>
+): List<MarketplaceAgentItem> {
+    // 1. Any agents from DB for this country
+    val matchedDb = dbAgents.filter {
+        it.country.equals(country.countryName, ignoreCase = true) ||
+        it.currency.equals(country.currencyCode, ignoreCase = true)
+    }.map { a ->
+        MarketplaceAgentItem(
+            id = a.id,
+            name = a.name,
+            avatarUrl = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
+            country = a.country,
+            location = "${a.city.ifEmpty { "Central" }}, ${a.country}",
+            flagEmoji = country.flag,
+            rating = a.rating.toDouble(),
+            reviewsCount = 320,
+            ordersCount = a.totalOrders,
+            buyRate = a.buyRate,
+            sellRate = a.sellRate,
+            currency = a.currency,
+            currencySymbol = when (a.currency) {
+                "BDT" -> "৳"
+                "USD" -> "$"
+                "EUR" -> "€"
+                "GBP" -> "£"
+                "INR" -> "₹"
+                "AED" -> "AED "
+                "MYR" -> "RM "
+                "SAR" -> "SAR "
+                else -> "${a.currency} "
+            },
+            minLimit = a.minLimit,
+            maxLimit = a.maxLimit,
+            availableBalance = a.availableBalance,
+            paymentMethods = if (a.allowedMethods.isNotBlank()) {
+                a.allowedMethods.split(",").map { it.trim() }
+            } else {
+                country.paymentMethods.map { it.methodName }
+            },
+            buttonLabel = "Trade",
+            isOnline = a.isOnline,
+            isVerified = a.verificationStatus == "VERIFIED",
+            completionRate = a.completionRate,
+            avgReleaseTime = a.avgReleaseTime,
+            accountNumber = a.accountNumber
+        )
+    }
+
+    if (matchedDb.isNotEmpty()) {
+        return matchedDb
+    }
+
+    // 2. Dynamic Binance P2P Agent generation for this country
+    val methodNames = country.paymentMethods.map { it.methodName }
+    val (sym, baseBuy, baseSell) = when (country.currencyCode) {
+        "BDT" -> Triple("৳", 122.50, 120.80)
+        "INR" -> Triple("₹", 83.50, 82.80)
+        "PKR" -> Triple("Rs ", 278.50, 275.00)
+        "AED" -> Triple("AED ", 3.67, 3.65)
+        "SAR" -> Triple("SAR ", 3.75, 3.73)
+        "MYR" -> Triple("RM ", 4.45, 4.40)
+        "SGD" -> Triple("S$", 1.34, 1.32)
+        "THB" -> Triple("฿", 35.20, 34.80)
+        "PHP" -> Triple("₱", 56.40, 55.80)
+        "EUR" -> Triple("€", 0.92, 0.90)
+        "GBP" -> Triple("£", 0.78, 0.76)
+        "USD" -> Triple("$", 1.004, 0.996)
+        else -> Triple("${country.currencyCode} ", 1.0, 0.98)
+    }
+
+    val agentNames = when (country.isoCode) {
+        "BD" -> listOf("Rahim Agent", "BD Exchange Hub", "Agent Sumon", "Dhaka Central Cash")
+        "IN" -> listOf("Mumbai Cash Node", "Delhi Express Pay", "UPI Pro Trader", "Bangalore Escrow")
+        "PK" -> listOf("Lahore Cash Hub", "Karachi Fast Exchange", "Pak Remit Express", "Islamabad P2P")
+        "AE" -> listOf("Dubai Cash Pro", "Gulf Remit Hub", "Emirates P2P Escrow", "Abu Dhabi Trader")
+        "MY" -> listOf("KL Pay Master", "Ringgit Express", "Penang Cash Desk", "Borneo P2P")
+        "SG" -> listOf("Global Pay Agent", "SingaCash Hub", "Marina Bay Escrow", "Lion City Trader")
+        "SA" -> listOf("Riyadh Cash Station", "Jeddah Safe Pay", "Al-Khobar Fast P2P", "Saudi Escrow")
+        "US" -> listOf("NYC Cash Escrow", "Apex USD Trader", "Pacific P2P Desk", "US Fast Remit")
+        "GB" -> listOf("London Cash Express", "Sterling P2P Node", "UK Safe Trader", "Britannia Escrow")
+        else -> listOf(
+            "${country.countryName} Fast Trader",
+            "${country.countryName} Cash Node",
+            "Express ${country.currencyCode} Desk",
+            "SafeEscrow ${country.countryName}"
+        )
+    }
+
+    val avatars = listOf(
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
+        "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d",
+        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e",
+        "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7"
+    )
+
+    return agentNames.mapIndexed { idx, name ->
+        val pMethods = if (methodNames.size >= 2) {
+            val start = (idx * 2) % methodNames.size
+            listOf(methodNames[start], methodNames[(start + 1) % methodNames.size])
+        } else if (methodNames.isNotEmpty()) methodNames else listOf("Bank Transfer", "Cash")
+
+        MarketplaceAgentItem(
+            id = "agent_${country.isoCode.lowercase()}_$idx",
+            name = name,
+            avatarUrl = avatars[idx % avatars.size],
+            country = country.countryName,
+            location = "${country.countryName} Verified Node #${idx + 1}",
+            flagEmoji = country.flag,
+            rating = 4.8 + (idx % 3) * 0.08,
+            reviewsCount = 180 + idx * 85,
+            ordersCount = 850 + idx * 380,
+            buyRate = baseBuy + (idx * 0.05),
+            sellRate = baseSell - (idx * 0.05),
+            currency = country.currencyCode,
+            currencySymbol = sym,
+            minLimit = (country.paymentMethods.firstOrNull()?.minAmount ?: 500.0) * (idx + 1),
+            maxLimit = (country.paymentMethods.firstOrNull()?.maxAmount ?: 100000.0),
+            availableBalance = 25000.0 * (idx + 1),
+            paymentMethods = pMethods,
+            buttonLabel = "Trade",
+            isOnline = true,
+            isVerified = true,
+            completionRate = "${99.0 + (idx % 10) * 0.1}%",
+            avgReleaseTime = "${1.8 + idx * 0.3} min",
+            accountNumber = "${country.phoneCode} ${idx + 1}09876543"
+        )
+    }
+}
 
 @Composable
 fun CreateB2BOrderModal(
@@ -11113,8 +13948,10 @@ fun CreateB2BOrderModal(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        containerColor = Color.White,
+        shape = RoundedCornerShape(20.dp),
         title = {
-            Text("Create B2B $tradeType Trade Order", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            Text("Create B2B $tradeType Trade Order", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 16.sp)
         },
         text = {
             Column(
@@ -11123,13 +13960,51 @@ fun CreateB2BOrderModal(
                     .verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Card(colors = CardDefaults.cardColors(containerColor = Color(0xFF1E202E))) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF8FAFC)),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+                ) {
                     Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text("Verified Agent: ${agent.name}", color = PinkHighlight, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                        Text("Country: ${agent.country} • Code #${agent.agentCode}", color = TextSecondary, fontSize = 10.sp)
-                        Text("Agent Account: ${agent.accountNumber}", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        Text("Verified Agent: ${agent.name}", color = Color(0xFFFF2A6D), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                        Text("Country: ${agent.country} • Code #${agent.agentCode}", color = Color(0xFF64748B), fontSize = 11.sp)
+                        Text("Agent Account: ${agent.accountNumber}", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 12.sp)
                         if (agent.accountHolder.isNotEmpty()) {
-                            Text("Account Holder: ${agent.accountHolder}", color = TextSecondary, fontSize = 10.sp)
+                            Text("Account Holder: ${agent.accountHolder}", color = Color(0xFF64748B), fontSize = 10.sp)
+                        }
+                    }
+                }
+
+                // Payment Method Selector
+                val availableMethods = remember(agent.allowedMethods) {
+                    val split = agent.allowedMethods.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                    if (split.isNotEmpty()) split else listOf(agent.paymentMethod)
+                }
+
+                if (availableMethods.size > 1) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Text("Select Payment Method:", color = Color(0xFF475569), fontSize = 11.sp, fontWeight = FontWeight.Medium)
+                        Row(
+                            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            availableMethods.forEach { meth ->
+                                val isSel = selectedMethod.equals(meth, ignoreCase = true)
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = if (isSel) Color(0xFFFF2A6D) else Color.White,
+                                    border = BorderStroke(1.dp, if (isSel) Color(0xFFFF2A6D) else Color(0xFFCBD5E1)),
+                                    modifier = Modifier.clickable { selectedMethod = meth }
+                                ) {
+                                    Text(
+                                        meth,
+                                        color = if (isSel) Color.White else Color(0xFF334155),
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -11137,11 +14012,12 @@ fun CreateB2BOrderModal(
                 OutlinedTextField(
                     value = amountInput,
                     onValueChange = { amountInput = it },
-                    label = { Text("Amount (৳ BDT)", color = TextSecondary) },
+                    label = { Text("Amount (${agent.currency})") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = Color.White, unfocusedTextColor = Color.White,
-                        focusedBorderColor = PinkHighlight, unfocusedBorderColor = Color(0xFFFF85A6)
+                        focusedTextColor = Color(0xFF0F172A), unfocusedTextColor = Color(0xFF0F172A),
+                        focusedBorderColor = Color(0xFFFF2A6D), unfocusedBorderColor = Color(0xFFCBD5E1),
+                        focusedContainerColor = Color.White, unfocusedContainerColor = Color.White
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -11150,14 +14026,38 @@ fun CreateB2BOrderModal(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Text("Agent Commission (${agent.commissionRate}%):", color = TextSecondary, fontSize = 11.sp)
-                    Text("৳${commFee.toInt()} BDT", color = Color(0xFF00E676), fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    Text("Agent Commission (${agent.commissionRate}%):", color = Color(0xFF64748B), fontSize = 11.sp)
+                    Text("${agent.currency} ${commFee.toInt()}", color = Color(0xFF059669), fontWeight = FontWeight.Bold, fontSize = 11.sp)
                 }
 
                 if (tradeType == "DEPOSIT") {
-                    Text("⚠️ গুরুত্বপূর্ণ নিয়ম: আপনি ক্যাশ এজেন্টের অ্যাকাউন্টে টাকা পাঠিয়ে চ্যাটে প্রুফ আপলোড করবেন। ক্যাশ এজেন্ট রিলিজ না করা পর্যন্ত ব্যালেন্স যোগ হবে না; এজেন্ট রিলিজ করলেই ব্যালেন্স ওয়ালেটে যুক্ত হবে।", color = Color(0xFFFFB74D), fontSize = 11.sp, lineHeight = 15.sp)
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFFFFBEB),
+                        border = BorderStroke(1.dp, Color(0xFFFDE68A))
+                    ) {
+                        Text(
+                            "⚠️ Important Rule: Transfer payment to the Cash Agent's account and upload proof in chat. The balance will not be credited until the Cash Agent releases it; once released, it is instantly added to your wallet.",
+                            color = Color(0xFFB45309),
+                            fontSize = 11.sp,
+                            lineHeight = 15.sp,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
                 } else {
-                    Text("⚠️ গুরুত্বপূর্ণ নিয়ম: উইথড্র অর্ডার এসক্রোতে সংরক্ষিত থাকবে। Release অনুমোদন দিলে ওয়ালেট থেকে ব্যালেন্স কেটে ক্যাশ এজেন্টের কাছে যাবে এবং এজেন্ট আপনাকে নগদ/বিকাশে টাকা প্রদান করবে।", color = Color(0xFF64B5F6), fontSize = 11.sp, lineHeight = 15.sp)
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFEFF6FF),
+                        border = BorderStroke(1.dp, Color(0xFFBFDBFE))
+                    ) {
+                        Text(
+                            "⚠️ Important Rule: The withdrawal order is safely held in Escrow. Approving Release debits your wallet to the Cash Agent, and the agent sends cash/mobile payment directly to you.",
+                            color = Color(0xFF1E40AF),
+                            fontSize = 11.sp,
+                            lineHeight = 15.sp,
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
                 }
             }
         },
@@ -11174,17 +14074,17 @@ fun CreateB2BOrderModal(
                         }
                     )
                 },
-                colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight)
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF2A6D)),
+                shape = RoundedCornerShape(10.dp)
             ) {
                 Text("Confirm & Launch B2B Trade Chat", fontWeight = FontWeight.Bold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel", color = TextSecondary)
+                Text("Cancel", color = Color(0xFF64748B))
             }
-        },
-        containerColor = DarkSurface
+        }
     )
 }
 
@@ -11299,7 +14199,7 @@ fun B2BOrderDetailAndChatDialog(
                                         .background(Color(0xFFFF9800).copy(alpha = 0.15f), RoundedCornerShape(6.dp))
                                         .padding(8.dp)
                                 ) {
-                                    Text("⏳ WAITING FOR CASH AGENT RELEASE: ক্যাশ এজেন্ট রিলিজ না করা পর্যন্ত ওয়ালেটে ব্যালেন্স যোগ হবে না। (Balance will NOT be added until Cash Agent releases).", color = Color(0xFFFF9800), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Text("⏳ WAITING FOR CASH AGENT RELEASE: Balance will NOT be credited until Cash Agent confirms and releases the funds.", color = Color(0xFFFF9800), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         } else {
@@ -11319,7 +14219,7 @@ fun B2BOrderDetailAndChatDialog(
                                         .background(Color(0xFF2196F3).copy(alpha = 0.15f), RoundedCornerShape(6.dp))
                                         .padding(8.dp)
                                 ) {
-                                    Text("🔒 ESCROW ACTIVE: Release দিলে আপনার ওয়ালেট থেকে ৳${liveOrder.amount.toInt()} কেটে নেওয়া হবে এবং Cash Agent (${liveOrder.agentName})-এর কাছে চলে যাবে।", color = Color(0xFF64B5F6), fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                    Text("🔒 ESCROW ACTIVE: Upon Release, ৳${liveOrder.amount.toInt()} will be deducted from your wallet and transferred to Cash Agent (${liveOrder.agentName}).", color = Color(0xFF64B5F6), fontSize = 10.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }

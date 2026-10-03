@@ -65,7 +65,7 @@ fun MainContent(viewModel: AppViewModel) {
     val context = LocalContext.current
     val prefs = remember(context) { context.getSharedPreferences("app_permissions_prefs", Context.MODE_PRIVATE) }
 
-    // Request app permissions: SMS, CAMERA, CONTACTS, MICROPHONE, NOTIFICATIONS, LOCATION, NEARBY DEVICES, PHOTOS/VIDEOS, PHONE
+    // Request app permissions: CAMERA, CONTACTS, MICROPHONE, NOTIFICATIONS, LOCATION, NEARBY DEVICES, PHOTOS/VIDEOS, PHONE
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
     ) { _ ->
@@ -81,8 +81,6 @@ fun MainContent(viewModel: AppViewModel) {
             add(android.Manifest.permission.ACCESS_FINE_LOCATION)
             add(android.Manifest.permission.ACCESS_COARSE_LOCATION)
             add(android.Manifest.permission.READ_CONTACTS)
-            add(android.Manifest.permission.READ_SMS)
-            add(android.Manifest.permission.RECEIVE_SMS)
             add(android.Manifest.permission.READ_PHONE_STATE)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 add(android.Manifest.permission.POST_NOTIFICATIONS)
@@ -134,6 +132,7 @@ fun MainContent(viewModel: AppViewModel) {
             "SELECT_ACCOUNT_TYPE" -> SelectAccountTypeScreen(viewModel)
             "REGISTER_USER" -> RegisterUserScreen(viewModel)
             "REGISTER_MODEL" -> RegisterModelScreen(viewModel)
+            "REGISTER_CASH_AGENT" -> RegisterCashAgentScreen(viewModel)
             "REGISTER" -> SelectAccountTypeScreen(viewModel) // Alias for backwards compatibility
             "PHONE_VERIFICATION" -> PhoneVerificationScreen(viewModel)
             "EMAIL_VERIFICATION" -> EmailVerificationScreen(viewModel)
@@ -157,6 +156,7 @@ fun MainContent(viewModel: AppViewModel) {
                                     5 -> AdminCollectionsTab(viewModel)
                                     6 -> AdminWalletsTab(viewModel)
                                     7 -> AdminSettingsTab(viewModel)
+                                    8 -> AdminApiGeneratorTab(viewModel)
                                     else -> AdminDashboardTab(viewModel)
                                 }
                             }
@@ -167,6 +167,8 @@ fun MainContent(viewModel: AppViewModel) {
                                     2 -> ChatTab(viewModel)
                                     3 -> ModelWalletTab(viewModel)
                                     4 -> ModelProfileTab(viewModel)
+                                    5 -> AdminLiveLocationTrackingTab(viewModel, onBack = { viewModel.selectedTab = 0 })
+                                    else -> ModelDashboardTab(viewModel)
                                 }
                             }
                             "CASH_AGENT" -> {
@@ -175,6 +177,8 @@ fun MainContent(viewModel: AppViewModel) {
                                     1 -> CashAgentCollectionsTab(viewModel)
                                     2 -> CashAgentWalletTab(viewModel)
                                     3 -> CashAgentProfileTab(viewModel)
+                                    5 -> AdminLiveLocationTrackingTab(viewModel, onBack = { viewModel.selectedTab = 0 })
+                                    else -> CashAgentDashboardTab(viewModel)
                                 }
                             }
                             else -> {
@@ -185,12 +189,15 @@ fun MainContent(viewModel: AppViewModel) {
                                     2 -> BookingsTab(viewModel)
                                     3 -> ChatTab(viewModel)
                                     4 -> ProfileTab(viewModel)
+                                    5 -> AdminLiveLocationTrackingTab(viewModel, onBack = { viewModel.selectedTab = 0 })
+                                    else -> HomeTab(viewModel)
                                 }
                             }
                         }
                     }
                 }
             }
+            "LIVE_TRACKING" -> AdminLiveLocationTrackingTab(viewModel, onBack = { viewModel.navigateTo("DASHBOARD") })
             "MODEL_PROFILE" -> ModelProfileScreen(viewModel)
             "SERVICES_PRICING" -> ServicesPricingScreen(viewModel)
             "AVAILABILITY" -> AvailabilityScreen(viewModel)
@@ -204,6 +211,28 @@ fun MainContent(viewModel: AppViewModel) {
             "SETTINGS" -> SettingsScreen(viewModel)
             "EDIT_PROFILE" -> EditProfileScreen(viewModel)
             else -> SplashScreen(viewModel)
+        }
+
+        // Global Security Dialogs (Accessible anywhere in the app)
+        if (viewModel.showChangePasswordDialog) {
+            ChangePasswordModal(
+                onDismiss = { viewModel.showChangePasswordDialog = false },
+                viewModel = viewModel
+            )
+        }
+
+        if (viewModel.showAllLogoutConfirmDialog) {
+            AllDevicesLogoutModal(
+                onDismiss = { viewModel.showAllLogoutConfirmDialog = false },
+                viewModel = viewModel
+            )
+        }
+
+        if (viewModel.showSignOutConfirmDialog) {
+            SignOutConfirmModal(
+                onDismiss = { viewModel.showSignOutConfirmDialog = false },
+                viewModel = viewModel
+            )
         }
     }
 }
