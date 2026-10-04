@@ -73,6 +73,7 @@ final class Config
     public const APP_NAME = 'Modol Connect Backend Service';
     public const APP_VERSION = '2.2.0-php8.2';
     public const BASE_URL = 'http://173.249.28.110/';
+    public const SUPPORT_EMAIL = 'support@modolconncet.fun';
     public const AGENT_COMMISSION_PERCENT = 5.0;
     public const ADMIN_PLATFORM_FEE_PERCENT = 15.0;
 

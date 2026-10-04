@@ -516,4 +516,98 @@ object BackendApiClient {
         }
         false
     }
+
+    /**
+     * Dispatch live email OTP from support@modolconncet.fun via PHP Backend (send_email_otp.php)
+     * Handles both EMAIL_VERIFICATION and FORGOT_PASSWORD
+     */
+    suspend fun sendEmailOtpOnBackend(
+        baseUrl: String = "http://173.249.28.110/",
+        email: String,
+        purpose: String = "EMAIL_VERIFICATION"
+    ): Result<String?> = withContext(Dispatchers.IO) {
+        val rootUrl = normalizeBaseUrl(baseUrl)
+        val endpoints = listOf(
+            "${rootUrl}api/auth/send_email_otp.php",
+            "${rootUrl}backend/api/auth/send_email_otp.php"
+        )
+        for (endpoint in endpoints) {
+            try {
+                val payload = JSONObject().apply {
+                    put("email", email)
+                    put("purpose", purpose)
+                }
+                val body = payload.toString().toRequestBody(JSON_MEDIA_TYPE)
+                val request = Request.Builder()
+                    .url(endpoint)
+                    .post(body)
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Accept", "application/json")
+                    .build()
+                client.newCall(request).execute().use { response ->
+                    val respStr = response.body?.string() ?: ""
+                    if (respStr.isNotBlank()) {
+                        val json = JSONObject(respStr)
+                        if (json.optString("status") == "success") {
+                            val data = json.optJSONObject("data")
+                            val otp = data?.optString("otp_code")
+                            return@withContext Result.success(otp)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.d(TAG, "sendEmailOtpOnBackend error on $endpoint: ${e.message}")
+            }
+        }
+        Result.failure(Exception("Failed to dispatch email from support@modolconncet.fun"))
+    }
+
+    /**
+     * Verify email OTP with PHP Backend (verify_email_otp.php)
+     * If purpose is FORGOT_PASSWORD, optionally updates user's password on backend database
+     */
+    suspend fun verifyEmailOtpOnBackend(
+        baseUrl: String = "http://173.249.28.110/",
+        email: String,
+        otpCode: String,
+        purpose: String = "EMAIL_VERIFICATION",
+        newPassword: String = ""
+    ): Result<Boolean> = withContext(Dispatchers.IO) {
+        val rootUrl = normalizeBaseUrl(baseUrl)
+        val endpoints = listOf(
+            "${rootUrl}api/auth/verify_email_otp.php",
+            "${rootUrl}backend/api/auth/verify_email_otp.php"
+        )
+        for (endpoint in endpoints) {
+            try {
+                val payload = JSONObject().apply {
+                    put("email", email)
+                    put("otp_code", otpCode)
+                    put("purpose", purpose)
+                    if (newPassword.isNotBlank()) {
+                        put("new_password", newPassword)
+                    }
+                }
+                val body = payload.toString().toRequestBody(JSON_MEDIA_TYPE)
+                val request = Request.Builder()
+                    .url(endpoint)
+                    .post(body)
+                    .addHeader("Content-Type", "application/json")
+                    .addHeader("Accept", "application/json")
+                    .build()
+                client.newCall(request).execute().use { response ->
+                    val respStr = response.body?.string() ?: ""
+                    if (respStr.isNotBlank()) {
+                        val json = JSONObject(respStr)
+                        if (json.optString("status") == "success") {
+                            return@withContext Result.success(true)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.d(TAG, "verifyEmailOtpOnBackend error on $endpoint: ${e.message}")
+            }
+        }
+        Result.failure(Exception("Verification failed on server"))
+    }
 }

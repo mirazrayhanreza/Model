@@ -25,7 +25,7 @@ $body = json_decode($rawInput, true) ?: $_POST;
 
 $email = strtolower(trim((string)($body['email'] ?? '')));
 $purpose = strtoupper(trim((string)($body['purpose'] ?? 'EMAIL_VERIFICATION'))); // EMAIL_VERIFICATION or FORGOT_PASSWORD
-$senderEmail = 'support@modolconncet.fun';
+$senderEmail = defined('Config::SUPPORT_EMAIL') ? Config::SUPPORT_EMAIL : 'support@modolconncet.fun';
 
 if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     sendJsonResponse('error', 'Valid email address is required', [], 400);
