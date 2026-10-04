@@ -210,6 +210,7 @@ fun MainContent(viewModel: AppViewModel) {
             "MODEL_OFFERED_SERVICES" -> ModelOfferedServicesScreen(viewModel)
             "SETTINGS" -> SettingsScreen(viewModel)
             "EDIT_PROFILE" -> EditProfileScreen(viewModel)
+            "AUDIO_CALL" -> AudioCallScreen(viewModel)
             else -> SplashScreen(viewModel)
         }
 
@@ -232,6 +233,19 @@ fun MainContent(viewModel: AppViewModel) {
             SignOutConfirmModal(
                 onDismiss = { viewModel.showSignOutConfirmDialog = false },
                 viewModel = viewModel
+            )
+        }
+
+        if (viewModel.showCallLockedDialog) {
+            CallLockedModal(
+                title = viewModel.callLockedDialogTitle,
+                message = viewModel.callLockedDialogMessage,
+                onDismiss = { viewModel.showCallLockedDialog = false },
+                onViewBookings = {
+                    viewModel.showCallLockedDialog = false
+                    viewModel.selectedTab = 2
+                    viewModel.navigateTo("DASHBOARD")
+                }
             )
         }
     }

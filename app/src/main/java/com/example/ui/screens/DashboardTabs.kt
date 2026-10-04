@@ -1130,7 +1130,8 @@ fun BookingsTab(viewModel: AppViewModel) {
                         onChatClick = {
                             viewModel.selectChatPartner(booking.modelId.toString())
                             viewModel.selectedTab = 2 // Switch to chat tab
-                        }
+                        },
+                        viewModel = viewModel
                     )
                 }
             }
@@ -1144,7 +1145,8 @@ fun BookingCard(
     currentUserRole: String,
     onStatusChange: (String) -> Unit,
     onCardClick: () -> Unit,
-    onChatClick: () -> Unit = {}
+    onChatClick: () -> Unit = {},
+    viewModel: AppViewModel
 ) {
     Card(
         modifier = Modifier
@@ -1341,6 +1343,49 @@ fun BookingCard(
                     ) {
                         Icon(Icons.Default.ChatBubbleOutline, contentDescription = "Chat", tint = PinkHighlight, modifier = Modifier.size(16.dp))
                     }
+
+                    Spacer(modifier = Modifier.width(6.dp))
+
+                    // Audio Call Button (Only enabled after model accepts order)
+                    val isModelAccepted = booking.status.equals("ACCEPTED", ignoreCase = true) ||
+                            booking.status.equals("ONGOING", ignoreCase = true) ||
+                            booking.status.equals("IN_PROGRESS", ignoreCase = true) ||
+                            booking.status.equals("CONFIRMED", ignoreCase = true)
+
+                    if (isModelAccepted) {
+                        IconButton(
+                            onClick = {
+                                viewModel.startAudioCall(
+                                    name = booking.modelName,
+                                    role = "Verified Model",
+                                    avatar = booking.modelPhoto,
+                                    targetModelId = booking.modelId,
+                                    forceAllow = true
+                                )
+                            },
+                            modifier = Modifier
+                                .size(34.dp)
+                                .background(Color(0xFFDCFCE7), CircleShape)
+                                .border(1.dp, Color(0xFF86EFAC), CircleShape)
+                        ) {
+                            Icon(Icons.Default.Phone, contentDescription = "Audio Call Model", tint = Color(0xFF16A34A), modifier = Modifier.size(16.dp))
+                        }
+                    } else {
+                        IconButton(
+                            onClick = {
+                                viewModel.showCallLockedNotice(
+                                    title = "Call Locked (মডেল অর্ডার গ্রহণ করেনি)",
+                                    message = "মডেল অর্ডার গ্রহণ (Accept) করার পরই অডিও কল চালু হবে। বুকিংটি এখনো পেন্ডিং আছে, মডেল একসেপ্ট করা পর্যন্ত অপেক্ষা করুন।"
+                                )
+                            },
+                            modifier = Modifier
+                                .size(34.dp)
+                                .background(Color(0xFFF1F5F9), CircleShape)
+                                .border(1.dp, Color(0xFFCBD5E1), CircleShape)
+                        ) {
+                            Icon(Icons.Default.PhoneLocked, contentDescription = "Call Locked", tint = Color(0xFF94A3B8), modifier = Modifier.size(15.dp))
+                        }
+                    }
                 }
             }
 
@@ -1508,18 +1553,55 @@ fun ChatTab(viewModel: AppViewModel) {
                         }
                     }
 
-                    // Audio Call Action Only (Video Call removed per user request)
+                    // Audio Call Action Only (CALL MODEL TO USER ONLY; ONLY AFTER MODEL ACCEPTS ORDER)
+                    val partnerModel = models.firstOrNull { it.id.toString() == chatPartnerId || it.name.equals(chatPartnerName, ignoreCase = true) }
+                    val isModelContact = partnerModel != null
+                    val isAcceptedBooking = partnerModel != null && viewModel.hasAcceptedBookingWithModel(partnerModel.id)
+                    val isCurrentUserModel = currentUser?.role == "MODEL"
+                    val isAcceptedClient = isCurrentUserModel && viewModel.hasAcceptedBookingWithClient(chatPartnerName)
+                    val canCallInChat = if (isCurrentUserModel) isAcceptedClient else (isModelContact && isAcceptedBooking)
+
                     IconButton(
                         onClick = {
-                            viewModel.addNotification("Audio Call", "Initiating secure audio call with $chatPartnerName...", "Chat")
-                            Toast.makeText(context, "Initiating secure audio call with $chatPartnerName...", Toast.LENGTH_SHORT).show()
+                            if (canCallInChat) {
+                                viewModel.startAudioCall(
+                                    name = chatPartnerName,
+                                    role = if (isModelContact) "Verified Model" else "Booking Client",
+                                    avatar = chatPartnerPhoto,
+                                    targetModelId = partnerModel?.id,
+                                    targetUserId = if (isCurrentUserModel) chatPartnerName else null,
+                                    forceAllow = true
+                                )
+                            } else {
+                                if (isCurrentUserModel) {
+                                    viewModel.showCallLockedNotice(
+                                        title = "Call Locked (অর্ডার একসেপ্ট করুন)",
+                                        message = "এই ক্লায়েন্ট ইউজারকে কল করার পূর্বে তার বুকিং অর্ডারটি Accept করতে হবে। অর্ডার গ্রহণ করার পর কল চালু হবে।"
+                                    )
+                                } else if (!isModelContact) {
+                                    viewModel.showCallLockedNotice(
+                                        title = "Call Restricted (শুধু মডেলকে কল সম্ভব)",
+                                        message = "কল সুবিধাটি কেবলমাত্র মডেল এবং ইউজারের মধ্যে অনুমোদিত বুকিং অর্ডারের জন্য সীমাবদ্ধ।"
+                                    )
+                                } else {
+                                    viewModel.showCallLockedNotice(
+                                        title = "Call Locked (মডেল অর্ডার গ্রহণ করেনি)",
+                                        message = "মডেল অর্ডার গ্রহণ (Accept) করার পরই কেবল অডিও কল করা সম্ভব। আপনার বুকিং অর্ডারটি মডেল একসেপ্ট করা পর্যন্ত অপেক্ষা করুন।"
+                                    )
+                                }
+                            }
                         },
                         modifier = Modifier
                             .size(38.dp)
-                            .background(PinkLight, CircleShape)
-                            .border(1.2.dp, PinkBorderSoft, CircleShape)
+                            .background(if (canCallInChat) Color(0xFFDCFCE7) else Color(0xFFF1F5F9), CircleShape)
+                            .border(1.2.dp, if (canCallInChat) Color(0xFF86EFAC) else Color(0xFFCBD5E1), CircleShape)
                     ) {
-                        Icon(imageVector = Icons.Default.Phone, contentDescription = "Audio Call", tint = PinkHighlight, modifier = Modifier.size(18.dp))
+                        Icon(
+                            imageVector = if (canCallInChat) Icons.Default.Phone else Icons.Default.PhoneLocked,
+                            contentDescription = "Audio Call",
+                            tint = if (canCallInChat) Color(0xFF16A34A) else Color(0xFF94A3B8),
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
                 }
             }
@@ -1961,22 +2043,72 @@ fun ChatTab(viewModel: AppViewModel) {
 
                                 Spacer(modifier = Modifier.width(8.dp))
 
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text("Active", color = OnlineGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    if (!chat.isRead && chat.senderId != currentUserId) {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(10.dp)
-                                                .background(PinkHighlight, CircleShape)
-                                        )
-                                    } else {
+                                val isAcceptedWithModel = partnerModel != null && viewModel.hasAcceptedBookingWithModel(partnerModel.id)
+                                val isCurrentUserModel = currentUser?.role == "MODEL"
+                                val isAcceptedClient = isCurrentUserModel && viewModel.hasAcceptedBookingWithClient(name)
+                                val canCallPartner = if (isCurrentUserModel) isAcceptedClient else (partnerModel != null && isAcceptedWithModel)
+
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    IconButton(
+                                        onClick = {
+                                            if (canCallPartner) {
+                                                viewModel.startAudioCall(
+                                                    name = name,
+                                                    role = if (partnerModel != null) "Verified Model" else "Booking Client",
+                                                    avatar = photo,
+                                                    targetModelId = partnerModel?.id,
+                                                    targetUserId = if (isCurrentUserModel) name else null,
+                                                    forceAllow = true
+                                                )
+                                            } else {
+                                                if (isCurrentUserModel) {
+                                                    viewModel.showCallLockedNotice(
+                                                        title = "Call Locked (অর্ডার একসেপ্ট করুন)",
+                                                        message = "এই ক্লায়েন্ট ইউজারকে কল করার পূর্বে তার বুকিং অর্ডারটি Accept করতে হবে। অর্ডার গ্রহণ করার পর কল দেওয়া যাবে।"
+                                                    )
+                                                } else if (partnerModel == null) {
+                                                    viewModel.showCallLockedNotice(
+                                                        title = "Call Restricted (শুধু মডেলকে কল সম্ভব)",
+                                                        message = "কল সুবিধাটি কেবলমাত্র মডেল এবং ইউজারের মধ্যে অনুমোদিত অর্ডারের জন্য সীমাবদ্ধ।"
+                                                    )
+                                                } else {
+                                                    viewModel.showCallLockedNotice(
+                                                        title = "Call Locked (মডেল অর্ডার গ্রহণ করেনি)",
+                                                        message = "মডেল অর্ডার গ্রহণ (Accept) করার পর কল দেওয়া যাবে। বর্তমানে $name-এর সাথে আপনার কোনো অনুমোদিত বুকিং নেই।"
+                                                    )
+                                                }
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .size(34.dp)
+                                            .background(if (canCallPartner) Color(0xFFF0FDF4) else Color(0xFFF1F5F9), CircleShape)
+                                            .border(1.dp, if (canCallPartner) Color(0xFF86EFAC) else Color(0xFFCBD5E1), CircleShape)
+                                    ) {
                                         Icon(
-                                            imageVector = Icons.Default.ChevronRight,
-                                            contentDescription = null,
-                                            tint = PinkHighlight,
-                                            modifier = Modifier.size(18.dp)
+                                            imageVector = if (canCallPartner) Icons.Default.Phone else Icons.Default.PhoneLocked,
+                                            contentDescription = "Audio Call",
+                                            tint = if (canCallPartner) Color(0xFF16A34A) else Color(0xFF94A3B8),
+                                            modifier = Modifier.size(16.dp)
                                         )
+                                    }
+
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text("Active", color = OnlineGreen, fontSize = 10.sp, fontWeight = FontWeight.Bold)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        if (!chat.isRead && chat.senderId != currentUserId) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(10.dp)
+                                                    .background(PinkHighlight, CircleShape)
+                                            )
+                                        } else {
+                                            Icon(
+                                                imageVector = Icons.Default.ChevronRight,
+                                                contentDescription = null,
+                                                tint = PinkHighlight,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -4934,6 +5066,7 @@ fun ModelBookingItemCard(
     onViewProofClick: () -> Unit
 ) {
     val isPending = booking.status == "PENDING" || booking.status == "PAYMENT_RECEIVED"
+    val isAccepted = booking.status == "ACCEPTED"
     val isInProgress = booking.status == "IN_PROGRESS"
     val isProofUploaded = booking.status == "PROOF_UPLOADED"
     val isAdminReview = booking.status == "ADMIN_REVIEW"
@@ -5214,6 +5347,21 @@ fun ModelBookingItemCard(
                             Text("Reject", color = Color(0xFFE11D48), fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
 
+                        IconButton(
+                            onClick = {
+                                viewModel.showCallLockedNotice(
+                                    title = "Call Locked (অর্ডার একসেপ্ট করুন)",
+                                    message = "ইউজারকে কল করার পূর্বে বুকিংটি 'Accept' করুন। মডেল অর্ডার একসেপ্ট করার পরই কল সুবিধা চালু হবে।"
+                                )
+                            },
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(Color(0xFFF1F5F9), RoundedCornerShape(8.dp))
+                                .border(1.dp, Color(0xFFCBD5E1), RoundedCornerShape(8.dp))
+                        ) {
+                            Icon(Icons.Default.PhoneLocked, contentDescription = "Call Locked", tint = Color(0xFF94A3B8), modifier = Modifier.size(16.dp))
+                        }
+
                         Button(
                             onClick = { viewModel.updateBookingStatus(booking, "ACCEPTED") },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
@@ -5226,13 +5374,65 @@ fun ModelBookingItemCard(
                     }
                 }
 
+                isAccepted -> {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Button(
+                            onClick = {
+                                viewModel.startAudioCall(name = booking.userId, role = "Booking Client", avatar = "", forceAllow = true)
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Icon(imageVector = Icons.Default.Phone, contentDescription = null, tint = Color.White, modifier = Modifier.size(15.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("📞 Call Client", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = {
+                                viewModel.selectChatPartner(booking.userId)
+                                viewModel.selectedTab = 2
+                                viewModel.navigateTo("DASHBOARD")
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                            modifier = Modifier.height(36.dp)
+                        ) {
+                            Text("💬 Chat", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+
+                        Button(
+                            onClick = {
+                                viewModel.updateBookingStatus(booking, "IN_PROGRESS")
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2563EB)),
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
+                            modifier = Modifier.weight(1f).height(36.dp)
+                        ) {
+                            Text("▶ Start Service", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+
                 isInProgress -> {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Button(
-                            onClick = { viewModel.selectChatPartner("user_1"); viewModel.navigateTo("CHAT_ROOM") },
+                            onClick = {
+                                viewModel.selectChatPartner(booking.userId)
+                                viewModel.selectedTab = 2
+                                viewModel.navigateTo("DASHBOARD")
+                            },
                             colors = ButtonDefaults.buttonColors(containerColor = PinkBorderSoft),
                             shape = RoundedCornerShape(8.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
@@ -5241,14 +5441,18 @@ fun ModelBookingItemCard(
                             Text("💬 Chat", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
 
-                        OutlinedButton(
-                            onClick = { },
+                        Button(
+                            onClick = {
+                                viewModel.startAudioCall(name = booking.userId, role = "Booking Client", avatar = "", forceAllow = true)
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
                             shape = RoundedCornerShape(8.dp),
-                            border = BorderStroke(1.dp, PinkBorderSoft),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 0.dp),
                             modifier = Modifier.height(36.dp)
                         ) {
-                            Text("📞 Call", color = PinkBorderSoft, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                            Icon(imageVector = Icons.Default.Phone, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Call", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                         }
 
                         Button(

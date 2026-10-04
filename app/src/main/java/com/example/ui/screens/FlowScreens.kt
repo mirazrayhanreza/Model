@@ -340,6 +340,39 @@ fun ModelProfileScreen(viewModel: AppViewModel) {
                 Icon(imageVector = Icons.Default.Chat, contentDescription = "Chat", tint = PinkHighlight)
             }
 
+            val isOrderAcceptedByModel = viewModel.hasAcceptedBookingWithModel(model.id)
+            Button(
+                onClick = {
+                    if (isOrderAcceptedByModel) {
+                        viewModel.startAudioCall(
+                            name = model.name,
+                            role = "Verified Model",
+                            avatar = model.imageResName,
+                            targetModelId = model.id,
+                            forceAllow = true
+                        )
+                    } else {
+                        viewModel.showCallLockedNotice(
+                            title = "Call Locked (মডেল অর্ডার গ্রহণ করেনি)",
+                            message = "মডেল আপনার বুকিং অর্ডার গ্রহণ (Accept) করার পর অডিও কল চালু হবে। দয়া করে আগে 'Book Now' বাটন চেপে অর্ডার সম্পন্ন করুন এবং মডেল একসেপ্ট করা পর্যন্ত অপেক্ষা করুন।"
+                        )
+                    }
+                },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isOrderAcceptedByModel) Color(0xFFF0FDF4) else Color(0xFFF8FAFC)
+                ),
+                border = BorderStroke(1.dp, if (isOrderAcceptedByModel) Color(0xFF86EFAC) else Color(0xFFE2E8F0)),
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.size(52.dp),
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                Icon(
+                    imageVector = if (isOrderAcceptedByModel) Icons.Default.Phone else Icons.Default.PhoneLocked,
+                    contentDescription = "Audio Call",
+                    tint = if (isOrderAcceptedByModel) Color(0xFF16A34A) else Color(0xFF94A3B8)
+                )
+            }
+
             Button(
                 onClick = {
                     viewModel.navigateTo("SERVICES_PRICING")

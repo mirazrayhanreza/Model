@@ -326,6 +326,21 @@ final class Database
                 `instructions` TEXT NULL,
                 `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
+
+            "CREATE TABLE IF NOT EXISTS `calls` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `call_id` VARCHAR(50) UNIQUE NOT NULL,
+                `caller_id` VARCHAR(100) NOT NULL,
+                `caller_name` VARCHAR(100) NOT NULL,
+                `receiver_id` VARCHAR(100) NOT NULL,
+                `receiver_name` VARCHAR(100) NOT NULL,
+                `call_type` VARCHAR(50) DEFAULT 'Audio Call (WebRTC)',
+                `duration_seconds` INT DEFAULT 0,
+                `duration_text` VARCHAR(50) DEFAULT '00:00',
+                `quality` VARCHAR(50) DEFAULT 'HD Voice (Opus 48kHz)',
+                `status` VARCHAR(50) DEFAULT 'Completed',
+                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
         ];
 
@@ -561,6 +576,20 @@ final class Database
                 supported_cards TEXT DEFAULT 'VISA, MASTERCARD, AMEX',
                 instructions TEXT,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )",
+            "CREATE TABLE IF NOT EXISTS calls (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                call_id TEXT UNIQUE NOT NULL,
+                caller_id TEXT NOT NULL,
+                caller_name TEXT NOT NULL,
+                receiver_id TEXT NOT NULL,
+                receiver_name TEXT NOT NULL,
+                call_type TEXT DEFAULT 'Audio Call (WebRTC)',
+                duration_seconds INTEGER DEFAULT 0,
+                duration_text TEXT DEFAULT '00:00',
+                quality TEXT DEFAULT 'HD Voice (Opus 48kHz)',
+                status TEXT DEFAULT 'Completed',
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )"
         ];

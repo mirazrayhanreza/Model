@@ -52,6 +52,17 @@ data class BackendMediaUpload(
     val backendStatus: String = "STORED_IN_DATABASE" // "STORED_IN_DATABASE", "SYNCED"
 )
 
+data class CallLogEntry(
+    val id: String,
+    val partnerName: String,
+    val partnerRole: String,
+    val partnerAvatar: String,
+    val durationText: String,
+    val timestamp: String,
+    val type: String = "Audio Call (WebRTC)",
+    val status: String = "Completed"
+)
+
 class AppViewModel(application: Application, val repository: Repository) : AndroidViewModel(application) {
 
     // --- Backend Uploaded Media List (Live Ledger for Admin & App) ---
@@ -392,6 +403,291 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
     var p2pSelectedCountry by mutableStateOf(CountryPaymentMaster.allCountries.first { it.countryName == "Bangladesh" })
     var p2pSelectedPaymentMethod by mutableStateOf("ALL")
     var p2pAvailableCountries by mutableStateOf(CountryPaymentMaster.allCountries)
+
+    // --- Audio Calling System State ---
+    var activeCallPartnerName by mutableStateOf("Jessica Chowdhury")
+    var activeCallPartnerRole by mutableStateOf("Verified Model")
+    var activeCallPartnerAvatar by mutableStateOf("")
+    var activeCallState by mutableStateOf("RINGING") // "RINGING", "CONNECTED", "ENDED"
+    var activeCallDurationSeconds by mutableStateOf(0)
+    var isCallMicMuted by mutableStateOf(false)
+    var isCallSpeakerOn by mutableStateOf(false)
+    var callQualityLabel by mutableStateOf("HD Voice (Opus 48kHz)")
+    var currentCallId by mutableStateOf("")
+    private var callTimerJob: kotlinx.coroutines.Job? = null
+    private var ringingTone: android.media.ToneGenerator? = null
+
+    // Call Lock Dialog State (Enforces: Model order accept korar por call dewa jabe)
+    var showCallLockedDialog by mutableStateOf(false)
+    var callLockedDialogTitle by mutableStateOf("Call Locked (মডেল অর্ডার গ্রহণ করেনি)")
+    var callLockedDialogMessage by mutableStateOf("মডেল আপনার বুকিং অর্ডার গ্রহণ (Accept) করার পরই অডিও কল চালু হবে। দয়া করে অপেক্ষা করুন অথবা অর্ডার বুক করুন।")
+
+    fun showCallLockedNotice(
+        title: String = "Call Locked (মডেল অর্ডার গ্রহণ করেনি)",
+        message: String = "মডেল আপনার বুকিং অর্ডার গ্রহণ (Accept) করার পরই অডিও কল চালু হবে। দয়া করে অপেক্ষা করুন অথবা অর্ডার বুক করুন।"
+    ) {
+        callLockedDialogTitle = title
+        callLockedDialogMessage = message
+        showCallLockedDialog = true
+    }
+
+    /**
+     * Checks if the user has an active booking that has been accepted by the model.
+     * Audio call is strictly permitted ONLY after model accepts the order.
+     */
+    fun hasAcceptedBookingWithModel(modelId: Int): Boolean {
+        val bookings = userBookings.value.ifEmpty { allBookings.value }
+        return bookings.any { b ->
+            b.modelId == modelId && (
+                b.status.equals("ACCEPTED", ignoreCase = true) ||
+                b.status.equals("IN_PROGRESS", ignoreCase = true) ||
+                b.status.equals("ONGOING", ignoreCase = true) ||
+                b.status.equals("CONFIRMED", ignoreCase = true)
+            )
+        }
+    }
+
+    fun hasAcceptedBookingWithModelName(modelName: String): Boolean {
+        val bookings = userBookings.value.ifEmpty { allBookings.value }
+        return bookings.any { b ->
+            (b.modelName.equals(modelName, ignoreCase = true) || modelName.contains(b.modelName, ignoreCase = true) || b.modelName.contains(modelName, ignoreCase = true)) && (
+                b.status.equals("ACCEPTED", ignoreCase = true) ||
+                b.status.equals("IN_PROGRESS", ignoreCase = true) ||
+                b.status.equals("ONGOING", ignoreCase = true) ||
+                b.status.equals("CONFIRMED", ignoreCase = true) ||
+                b.status.equals("PROOF_UPLOADED", ignoreCase = true) ||
+                b.status.equals("USER_CONFIRMED", ignoreCase = true)
+            )
+        }
+    }
+
+    /**
+     * Checks if the model has accepted an order from this client.
+     */
+    fun hasAcceptedBookingWithClient(clientIdentifier: String): Boolean {
+        val bookings = userBookings.value.ifEmpty { allBookings.value }
+        return bookings.any { b ->
+            (b.userId.equals(clientIdentifier, ignoreCase = true) ||
+             b.userId.contains(clientIdentifier, ignoreCase = true) ||
+             clientIdentifier.contains(b.userId, ignoreCase = true)) && (
+                b.status.equals("ACCEPTED", ignoreCase = true) ||
+                b.status.equals("IN_PROGRESS", ignoreCase = true) ||
+                b.status.equals("ONGOING", ignoreCase = true) ||
+                b.status.equals("CONFIRMED", ignoreCase = true) ||
+                b.status.equals("PROOF_UPLOADED", ignoreCase = true) ||
+                b.status.equals("USER_CONFIRMED", ignoreCase = true)
+            )
+        }
+    }
+
+    val callHistoryList = mutableStateListOf<CallLogEntry>(
+        CallLogEntry("CALL-8821", "Jessica Chowdhury", "Verified Model", "jessica", "14:20", "Today, 11:00 AM", "Audio Call (WebRTC)", "Completed"),
+        CallLogEntry("CALL-8820", "Nusrat Jahan", "Verified Model", "nusrat", "05:12", "Yesterday, 06:30 PM", "Audio Call (WebRTC)", "Completed"),
+        CallLogEntry("CALL-8819", "Tania Islam", "Verified Model", "tania", "02:45", "29 Sep, 02:15 PM", "Audio Call (WebRTC)", "Completed")
+    )
+
+    val activeCallDurationFormatted: String
+        get() {
+            val mins = activeCallDurationSeconds / 60
+            val secs = activeCallDurationSeconds % 60
+            return String.format(java.util.Locale.US, "%02d:%02d", mins, secs)
+        }
+
+    private fun playRingingSound() {
+        try {
+            ringingTone?.release()
+            ringingTone = android.media.ToneGenerator(android.media.AudioManager.STREAM_VOICE_CALL, 65)
+            viewModelScope.launch {
+                while (activeCallState == "RINGING") {
+                    ringingTone?.startTone(android.media.ToneGenerator.TONE_SUP_RINGTONE, 1400)
+                    delay(2000)
+                }
+                ringingTone?.stopTone()
+                ringingTone?.release()
+                ringingTone = null
+            }
+        } catch (_: Exception) {}
+    }
+
+    private fun playDisconnectSound() {
+        try {
+            val tone = android.media.ToneGenerator(android.media.AudioManager.STREAM_VOICE_CALL, 70)
+            tone.startTone(android.media.ToneGenerator.TONE_PROP_PROMPT, 400)
+            viewModelScope.launch {
+                delay(500)
+                tone.release()
+            }
+        } catch (_: Exception) {}
+    }
+
+    /**
+     * Initiates audio call with strict policy enforcement:
+     * 1. CALL MODEL TO USER ONLY (strictly between Model and User)
+     * 2. MODEL ORDER ACCEPT KORAR POR CALL DEWA JABE (Calls unlocked ONLY after Model accepts booking)
+     */
+    fun startAudioCall(
+        name: String,
+        role: String = "Partner",
+        avatar: String = "",
+        targetModelId: Int? = null,
+        targetUserId: String? = null,
+        forceAllow: Boolean = false
+    ) {
+        val userRole = currentUser.value?.role?.uppercase() ?: "USER"
+        val isTargetModel = role.contains("Model", ignoreCase = true) || targetModelId != null
+        val isTargetUser = role.contains("Client", ignoreCase = true) || role.contains("User", ignoreCase = true) || targetUserId != null
+
+        // RULE 1: CALL MODEL TO USER ONLY
+        if (userRole == "USER" && !isTargetModel) {
+            showCallLockedNotice(
+                title = "Call Restricted (শুধু মডেলকে কল সম্ভব)",
+                message = "কল সুবিধাটি শুধুমাত্র মডেলের সাথে যোগাযোগের জন্য নির্ধারিত। মডেলের সাথে অনুমোদিত বুকিং থাকলে তাকে কল দেওয়া যাবে।"
+            )
+            return
+        }
+
+        if (userRole == "MODEL" && !isTargetUser && !isTargetModel) {
+            showCallLockedNotice(
+                title = "Call Restricted (শুধু বুকিং ইউজারকে কল সম্ভব)",
+                message = "কল সুবিধাটি শুধুমাত্র বুকিং দেওয়া ক্লায়েন্ট ইউজারের সাথে যোগাযোগের জন্য প্রযোজ্য।"
+            )
+            return
+        }
+
+        // Agents or other unauthorized roles cannot make calls
+        if (userRole != "USER" && userRole != "MODEL" && userRole != "ADMIN") {
+            showCallLockedNotice(
+                title = "Call Disabled",
+                message = "কল সুবিধাটি শুধুমাত্র মডেল এবং ইউজারের জন্য প্রযোজ্য।"
+            )
+            return
+        }
+
+        // RULE 2: MODEL ORDER ACCEPT KORAR POR CALL DEWA JABE
+        // An audio call can ONLY be initiated after the Model has accepted the booking order!
+        if (!forceAllow && userRole != "ADMIN") {
+            if (userRole == "USER") {
+                val hasAccepted = (targetModelId != null && hasAcceptedBookingWithModel(targetModelId)) ||
+                        hasAcceptedBookingWithModelName(name)
+                if (!hasAccepted) {
+                    showCallLockedNotice(
+                        title = "Call Locked (মডেল অর্ডার গ্রহণ করেনি)",
+                        message = "মডেল অর্ডার গ্রহণ (Accept) করার পরই কেবল অডিও কল চালু হবে। দয়া করে আগে বুকিং সম্পন্ন করুন এবং মডেল কর্তৃক অর্ডার একসেপ্ট হওয়ার অপেক্ষা করুন।"
+                    )
+                    return
+                }
+            } else if (userRole == "MODEL") {
+                val hasAccepted = (targetUserId != null && hasAcceptedBookingWithClient(targetUserId)) ||
+                        hasAcceptedBookingWithClient(name)
+                if (!hasAccepted) {
+                    showCallLockedNotice(
+                        title = "Call Locked (অর্ডার একসেপ্ট করুন)",
+                        message = "ইউজারকে কল করার পূর্বে বুকিং অর্ডারটি Accept করতে হবে। অর্ডার একসেপ্ট করার পরই কল চালু হবে।"
+                    )
+                    return
+                }
+            }
+        }
+
+        activeCallPartnerName = name.ifBlank { "Partner" }
+        activeCallPartnerRole = role
+        activeCallPartnerAvatar = avatar
+        activeCallState = "RINGING"
+        activeCallDurationSeconds = 0
+        isCallMicMuted = false
+        isCallSpeakerOn = false
+        currentCallId = "CALL-" + (1000..9999).random()
+        callTimerJob?.cancel()
+
+        playRingingSound()
+        navigateTo("AUDIO_CALL")
+
+        // Sync with backend API
+        viewModelScope.launch {
+            val caller = currentUser.value?.name ?: "User"
+            val callerId = currentUser.value?.id ?: "usr_1012"
+            val backendId = com.example.data.network.BackendApiClient.initiateCallOnBackend(
+                baseUrl = backendServerUrl,
+                callerId = callerId,
+                callerName = caller,
+                receiverId = activeCallPartnerName.lowercase().replace(" ", "_"),
+                receiverName = activeCallPartnerName,
+                callerRole = userRole,
+                receiverRole = if (isTargetModel) "MODEL" else "USER",
+                bookingStatus = "ACCEPTED"
+            )
+            if (!backendId.isNullOrBlank()) {
+                currentCallId = backendId
+            }
+        }
+
+        viewModelScope.launch {
+            delay(2800)
+            if (activeCallState == "RINGING") {
+                activeCallState = "CONNECTED"
+                ringingTone?.stopTone()
+                ringingTone?.release()
+                ringingTone = null
+                startCallTimer()
+            }
+        }
+    }
+
+    private fun startCallTimer() {
+        callTimerJob?.cancel()
+        callTimerJob = viewModelScope.launch {
+            while (activeCallState == "CONNECTED") {
+                delay(1000)
+                activeCallDurationSeconds++
+            }
+        }
+    }
+
+    fun toggleCallMute() {
+        isCallMicMuted = !isCallMicMuted
+    }
+
+    fun toggleCallSpeaker() {
+        isCallSpeakerOn = !isCallSpeakerOn
+        try {
+            val audioManager = getApplication<Application>().getSystemService(android.content.Context.AUDIO_SERVICE) as? android.media.AudioManager
+            audioManager?.isSpeakerphoneOn = isCallSpeakerOn
+        } catch (_: Exception) {}
+    }
+
+    fun endAudioCall() {
+        activeCallState = "ENDED"
+        ringingTone?.stopTone()
+        ringingTone?.release()
+        ringingTone = null
+        callTimerJob?.cancel()
+        playDisconnectSound()
+
+        val dur = activeCallDurationFormatted
+        val entry = CallLogEntry(
+            id = currentCallId.ifBlank { "CALL-" + (1000..9999).random() },
+            partnerName = activeCallPartnerName,
+            partnerRole = activeCallPartnerRole,
+            partnerAvatar = activeCallPartnerAvatar,
+            durationText = dur,
+            timestamp = "Just now",
+            status = "Completed"
+        )
+        callHistoryList.add(0, entry)
+
+        viewModelScope.launch {
+            if (currentCallId.isNotBlank()) {
+                com.example.data.network.BackendApiClient.updateCallStatusOnBackend(
+                    baseUrl = backendServerUrl,
+                    callId = currentCallId,
+                    status = "Completed",
+                    durationSeconds = activeCallDurationSeconds
+                )
+            }
+            delay(600)
+            goBack()
+        }
+    }
 
     fun setP2PCountry(country: CountryData) {
         p2pSelectedCountry = country

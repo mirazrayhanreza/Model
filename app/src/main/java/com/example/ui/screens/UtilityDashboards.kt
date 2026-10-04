@@ -11841,13 +11841,6 @@ fun AdminSupportMessengerTab(viewModel: AppViewModel) {
                             Text("🟢 Active Now • Facebook Messenger Live Support", color = Color(0xFF00E676), fontSize = 10.sp)
                         }
                     }
-
-                    // Header Audio Call Icon Only (Video Call removed per user request)
-                    IconButton(onClick = {
-                        android.widget.Toast.makeText(context, "Initiating Audio Support Call with ${selectedUser.name}...", android.widget.Toast.LENGTH_SHORT).show()
-                    }) {
-                        Icon(imageVector = Icons.Default.Call, contentDescription = "Audio Call", tint = Color(0xFF0084FF), modifier = Modifier.size(22.dp))
-                    }
                 }
 
                 HorizontalDivider(color = PinkBorderSoft)
@@ -13070,42 +13063,42 @@ fun B2BCashAgentMarketplaceContent(
 
                                     Button(
                                         onClick = {
-                                            val matchedPaymentAgent = PaymentAgent(
-                                                id = agent.id,
-                                                name = agent.name,
-                                                agentCode = agent.id.takeLast(4),
-                                                country = agent.country,
-                                                currency = agent.currency,
-                                                phone = agent.accountNumber,
-                                                paymentMethod = agent.paymentMethods.firstOrNull() ?: "Bank Transfer",
-                                                accountNumber = agent.accountNumber,
-                                                accountHolder = agent.name,
-                                                commissionRate = 1.5,
-                                                buyRate = agent.buyRate,
-                                                sellRate = agent.sellRate,
-                                                minLimit = agent.minLimit,
-                                                maxLimit = agent.maxLimit,
-                                                availableBalance = agent.availableBalance,
-                                                allowedMethods = agent.paymentMethods.joinToString(", "),
-                                                totalOrders = agent.ordersCount,
-                                                completionRate = agent.completionRate,
-                                                avgReleaseTime = agent.avgReleaseTime,
-                                                rating = agent.rating.toFloat(),
-                                                isOnline = agent.isOnline,
-                                                verificationStatus = if (agent.isVerified) "VERIFIED" else "PENDING_VERIFICATION"
-                                            )
-                                            selectedAgentForOrder = matchedPaymentAgent
-                                        },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF2A6D)),
-                                        shape = RoundedCornerShape(12.dp),
-                                        elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
-                                        modifier = Modifier.height(38.dp).widthIn(min = 130.dp)
-                                    ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                            Text(btnLabel, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
-                                            Icon(imageVector = Icons.Default.ArrowForward, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                                                val matchedPaymentAgent = PaymentAgent(
+                                                    id = agent.id,
+                                                    name = agent.name,
+                                                    agentCode = agent.id.takeLast(4),
+                                                    country = agent.country,
+                                                    currency = agent.currency,
+                                                    phone = agent.accountNumber,
+                                                    paymentMethod = agent.paymentMethods.firstOrNull() ?: "Bank Transfer",
+                                                    accountNumber = agent.accountNumber,
+                                                    accountHolder = agent.name,
+                                                    commissionRate = 1.5,
+                                                    buyRate = agent.buyRate,
+                                                    sellRate = agent.sellRate,
+                                                    minLimit = agent.minLimit,
+                                                    maxLimit = agent.maxLimit,
+                                                    availableBalance = agent.availableBalance,
+                                                    allowedMethods = agent.paymentMethods.joinToString(", "),
+                                                    totalOrders = agent.ordersCount,
+                                                    completionRate = agent.completionRate,
+                                                    avgReleaseTime = agent.avgReleaseTime,
+                                                    rating = agent.rating.toFloat(),
+                                                    isOnline = agent.isOnline,
+                                                    verificationStatus = if (agent.isVerified) "VERIFIED" else "PENDING_VERIFICATION"
+                                                )
+                                                selectedAgentForOrder = matchedPaymentAgent
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF2A6D)),
+                                            shape = RoundedCornerShape(12.dp),
+                                            elevation = ButtonDefaults.buttonElevation(defaultElevation = 2.dp),
+                                            modifier = Modifier.height(38.dp).widthIn(min = 120.dp)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                                Text(btnLabel, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                                                Icon(imageVector = Icons.Default.ArrowForward, contentDescription = null, tint = Color.White, modifier = Modifier.size(13.dp))
+                                            }
                                         }
-                                    }
                                 }
                             }
                         }
@@ -15373,6 +15366,80 @@ fun UserToModelLiveTrackingContent(viewModel: AppViewModel) {
         }
     }
 }
+
+// ---------------- CALL LOCKED MODAL (MODEL ORDER ACCEPT RULE) ----------------
+@Composable
+fun CallLockedModal(
+    title: String,
+    message: String,
+    onDismiss: () -> Unit,
+    onViewBookings: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Color(0xFF1E2235),
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .background(Color(0xFFEF4444).copy(alpha = 0.15f), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(imageVector = Icons.Default.Lock, contentDescription = null, tint = Color(0xFFEF4444), modifier = Modifier.size(24.dp))
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = if (title.isBlank()) "Call Locked" else title,
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 15.sp
+                    )
+                    Text("Escrow Protection Policy", color = Color(0xFF94A3B8), fontSize = 10.sp)
+                }
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Surface(
+                    color = Color(0xFF282D42),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.35f))
+                ) {
+                    Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text("🔒", fontSize = 14.sp)
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Order Accept Rule (মডেল অর্ডার গ্রহণ নীতি)", color = Color(0xFFFF85A6), fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
+                        Text(
+                            text = if (message.isBlank()) "মডেল আপনার বুকিং অর্ডার গ্রহণ (Accept) করার পরই অডিও কল চালু হবে। দয়া করে অপেক্ষা করুন অথবা অর্ডার বুক করুন।" else message,
+                            color = Color(0xFFE2E8F0),
+                            fontSize = 12.sp,
+                            lineHeight = 18.sp
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onViewBookings,
+                colors = ButtonDefaults.buttonColors(containerColor = PinkHighlight),
+                shape = RoundedCornerShape(10.dp)
+            ) {
+                Text("Go to My Bookings", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Close", color = Color(0xFF94A3B8))
+            }
+        }
+    )
+}
+
 
 
 

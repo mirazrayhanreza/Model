@@ -430,4 +430,90 @@ object BackendApiClient {
         }
         null
     }
+
+    /**
+     * Log audio call initiation with backend WebRTC session server
+     */
+    suspend fun initiateCallOnBackend(
+        baseUrl: String = "http://173.249.28.110/",
+        callerId: String,
+        callerName: String,
+        receiverId: String,
+        receiverName: String,
+        callerRole: String = "USER",
+        receiverRole: String = "MODEL",
+        bookingStatus: String = "ACCEPTED",
+        callType: String = "Audio Call (WebRTC)"
+    ): String? = withContext(Dispatchers.IO) {
+        val rootUrl = normalizeBaseUrl(baseUrl)
+        val endpoints = listOf(
+            "${rootUrl}api/calls.php",
+            "${rootUrl}backend/api/calls.php"
+        )
+        for (endpoint in endpoints) {
+            try {
+                val payload = JSONObject().apply {
+                    put("action", "initiate")
+                    put("caller_id", callerId)
+                    put("caller_name", callerName)
+                    put("caller_role", callerRole)
+                    put("receiver_id", receiverId)
+                    put("receiver_name", receiverName)
+                    put("receiver_role", receiverRole)
+                    put("booking_status", bookingStatus)
+                    put("call_type", callType)
+                    put("quality", "HD Voice (Opus 48kHz)")
+                }
+                val body = payload.toString().toRequestBody(JSON_MEDIA_TYPE)
+                val request = Request.Builder().url(endpoint).post(body).build()
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) {
+                        val respStr = response.body?.string() ?: ""
+                        val json = JSONObject(respStr)
+                        if (json.optString("status") == "success") {
+                            val data = json.optJSONObject("data")
+                            return@withContext data?.optString("call_id")
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.d(TAG, "initiateCallOnBackend error on $endpoint: ${e.message}")
+            }
+        }
+        null
+    }
+
+    /**
+     * Log audio call termination and duration with backend
+     */
+    suspend fun updateCallStatusOnBackend(
+        baseUrl: String = "http://173.249.28.110/",
+        callId: String,
+        status: String = "Completed",
+        durationSeconds: Int = 0
+    ): Boolean = withContext(Dispatchers.IO) {
+        val rootUrl = normalizeBaseUrl(baseUrl)
+        val endpoints = listOf(
+            "${rootUrl}api/calls.php",
+            "${rootUrl}backend/api/calls.php"
+        )
+        for (endpoint in endpoints) {
+            try {
+                val payload = JSONObject().apply {
+                    put("action", "update_status")
+                    put("call_id", callId)
+                    put("status", status)
+                    put("duration_seconds", durationSeconds)
+                }
+                val body = payload.toString().toRequestBody(JSON_MEDIA_TYPE)
+                val request = Request.Builder().url(endpoint).post(body).build()
+                client.newCall(request).execute().use { response ->
+                    if (response.isSuccessful) return@withContext true
+                }
+            } catch (e: Exception) {
+                Log.d(TAG, "updateCallStatusOnBackend error on $endpoint: ${e.message}")
+            }
+        }
+        false
+    }
 }

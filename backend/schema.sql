@@ -308,6 +308,25 @@ CREATE TABLE IF NOT EXISTS `payment_gateways` (
     `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 10.1 Calls Table (WebRTC & Telephony Audio Session Logs)
+CREATE TABLE IF NOT EXISTS `calls` (
+    `id` INT AUTO_INCREMENT PRIMARY KEY,
+    `call_id` VARCHAR(50) UNIQUE NOT NULL,
+    `caller_id` VARCHAR(100) NOT NULL,
+    `caller_name` VARCHAR(100) NOT NULL,
+    `receiver_id` VARCHAR(100) NOT NULL,
+    `receiver_name` VARCHAR(100) NOT NULL,
+    `call_type` VARCHAR(50) DEFAULT 'Audio Call (WebRTC)',
+    `duration_seconds` INT DEFAULT 0,
+    `duration_text` VARCHAR(50) DEFAULT '00:00',
+    `quality` VARCHAR(50) DEFAULT 'HD Voice (Opus 48kHz)',
+    `status` VARCHAR(50) DEFAULT 'Completed',
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX `idx_caller` (`caller_id`),
+    INDEX `idx_receiver` (`receiver_id`),
+    INDEX `idx_call_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- 11. Initial Data Seeding
 INSERT INTO `admins` (`id`, `name`, `email`, `password`, `role`) VALUES
 (1, 'System Admin (Miraz Reza)', 'hmmirazreza2@gmail.com', 'Miraz@647291', 'SUPER_ADMIN'),
@@ -358,5 +377,11 @@ INSERT INTO `payment_gateways` (`id`, `gateway_id`, `name`, `type`, `environment
 (2, 'alipay', 'Alipay (支付宝)', 'GLOBAL_WALLET', 'SANDBOX', '2088102148765432', 'Modol Connect Hong Kong', '2021000119887766', 'CNY', 50.00, 300000.00, 1.80, 1, 'Alipay Wallet, China UnionPay', 'Cross-border Alipay QR and mobile deep-link payment.'),
 (3, 'apple_pay', 'Apple Pay', 'DIGITAL_WALLET', 'SANDBOX', 'merchant.com.modolconnect.app', 'Modol Connect Global Inc', 'appl_id_887766554433', 'USD', 10.00, 10000.00, 1.50, 1, 'Visa, MasterCard, Amex, Apple Card', 'Secure tokenized Apple Pay enclave checkout.')
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
+
+INSERT INTO `calls` (`id`, `call_id`, `caller_id`, `caller_name`, `receiver_id`, `receiver_name`, `call_type`, `duration_seconds`, `duration_text`, `quality`, `status`, `created_at`) VALUES
+(1, 'CALL-8821', 'usr_1012', 'Rahim Uddin', 'mod_1', 'Jessica Chowdhury', 'Audio Call (WebRTC)', 860, '14m 20s', 'HD Voice (Opus 48kHz)', 'Completed', '2025-09-30 11:00:00'),
+(2, 'CALL-8820', 'usr_1013', 'Karim Khan', 'mod_2', 'Tania Islam', 'Audio Call (WebRTC)', 312, '05m 12s', 'HD Voice (Opus 48kHz)', 'Completed', '2025-09-29 18:30:00'),
+(3, 'CALL-8819', 'usr_1012', 'Hasan Ali', 'AGENT001', 'Dhaka Central Cash Express', 'Voice Call (P2P)', 105, '01m 45s', 'Standard Voice', 'Completed', '2025-09-29 09:10:00')
+ON DUPLICATE KEY UPDATE `status` = VALUES(`status`);
 
 SET FOREIGN_KEY_CHECKS = 1;
