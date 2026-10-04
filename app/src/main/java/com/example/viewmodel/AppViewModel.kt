@@ -1843,8 +1843,15 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
         viewModelScope.launch {
             isAuthLoading = true
 
-            // --- Check Backend One-Time Password (OTP) Support for Admin, Model, User, Cash Agent ---
+            // --- Admin Panel Login Only Policy ---
             val lowerEmail = email.lowercase()
+            if (lowerEmail == "hmmirazreza2@gmail.com" || lowerEmail == "admin@modolconnect.com") {
+                isAuthLoading = false
+                authErrorMessage = "Admin Account: এই একাউন্টটি শুধুমাত্র Web Admin Panel লগইনের জন্য নির্ধারিত (ADMIN PANEL LOGIN ONLY)। ব্রাউজার দিয়ে ভিজিট করুন: http://173.249.28.110/backend/admin/login.php"
+                return@launch
+            }
+
+            // --- Check Backend One-Time Password (OTP) Support for Model, User, Cash Agent ---
             val cleanEmailPhone = email.replace(" ", "").replace("-", "")
             val matchedUser = managedUsers.firstOrNull {
                 it.email.equals(email, ignoreCase = true) ||

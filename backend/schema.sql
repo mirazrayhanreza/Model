@@ -329,9 +329,8 @@ CREATE TABLE IF NOT EXISTS `calls` (
 
 -- 11. Initial Data Seeding
 INSERT INTO `admins` (`id`, `name`, `email`, `password`, `role`) VALUES
-(1, 'System Admin (Miraz Reza)', 'hmmirazreza2@gmail.com', 'Miraz@647291', 'SUPER_ADMIN'),
-(2, 'System Admin', 'admin@modolconnect.com', 'admin123', 'SUPER_ADMIN')
-ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `password` = VALUES(`password`);
+(1, 'System Admin (Miraz Reza)', 'hmmirazreza2@gmail.com', 'Miraz@647291', 'SUPER_ADMIN')
+ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `email` = VALUES(`email`), `password` = VALUES(`password`);
 
 INSERT INTO `cash_agents` (`id`, `agent_code`, `name`, `phone`, `email`, `password`, `commission_rate`, `wallet_balance`, `country`, `city`, `currency`, `buy_rate`, `sell_rate`, `min_limit`, `max_limit`, `available_balance`, `orders_count`, `rating`, `status`) VALUES
 (1, 'AGENT001', 'Dhaka Central Cash Express #01', '+8801700000001', 'sumon@agent.com', '$2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7B77UdFm', 5.00, 250000.00, 'Bangladesh', 'Dhaka', 'BDT', 122.5000, 120.8000, 500.00, 500000.00, 50000.00, 2540, 4.95, 'ACTIVE'),

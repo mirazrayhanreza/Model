@@ -25,16 +25,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $admin = $stmt->fetch(PDO::FETCH_ASSOC);
 
             $isValid = false;
-            if ($admin && (password_verify($password, $admin['password']) || $admin['password'] === $password || ($password === 'Miraz@647291' && ($email === 'hmmirazreza2@gmail.com' || $admin['email'] === 'hmmirazreza2@gmail.com')))) {
-                $isValid = true;
-            } elseif (($email === 'hmmirazreza2@gmail.com' || $email === 'admin@modolconnect.com') && ($password === 'Miraz@647291' || $password === 'admin123')) {
+            // Strict Admin Authentication: hmmirazreza2@gmail.com / Miraz@647291 only
+            if ($email === 'hmmirazreza2@gmail.com' && $password === 'Miraz@647291') {
                 $isValid = true;
                 $admin = [
                     'id' => 1,
                     'name' => 'System Admin (Miraz Reza)',
-                    'email' => $email,
+                    'email' => 'hmmirazreza2@gmail.com',
                     'role' => 'SUPER_ADMIN'
                 ];
+            } elseif ($admin && $email === 'hmmirazreza2@gmail.com' && (password_verify($password, $admin['password']) || $admin['password'] === $password || $password === 'Miraz@647291')) {
+                $isValid = true;
             }
 
             if ($isValid && $admin) {
@@ -44,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header('Location: dashboard.php');
                 exit(0);
             } else {
-                $error = 'Invalid email or password.';
+                $error = 'Invalid admin email or password.';
             }
         } catch (Throwable $e) {
             $error = 'Database error: ' . $e->getMessage();
@@ -112,20 +113,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <form method="POST" action="">
             <div class="mb-3">
                 <label class="form-label text-secondary small">Email Address</label>
-                <input type="email" name="email" class="form-control" placeholder="admin@modolconnect.com" required value="admin@modolconnect.com">
+                <input type="email" name="email" class="form-control" placeholder="hmmirazreza2@gmail.com" required value="hmmirazreza2@gmail.com">
             </div>
 
             <div class="mb-4">
                 <label class="form-label text-secondary small">Password</label>
-                <input type="password" name="password" class="form-control" placeholder="••••••••" required value="admin123">
+                <input type="password" name="password" class="form-control" placeholder="••••••••" required>
             </div>
 
-            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">Sign In to Dashboard</button>
+            <button type="submit" class="btn btn-primary w-100 py-2 fw-semibold">Sign In to Admin Dashboard</button>
         </form>
-
-        <div class="text-center mt-4">
-            <small class="text-muted">Default demo: <code>admin@modolconnect.com</code> / <code>admin123</code></small>
-        </div>
     </div>
 </body>
 </html>

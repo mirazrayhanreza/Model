@@ -216,21 +216,9 @@ class FirebaseAuthManager(
         }
 
         val lowerEmail = cleanEmail.lowercase()
-        // Predefined demo accounts for instant testing & seamless login
-        if ((lowerEmail == "admin@modolconnect.com" || lowerEmail == "hmmirazreza2@gmail.com" || lowerEmail == "admin@example.com" || lowerEmail == "admin") && 
-            (password == "admin123" || password == "123456" || password == "admin")) {
-            val user = CurrentUser(
-                id = "admin_master",
-                name = "Miraz Reza (Admin)",
-                role = "ADMIN",
-                balance = 75000.0,
-                avatarUrl = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
-                isVerified = true,
-                email = if (lowerEmail.contains("@")) cleanEmail else "admin@modolconnect.com",
-                city = "Dhaka"
-            )
-            repository.insertCurrentUser(user)
-            return Result.success(user)
+        // Admin Account: Restricted to Admin Web Panel Login Only
+        if (lowerEmail == "hmmirazreza2@gmail.com" || lowerEmail == "admin@modolconnect.com") {
+            return Result.failure(IllegalArgumentException("Admin Account: এই একাউন্টটি শুধুমাত্র Web Admin Panel লগইনের জন্য নির্ধারিত (ADMIN PANEL LOGIN ONLY)। দয়া করে ব্রাউজার থেকে http://173.249.28.110/backend/admin/login.php এ লগইন করুন।"))
         }
         if ((lowerEmail == "model@modolconnect.com" || lowerEmail == "jessica@modolconnect.com" || lowerEmail == "model") && 
             (password == "model123" || password == "123456" || password == "model")) {
