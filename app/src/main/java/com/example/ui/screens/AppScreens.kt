@@ -1059,33 +1059,6 @@ fun LoginScreen(viewModel: AppViewModel) {
                     textAlign = TextAlign.Center
                 )
 
-                // 1-Tap Instant Demo Login Chips
-                Spacer(modifier = Modifier.height(14.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    listOf(
-                        "ADMIN" to "Admin",
-                        "MODEL" to "Model",
-                        "USER" to "Client",
-                        "CASH_AGENT" to "Agent"
-                    ).forEach { (role, label) ->
-                        OutlinedButton(
-                            onClick = { viewModel.loginAsDemo(role) },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(36.dp),
-                            contentPadding = PaddingValues(horizontal = 2.dp, vertical = 2.dp),
-                            border = BorderStroke(1.dp, Color(0xFFFF85A6)),
-                            shape = RoundedCornerShape(8.dp),
-                            colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White)
-                        ) {
-                            Text(label, fontSize = 11.sp, fontWeight = FontWeight.Bold, color = PurplePrimary)
-                        }
-                    }
-                }
-
                 // Error Message Banner
                 if (viewModel.authErrorMessage != null) {
                     Spacer(modifier = Modifier.height(14.dp))
