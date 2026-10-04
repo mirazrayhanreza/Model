@@ -657,6 +657,12 @@ function renderAdminHeader(string $title, string $activePage = 'dashboard'): voi
             <span>Settings</span>
         </a>
 
+        <a href="backup.php" class="sidebar-link <?= $activePage === 'backup' ? 'active' : '' ?>">
+            <i class="bi bi-database-fill-gear text-info"></i>
+            <span>Backup & Restore</span>
+            <span class="badge bg-info text-dark sidebar-badge">SQL</span>
+        </a>
+
         <a href="activity_logs.php" class="sidebar-link <?= $activePage === 'activity_logs' ? 'active' : '' ?>">
             <i class="bi bi-journal-text"></i>
             <span>Activity Logs</span>
