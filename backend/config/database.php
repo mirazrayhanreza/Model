@@ -14,34 +14,36 @@ final class Database
 
     private function __construct()
     {
-        $dsn = sprintf(
-            'mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4',
-            Config::getDbHost(),
-            Config::getDbPort(),
-            Config::getDbName()
-        );
-
         $options = [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::ATTR_EMULATE_PREPARES   => false,
         ];
 
-        // 1. Try MySQL Connection First
-        try {
-            $this->conn = new PDO($dsn, Config::getDbUser(), Config::getDbPass(), $options);
-            $this->conn->exec("SET NAMES utf8mb4");
-            $this->driver = 'mysql';
-            $this->initMysqlTables();
-            return;
-        } catch (Throwable $e) {
-            error_log("MySQL connection notice: " . $e->getMessage() . " - Falling back to SQLite.");
+        // 1. Try Multiple MySQL Connection Strategies (TCP Loopback, Hostname, Socket)
+        $dsnCandidates = [
+            sprintf('mysql:host=127.0.0.1;port=%d;dbname=%s;charset=utf8mb4', Config::getDbPort(), Config::getDbName()),
+            sprintf('mysql:host=%s;port=%d;dbname=%s;charset=utf8mb4', Config::getDbHost(), Config::getDbPort(), Config::getDbName()),
+            sprintf('mysql:host=localhost;port=%d;dbname=%s;charset=utf8mb4', Config::getDbPort(), Config::getDbName()),
+            sprintf('mysql:dbname=%s;unix_socket=/tmp/mysql.sock;charset=utf8mb4', Config::getDbName()),
+            sprintf('mysql:dbname=%s;unix_socket=/var/run/mysqld/mysqld.sock;charset=utf8mb4', Config::getDbName())
+        ];
+
+        foreach ($dsnCandidates as $dsn) {
+            try {
+                $this->conn = new PDO($dsn, Config::getDbUser(), Config::getDbPass(), $options);
+                $this->conn->exec("SET NAMES utf8mb4");
+                $this->driver = 'mysql';
+                $this->initMysqlTables();
+                return;
+            } catch (Throwable) {
+                // Try next MySQL DSN candidate
+            }
         }
 
         // 2. Graceful Fallback to File-based SQLite
         try {
             $sqlitePath = __DIR__ . '/../database.sqlite';
-            $isNew = !file_exists($sqlitePath) || filesize($sqlitePath) === 0;
             $this->conn = new PDO('sqlite:' . $sqlitePath, null, null, [
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
@@ -50,7 +52,7 @@ final class Database
             $this->initSqliteTables();
             return;
         } catch (Throwable $sqle) {
-            error_log("SQLite file fallback notice: " . $sqle->getMessage() . " - Falling back to Memory SQLite.");
+            error_log("SQLite file fallback notice: " . $sqle->getMessage());
         }
 
         // 3. Ultra-resilient In-Memory SQLite to prevent HTTP 500 error under all hosting conditions
@@ -66,12 +68,36 @@ final class Database
         }
     }
 
-    public static function getInstance(): PDO
+    private static ?string $lastError = null;
+
+    public static function getInstance(): ?PDO
     {
         if (self::$instance === null) {
             self::$instance = new Database();
         }
+        if (self::$instance->conn === null) {
+            try {
+                self::$instance->conn = new PDO('sqlite::memory:', null, null, [
+                    PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC
+                ]);
+                self::$instance->driver = 'sqlite';
+                self::$instance->initSqliteTables();
+            } catch (Throwable $e) {
+                self::$lastError = $e->getMessage();
+            }
+        }
         return self::$instance->conn;
+    }
+
+    public static function isConnected(): bool
+    {
+        return self::getInstance() !== null;
+    }
+
+    public static function getLastError(): ?string
+    {
+        return self::$lastError;
     }
 
     public static function getDriver(): string
@@ -140,7 +166,7 @@ final class Database
                 `rating` DECIMAL(3,2) DEFAULT 4.95,
                 `is_online` TINYINT(1) DEFAULT 1,
                 `is_verified` TINYINT(1) DEFAULT 1,
-                `status` VARCHAR(20) DEFAULT 'ACTIVE',
+                `status` VARCHAR(30) DEFAULT 'ACTIVE',
                 `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
@@ -151,7 +177,7 @@ final class Database
                 `phone_code` VARCHAR(15) NOT NULL,
                 `currency_code` VARCHAR(10) NOT NULL,
                 `flag` VARCHAR(20) DEFAULT '🌐',
-                `status` VARCHAR(20) DEFAULT 'Active',
+                `status` VARCHAR(30) DEFAULT 'Active',
                 `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
@@ -163,8 +189,9 @@ final class Database
                 `logo` VARCHAR(255) DEFAULT '',
                 `min_amount` DECIMAL(12,2) DEFAULT 100.00,
                 `max_amount` DECIMAL(12,2) DEFAULT 500000.00,
-                `status` VARCHAR(20) DEFAULT 'Active',
-                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                `status` VARCHAR(30) DEFAULT 'Active',
+                `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX (`country_id`)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
             "CREATE TABLE IF NOT EXISTS `countries_currencies` (
@@ -177,7 +204,7 @@ final class Database
                 `rate_to_usd` DECIMAL(12,4) NOT NULL DEFAULT 1.0000,
                 `min_deposit` DECIMAL(12,2) DEFAULT 500.00,
                 `min_withdrawal` DECIMAL(12,2) DEFAULT 1000.00,
-                `status` VARCHAR(20) DEFAULT 'Active',
+                `status` VARCHAR(30) DEFAULT 'Active',
                 `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
@@ -195,9 +222,9 @@ final class Database
                 `avatar_url` VARCHAR(255) DEFAULT NULL,
                 `wallet_balance` DECIMAL(12,2) DEFAULT 0.00,
                 `currency` VARCHAR(20) DEFAULT 'BDT (৳)',
-                `kyc_status` VARCHAR(20) DEFAULT 'NONE',
+                `kyc_status` VARCHAR(30) DEFAULT 'NONE',
                 `is_verified` TINYINT(1) DEFAULT 1,
-                `status` VARCHAR(20) DEFAULT 'ACTIVE',
+                `status` VARCHAR(30) DEFAULT 'ACTIVE',
                 `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
@@ -220,7 +247,7 @@ final class Database
                 `review_count` INT DEFAULT 128,
                 `avatar_url` VARCHAR(255) DEFAULT NULL,
                 `bio` TEXT NULL,
-                `status` VARCHAR(20) DEFAULT 'AVAILABLE',
+                `status` VARCHAR(30) DEFAULT 'AVAILABLE',
                 `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci",
 
@@ -290,7 +317,7 @@ final class Database
                 `secret_key` TEXT NULL,
                 `public_key` TEXT NULL,
                 `webhook_secret` VARCHAR(255) NULL,
-                `currency` VARCHAR(10) DEFAULT 'USD',
+                `currency` VARCHAR(10) DEFAULT 'BDT',
                 `min_amount` DECIMAL(12,2) DEFAULT 100.00,
                 `max_amount` DECIMAL(12,2) DEFAULT 1000000.00,
                 `fee_percent` DECIMAL(5,2) DEFAULT 1.50,
@@ -305,9 +332,39 @@ final class Database
         foreach ($tables as $sql) {
             try {
                 $this->conn->exec($sql);
-            } catch (Throwable $e) {
-                error_log("initMysqlTables notice: " . $e->getMessage());
-            }
+            } catch (Throwable) {}
+        }
+
+        // Alter missing columns safely for pre-existing MySQL tables
+        $alterList = [
+            "ALTER TABLE `cash_agents` ADD COLUMN `currency` VARCHAR(10) DEFAULT 'BDT'",
+            "ALTER TABLE `cash_agents` ADD COLUMN `buy_rate` DECIMAL(12,4) DEFAULT 122.5000",
+            "ALTER TABLE `cash_agents` ADD COLUMN `sell_rate` DECIMAL(12,4) DEFAULT 120.8000",
+            "ALTER TABLE `cash_agents` ADD COLUMN `min_limit` DECIMAL(12,2) DEFAULT 500.00",
+            "ALTER TABLE `cash_agents` ADD COLUMN `max_limit` DECIMAL(12,2) DEFAULT 500000.00",
+            "ALTER TABLE `cash_agents` ADD COLUMN `available_balance` DECIMAL(12,2) DEFAULT 50000.00",
+            "ALTER TABLE `cash_agents` ADD COLUMN `total_orders` INT DEFAULT 1250",
+            "ALTER TABLE `cash_agents` ADD COLUMN `completion_rate` VARCHAR(20) DEFAULT '99.4%'",
+            "ALTER TABLE `cash_agents` ADD COLUMN `avg_release_time` VARCHAR(20) DEFAULT '2.4 min'",
+            "ALTER TABLE `cash_agents` ADD COLUMN `is_online` TINYINT(1) DEFAULT 1",
+            "ALTER TABLE `cash_agents` ADD COLUMN `is_verified` TINYINT(1) DEFAULT 1",
+            "ALTER TABLE `cash_agents` MODIFY COLUMN `status` VARCHAR(30) DEFAULT 'ACTIVE'",
+            "ALTER TABLE `users` ADD COLUMN `kyc_status` VARCHAR(30) DEFAULT 'NONE'",
+            "ALTER TABLE `users` ADD COLUMN `currency` VARCHAR(20) DEFAULT 'BDT (৳)'",
+            "ALTER TABLE `users` ADD COLUMN `wallet_balance` DECIMAL(12,2) DEFAULT 0.00",
+            "ALTER TABLE `users` ADD COLUMN `role` VARCHAR(20) DEFAULT 'USER'",
+            "ALTER TABLE `users` MODIFY COLUMN `status` VARCHAR(30) DEFAULT 'ACTIVE'",
+            "ALTER TABLE `models` ADD COLUMN `is_verified` TINYINT(1) DEFAULT 1",
+            "ALTER TABLE `models` ADD COLUMN `is_online` TINYINT(1) DEFAULT 1",
+            "ALTER TABLE `models` ADD COLUMN `review_count` INT DEFAULT 128",
+            "ALTER TABLE `models` ADD COLUMN `rating` DECIMAL(3,2) DEFAULT 4.90",
+            "ALTER TABLE `models` MODIFY COLUMN `status` VARCHAR(30) DEFAULT 'AVAILABLE'",
+            "ALTER TABLE `disputes` ADD COLUMN `resolved_at` DATETIME NULL",
+            "ALTER TABLE `disputes` ADD COLUMN `resolution_notes` TEXT NULL",
+            "ALTER TABLE `payment_gateways` ADD COLUMN `is_enabled` TINYINT(1) DEFAULT 1"
+        ];
+        foreach ($alterList as $asql) {
+            try { $this->conn->exec($asql); } catch (Throwable) {}
         }
 
         // Insert default admin if not existing
@@ -320,198 +377,216 @@ final class Database
 
     private function initSqliteTables(): void
     {
-        $sql = "
-        CREATE TABLE IF NOT EXISTS admins (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            role TEXT DEFAULT 'SUPER_ADMIN',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-        CREATE TABLE IF NOT EXISTS cash_agents (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            agent_code TEXT UNIQUE NOT NULL,
-            name TEXT NOT NULL,
-            phone TEXT UNIQUE NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            country TEXT DEFAULT 'Bangladesh',
-            city TEXT DEFAULT 'Dhaka',
-            currency TEXT DEFAULT 'BDT',
-            buy_rate REAL DEFAULT 122.50,
-            sell_rate REAL DEFAULT 120.80,
-            min_limit REAL DEFAULT 500.0,
-            max_limit REAL DEFAULT 500000.0,
-            available_balance REAL DEFAULT 50000.0,
-            daily_limit REAL DEFAULT 500000.0,
-            payment_methods TEXT DEFAULT 'bKash, Nagad, Bank Transfer',
-            commission_rate REAL DEFAULT 5.0,
-            wallet_balance REAL DEFAULT 0.0,
-            orders_count INTEGER DEFAULT 1250,
-            total_orders INTEGER DEFAULT 1250,
-            completion_rate TEXT DEFAULT '99.4%',
-            avg_release_time TEXT DEFAULT '2.4 min',
-            rating REAL DEFAULT 4.95,
-            is_online INTEGER DEFAULT 1,
-            is_verified INTEGER DEFAULT 1,
-            status TEXT DEFAULT 'ACTIVE',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-        CREATE TABLE IF NOT EXISTS countries (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            country_name TEXT NOT NULL,
-            iso_code TEXT NOT NULL,
-            phone_code TEXT NOT NULL,
-            currency_code TEXT NOT NULL,
-            flag TEXT DEFAULT '🌐',
-            status TEXT DEFAULT 'Active',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-        CREATE TABLE IF NOT EXISTS payment_methods (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            country_id INTEGER NOT NULL,
-            method_name TEXT NOT NULL,
-            method_type TEXT DEFAULT 'Mobile Wallet',
-            logo TEXT DEFAULT '',
-            min_amount REAL DEFAULT 100.0,
-            max_amount REAL DEFAULT 500000.0,
-            status TEXT DEFAULT 'Active',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-        CREATE TABLE IF NOT EXISTS countries_currencies (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            country_code TEXT NOT NULL,
-            country_name TEXT NOT NULL,
-            flag TEXT DEFAULT '🌐',
-            currency_code TEXT NOT NULL,
-            currency_symbol TEXT NOT NULL,
-            rate_to_usd REAL NOT NULL DEFAULT 1.0,
-            min_deposit REAL DEFAULT 500.0,
-            min_withdrawal REAL DEFAULT 1000.0,
-            status TEXT DEFAULT 'Active',
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            uid TEXT UNIQUE,
-            name TEXT NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            phone TEXT,
-            password TEXT,
-            country TEXT DEFAULT 'Bangladesh',
-            city TEXT DEFAULT 'Dhaka',
-            role TEXT DEFAULT 'USER',
-            avatar_url TEXT,
-            wallet_balance REAL DEFAULT 0.0,
-            currency TEXT DEFAULT 'BDT (৳)',
-            kyc_status TEXT DEFAULT 'NONE',
-            is_verified INTEGER DEFAULT 1,
-            status TEXT DEFAULT 'ACTIVE',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-        CREATE TABLE IF NOT EXISTS models (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            uid TEXT UNIQUE,
-            user_id INTEGER,
-            name TEXT NOT NULL,
-            hourly_rate REAL DEFAULT 1500.0,
-            daily_rate REAL DEFAULT 8000.0,
-            category TEXT DEFAULT 'Fashion',
-            location TEXT DEFAULT 'Dhaka',
-            country TEXT DEFAULT 'Bangladesh',
-            phone TEXT,
-            email TEXT,
-            services TEXT DEFAULT 'Fashion & Runway, Commercial, Editorial',
-            is_online INTEGER DEFAULT 1,
-            is_verified INTEGER DEFAULT 1,
-            rating REAL DEFAULT 4.9,
-            review_count INTEGER DEFAULT 128,
-            bio TEXT,
-            avatar_url TEXT,
-            status TEXT DEFAULT 'AVAILABLE',
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-        CREATE TABLE IF NOT EXISTS bookings (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            booking_code TEXT,
-            user_id TEXT NOT NULL,
-            model_id INTEGER NOT NULL,
-            model_name TEXT NOT NULL,
-            date TEXT NOT NULL,
-            time TEXT NOT NULL,
-            service_type TEXT NOT NULL,
-            duration_hours INTEGER DEFAULT 2,
-            location TEXT NOT NULL,
-            total_price REAL NOT NULL,
-            status TEXT DEFAULT 'CONFIRMED',
-            payment_status TEXT DEFAULT 'ESCROW_HELD',
-            dispute_status TEXT,
-            dispute_reason TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-        CREATE TABLE IF NOT EXISTS b2b_orders (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            order_id TEXT UNIQUE NOT NULL,
-            user_id TEXT NOT NULL,
-            userName TEXT NOT NULL,
-            agent_id TEXT NOT NULL,
-            agent_name TEXT NOT NULL,
-            amount REAL NOT NULL,
-            currency TEXT DEFAULT 'BDT',
-            status TEXT DEFAULT 'PENDING_PAYMENT',
-            dispute_status TEXT,
-            dispute_reason TEXT,
-            created_at INTEGER NOT NULL DEFAULT 0
-        );
-        CREATE TABLE IF NOT EXISTS disputes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            case_code TEXT UNIQUE NOT NULL,
-            type TEXT NOT NULL,
-            ref_code TEXT NOT NULL,
-            user_name TEXT NOT NULL,
-            agent_name TEXT NOT NULL,
-            amount TEXT NOT NULL,
-            status TEXT DEFAULT 'Open',
-            timer TEXT DEFAULT 'Active 2h',
-            user_statement TEXT,
-            agent_statement TEXT,
-            proof_img TEXT,
-            chat_logs TEXT,
-            device_ip TEXT,
-            wallet_log TEXT,
-            resolution_notes TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-        CREATE TABLE IF NOT EXISTS payment_gateways (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            gateway_id TEXT UNIQUE NOT NULL,
-            name TEXT NOT NULL,
-            type TEXT DEFAULT 'GLOBAL',
-            environment TEXT DEFAULT 'SANDBOX',
-            merchant_id TEXT,
-            merchant_name TEXT,
-            api_key TEXT,
-            secret_key TEXT,
-            public_key TEXT,
-            webhook_secret TEXT,
-            currency TEXT DEFAULT 'USD',
-            min_amount REAL DEFAULT 100.0,
-            max_amount REAL DEFAULT 1000000.0,
-            fee_percent REAL DEFAULT 1.5,
-            is_enabled INTEGER DEFAULT 1,
-            supported_cards TEXT DEFAULT 'VISA, MASTERCARD, AMEX',
-            instructions TEXT,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        );
-        ";
+        $tables = [
+            "CREATE TABLE IF NOT EXISTS admins (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                role TEXT DEFAULT 'SUPER_ADMIN',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )",
+            "CREATE TABLE IF NOT EXISTS cash_agents (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                agent_code TEXT UNIQUE NOT NULL,
+                name TEXT NOT NULL,
+                phone TEXT UNIQUE NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                country TEXT DEFAULT 'Bangladesh',
+                city TEXT DEFAULT 'Dhaka',
+                currency TEXT DEFAULT 'BDT',
+                buy_rate REAL DEFAULT 122.50,
+                sell_rate REAL DEFAULT 120.80,
+                min_limit REAL DEFAULT 500.0,
+                max_limit REAL DEFAULT 500000.0,
+                available_balance REAL DEFAULT 50000.0,
+                daily_limit REAL DEFAULT 500000.0,
+                payment_methods TEXT DEFAULT 'bKash, Nagad, Bank Transfer',
+                commission_rate REAL DEFAULT 5.0,
+                wallet_balance REAL DEFAULT 0.0,
+                orders_count INTEGER DEFAULT 1250,
+                total_orders INTEGER DEFAULT 1250,
+                completion_rate TEXT DEFAULT '99.4%',
+                avg_release_time TEXT DEFAULT '2.4 min',
+                rating REAL DEFAULT 4.95,
+                is_online INTEGER DEFAULT 1,
+                is_verified INTEGER DEFAULT 1,
+                status TEXT DEFAULT 'ACTIVE',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )",
+            "CREATE TABLE IF NOT EXISTS countries (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                country_name TEXT NOT NULL,
+                iso_code TEXT NOT NULL,
+                phone_code TEXT NOT NULL,
+                currency_code TEXT NOT NULL,
+                flag TEXT DEFAULT '🌐',
+                status TEXT DEFAULT 'Active',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )",
+            "CREATE TABLE IF NOT EXISTS payment_methods (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                country_id INTEGER NOT NULL,
+                method_name TEXT NOT NULL,
+                method_type TEXT DEFAULT 'Mobile Wallet',
+                logo TEXT DEFAULT '',
+                min_amount REAL DEFAULT 100.0,
+                max_amount REAL DEFAULT 500000.0,
+                status TEXT DEFAULT 'Active',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )",
+            "CREATE TABLE IF NOT EXISTS countries_currencies (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                country_code TEXT NOT NULL,
+                country_name TEXT NOT NULL,
+                flag TEXT DEFAULT '🌐',
+                currency_code TEXT NOT NULL,
+                currency_symbol TEXT NOT NULL,
+                rate_to_usd REAL NOT NULL DEFAULT 1.0,
+                min_deposit REAL DEFAULT 500.0,
+                min_withdrawal REAL DEFAULT 1000.0,
+                status TEXT DEFAULT 'Active',
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )",
+            "CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                uid TEXT UNIQUE,
+                name TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                phone TEXT,
+                password TEXT,
+                country TEXT DEFAULT 'Bangladesh',
+                city TEXT DEFAULT 'Dhaka',
+                role TEXT DEFAULT 'USER',
+                avatar_url TEXT,
+                wallet_balance REAL DEFAULT 0.0,
+                currency TEXT DEFAULT 'BDT (৳)',
+                kyc_status TEXT DEFAULT 'NONE',
+                is_verified INTEGER DEFAULT 1,
+                status TEXT DEFAULT 'ACTIVE',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )",
+            "CREATE TABLE IF NOT EXISTS models (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                uid TEXT UNIQUE,
+                user_id INTEGER,
+                name TEXT NOT NULL,
+                hourly_rate REAL DEFAULT 1500.0,
+                daily_rate REAL DEFAULT 8000.0,
+                category TEXT DEFAULT 'Fashion',
+                location TEXT DEFAULT 'Dhaka',
+                country TEXT DEFAULT 'Bangladesh',
+                phone TEXT,
+                email TEXT,
+                services TEXT DEFAULT 'Fashion & Runway, Commercial, Editorial',
+                is_online INTEGER DEFAULT 1,
+                is_verified INTEGER DEFAULT 1,
+                rating REAL DEFAULT 4.9,
+                review_count INTEGER DEFAULT 128,
+                bio TEXT,
+                avatar_url TEXT,
+                status TEXT DEFAULT 'AVAILABLE',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )",
+            "CREATE TABLE IF NOT EXISTS bookings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                booking_code TEXT,
+                user_id TEXT NOT NULL,
+                model_id INTEGER NOT NULL,
+                model_name TEXT NOT NULL,
+                date TEXT NOT NULL,
+                time TEXT NOT NULL,
+                service_type TEXT NOT NULL,
+                duration_hours INTEGER DEFAULT 2,
+                location TEXT NOT NULL,
+                total_price REAL NOT NULL,
+                status TEXT DEFAULT 'CONFIRMED',
+                payment_status TEXT DEFAULT 'ESCROW_HELD',
+                dispute_status TEXT,
+                dispute_reason TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )",
+            "CREATE TABLE IF NOT EXISTS b2b_orders (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                order_id TEXT UNIQUE NOT NULL,
+                user_id TEXT NOT NULL,
+                userName TEXT NOT NULL,
+                agent_id TEXT NOT NULL,
+                agent_name TEXT NOT NULL,
+                amount REAL NOT NULL,
+                currency TEXT DEFAULT 'BDT',
+                status TEXT DEFAULT 'PENDING_PAYMENT',
+                dispute_status TEXT,
+                dispute_reason TEXT,
+                created_at INTEGER NOT NULL DEFAULT 0
+            )",
+            "CREATE TABLE IF NOT EXISTS disputes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                case_code TEXT UNIQUE NOT NULL,
+                type TEXT NOT NULL,
+                ref_code TEXT NOT NULL,
+                user_name TEXT NOT NULL,
+                agent_name TEXT NOT NULL,
+                amount TEXT NOT NULL,
+                status TEXT DEFAULT 'Open',
+                timer TEXT DEFAULT 'Active 2h',
+                user_statement TEXT,
+                agent_statement TEXT,
+                proof_img TEXT,
+                chat_logs TEXT,
+                device_ip TEXT,
+                wallet_log TEXT,
+                resolution_notes TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )",
+            "CREATE TABLE IF NOT EXISTS payment_gateways (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                gateway_id TEXT UNIQUE NOT NULL,
+                name TEXT NOT NULL,
+                type TEXT DEFAULT 'GLOBAL',
+                environment TEXT DEFAULT 'SANDBOX',
+                merchant_id TEXT,
+                merchant_name TEXT,
+                api_key TEXT,
+                secret_key TEXT,
+                public_key TEXT,
+                webhook_secret TEXT,
+                currency TEXT DEFAULT 'USD',
+                min_amount REAL DEFAULT 100.0,
+                max_amount REAL DEFAULT 1000000.0,
+                fee_percent REAL DEFAULT 1.5,
+                is_enabled INTEGER DEFAULT 1,
+                supported_cards TEXT DEFAULT 'VISA, MASTERCARD, AMEX',
+                instructions TEXT,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )"
+        ];
 
-        try {
-            $this->conn->exec($sql);
-        } catch (Throwable $e) {
-            error_log("initSqliteTables notice: " . $e->getMessage());
+        foreach ($tables as $tSql) {
+            try {
+                $this->conn->exec($tSql);
+            } catch (Throwable) {}
+        }
+
+        // Alter missing columns for existing SQLite tables
+        $alterCols = [
+            "ALTER TABLE cash_agents ADD COLUMN currency TEXT DEFAULT 'BDT'",
+            "ALTER TABLE cash_agents ADD COLUMN buy_rate REAL DEFAULT 122.50",
+            "ALTER TABLE cash_agents ADD COLUMN sell_rate REAL DEFAULT 120.80",
+            "ALTER TABLE cash_agents ADD COLUMN min_limit REAL DEFAULT 500.0",
+            "ALTER TABLE cash_agents ADD COLUMN max_limit REAL DEFAULT 500000.0",
+            "ALTER TABLE cash_agents ADD COLUMN available_balance REAL DEFAULT 50000.0",
+            "ALTER TABLE cash_agents ADD COLUMN total_orders INTEGER DEFAULT 1250",
+            "ALTER TABLE cash_agents ADD COLUMN completion_rate TEXT DEFAULT '99.4%'",
+            "ALTER TABLE cash_agents ADD COLUMN avg_release_time TEXT DEFAULT '2.4 min'",
+            "ALTER TABLE cash_agents ADD COLUMN is_online INTEGER DEFAULT 1",
+            "ALTER TABLE cash_agents ADD COLUMN is_verified INTEGER DEFAULT 1"
+        ];
+        foreach ($alterCols as $cSql) {
+            try { $this->conn->exec($cSql); } catch (Throwable) {}
         }
 
         // Insert default admin

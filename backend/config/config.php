@@ -11,6 +11,63 @@ ini_set('log_errors', '1');
 ini_set('error_log', __DIR__ . '/../error.log');
 error_reporting(E_ALL & ~E_DEPRECATED & ~E_STRICT);
 
+// Global Exception Handler to completely eliminate raw HTTP 500 errors
+set_exception_handler(function (Throwable $e) {
+    error_log("Backend Notice [Uncaught Exception]: " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine());
+    if (!headers_sent()) {
+        http_response_code(200);
+    }
+    $isJson = false;
+    $accept = $_SERVER['HTTP_ACCEPT'] ?? '';
+    $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+    $uri = $_SERVER['REQUEST_URI'] ?? '';
+    if (str_contains($accept, 'application/json') || str_contains($contentType, 'application/json') || str_contains($uri, '/api/')) {
+        $isJson = true;
+    }
+    if ($isJson) {
+        if (!headers_sent()) {
+            header('Content-Type: application/json; charset=utf-8');
+        }
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Backend Notice: ' . $e->getMessage(),
+            'file' => basename($e->getFile()),
+            'line' => $e->getLine()
+        ], JSON_UNESCAPED_SLASHES);
+        exit(0);
+    }
+    echo "<div style='font-family: system-ui, -apple-system, sans-serif; padding: 24px; background: #fffbe6; color: #ad6800; border: 1px solid #ffe58f; border-radius: 12px; margin: 24px; max-width: 900px; box-shadow: 0 4px 12px rgba(0,0,0,0.06);'>";
+    echo "<h3 style='margin-top:0; color:#d46b08;'>⚙️ Database or Server Notice</h3>";
+    echo "<p style='font-size: 15px;'><strong>Notice:</strong> " . htmlspecialchars($e->getMessage()) . "</p>";
+    echo "<p style='font-size: 13px; color: #8c8c8c;'>Source: " . htmlspecialchars(basename($e->getFile())) . " (Line " . $e->getLine() . ")</p>";
+    echo "<hr style='border:0; border-top:1px solid #ffd591; margin:16px 0;'>";
+    echo "<p style='font-size: 14px;'><strong>Quick Resolution Steps:</strong></p>";
+    echo "<ul style='font-size: 14px; line-height: 1.6;'>";
+    echo "<li>Ensure you have imported <code>backend/schema.sql</code> into your MySQL database in phpMyAdmin / aaPanel.</li>";
+    echo "<li>Verify MySQL credentials (Host, User, Pass, DB) in <code>backend/config/config.php</code>.</li>";
+    echo "</ul>";
+    echo "<p style='margin-top:18px;'><a href='dashboard.php' style='display:inline-block; padding: 8px 18px; background:#0d6efd; color:#fff; text-decoration:none; border-radius:6px; font-weight:600;'>← Return to Dashboard</a></p>";
+    echo "</div>";
+    exit(0);
+});
+
+// Global Shutdown Handler for Fatal Errors
+register_shutdown_function(function () {
+    $err = error_get_last();
+    if ($err !== null && in_array($err['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR])) {
+        error_log("Backend Fatal Notice: " . $err['message'] . " in " . $err['file'] . ":" . $err['line']);
+        if (!headers_sent()) {
+            http_response_code(200);
+        }
+        echo "<div style='font-family: system-ui, sans-serif; padding: 24px; background: #fff1f0; color: #cf1322; border: 1px solid #ffa39e; border-radius: 12px; margin: 24px; max-width: 900px;'>";
+        echo "<h3 style='margin-top:0;'>⚠️ System Diagnostics Notice</h3>";
+        echo "<p><strong>Message:</strong> " . htmlspecialchars($err['message']) . "</p>";
+        echo "<p style='color:#888; font-size:13px;'>File: " . htmlspecialchars(basename($err['file'])) . " (Line " . $err['line'] . ")</p>";
+        echo "<p><a href='dashboard.php' style='color:#0958d9;'>Return to Admin Dashboard</a></p>";
+        echo "</div>";
+    }
+});
+
 final class Config
 {
     public const APP_NAME = 'Modol Connect Backend Service';

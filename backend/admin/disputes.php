@@ -18,8 +18,9 @@ $db = null;
 try {
     $db = Database::getInstance();
 
-    // Ensure disputes table exists (driver-aware)
-    if (Database::isMySQL()) {
+    if ($db) {
+        // Ensure disputes table exists (driver-aware)
+        if (Database::isMySQL()) {
         $db->exec("
         CREATE TABLE IF NOT EXISTS `disputes` (
             `id` INT AUTO_INCREMENT PRIMARY KEY,
@@ -65,6 +66,7 @@ try {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
         ");
+    }
     }
 } catch (Throwable $e) {
     error_log("Disputes table init notice: " . $e->getMessage());
