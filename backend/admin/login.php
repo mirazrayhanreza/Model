@@ -113,7 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <form method="POST" action="">
             <div class="mb-3">
                 <label class="form-label text-secondary small">Email Address</label>
-                <input type="email" name="email" class="form-control" placeholder="hmmirazreza2@gmail.com" required value="hmmirazreza2@gmail.com">
+                <input type="email" name="email" class="form-control" placeholder="admin@example.com" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
             </div>
 
             <div class="mb-4">

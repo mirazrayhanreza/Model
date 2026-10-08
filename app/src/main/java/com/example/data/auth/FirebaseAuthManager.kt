@@ -10,6 +10,7 @@ import com.google.firebase.FirebaseException
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseUser
+import com.google.firebase.auth.OAuthProvider
 import com.google.firebase.auth.PhoneAuthCredential
 import com.google.firebase.auth.PhoneAuthOptions
 import com.google.firebase.auth.PhoneAuthProvider
@@ -104,7 +105,7 @@ class FirebaseAuthManager(
                     id = userId,
                     name = cleanName,
                     role = role,
-                    balance = if (role == "MODEL") 2450.0 else 500.0,
+                    balance = 0.0,
                     avatarUrl = if (role == "MODEL")
                         "https://images.unsplash.com/photo-1534528741775-53994a69daeb"
                     else
@@ -156,7 +157,7 @@ class FirebaseAuthManager(
                 id = localUserId,
                 name = cleanName,
                 role = role,
-                balance = if (role == "MODEL") 2450.0 else 500.0,
+                balance = 0.0,
                 avatarUrl = "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
                 isVerified = true,
                 email = cleanEmail,
@@ -200,6 +201,156 @@ class FirebaseAuthManager(
     }
 
     /**
+     * Sign In with Facebook using Firebase OAuthProvider and sync with Backend
+     */
+    suspend fun signInWithFacebook(
+        activity: Activity,
+        requestedRole: String = "USER",
+        backendBaseUrl: String = "http://173.249.28.110/"
+    ): Result<CurrentUser> {
+        val firebaseAuth = auth ?: return Result.failure(Exception("Firebase Auth is not initialized."))
+
+        try {
+            val provider = OAuthProvider.newBuilder("facebook.com")
+            provider.scopes = listOf("email", "public_profile")
+            provider.addCustomParameter("display", "touch")
+
+            val authResult = if (firebaseAuth.pendingAuthResult != null) {
+                firebaseAuth.pendingAuthResult!!.await()
+            } else {
+                firebaseAuth.startActivityForSignInWithProvider(activity, provider.build()).await()
+            }
+
+            val firebaseUser = authResult.user
+                ?: return Result.failure(Exception("Failed to retrieve Facebook account information."))
+
+            val cleanEmail = firebaseUser.email?.ifEmpty { null } ?: "fb_${firebaseUser.uid.take(10)}@modolconnect.com"
+            val displayName = firebaseUser.displayName?.ifEmpty { null } ?: "Facebook User"
+            val photoUrl = firebaseUser.photoUrl?.toString() ?: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde"
+
+            val role = when {
+                isAdmin(firebaseUser.uid, cleanEmail) -> "ADMIN"
+                requestedRole == "MODEL" -> "MODEL"
+                requestedRole == "CASH_AGENT" -> "CASH_AGENT"
+                else -> "USER"
+            }
+
+            val user = CurrentUser(
+                id = firebaseUser.uid,
+                name = displayName,
+                role = role,
+                balance = 0.0,
+                avatarUrl = photoUrl,
+                isVerified = true,
+                email = cleanEmail,
+                city = "Dhaka",
+                country = "Bangladesh"
+            )
+
+            // Sync with live backend at http://173.249.28.110/
+            try {
+                com.example.data.network.BackendApiClient.syncFirebaseUserWithBackend(
+                    baseUrl = backendBaseUrl,
+                    uid = firebaseUser.uid,
+                    email = cleanEmail,
+                    name = displayName,
+                    role = role
+                )
+            } catch (e: Exception) {
+                Log.w("FirebaseAuthManager", "Backend Facebook user sync note: ${e.message}")
+            }
+
+            repository.insertCurrentUser(user)
+            return Result.success(user)
+        } catch (e: FirebaseAuthException) {
+            val friendlyMessage = when (e.errorCode) {
+                "ERROR_ACCOUNT_EXISTS_WITH_DIFFERENT_CREDENTIAL" -> "An account already exists with the same email address using another sign-in method."
+                "ERROR_OPERATION_NOT_ALLOWED" -> "Facebook Login is not enabled in Firebase Authentication console. Please enable Facebook under Sign-in providers."
+                "ERROR_WEB_CONTEXT_CANCELED" -> "Facebook sign-in was canceled by the user."
+                else -> e.localizedMessage ?: "Facebook authentication error."
+            }
+            return Result.failure(Exception(friendlyMessage))
+        } catch (e: Exception) {
+            Log.e("FirebaseAuthManager", "Facebook Login failed: ${e.message}", e)
+            val msg = e.localizedMessage ?: "Facebook sign-in failed."
+            val friendly = if (msg.contains("canceled", ignoreCase = true) || msg.contains("cancelled", ignoreCase = true)) {
+                "Facebook sign-in was canceled."
+            } else if (msg.contains("CONFIGURATION_NOT_FOUND", ignoreCase = true) || msg.contains("not enabled", ignoreCase = true)) {
+                "Facebook login provider needs to be enabled in Firebase Console with your Facebook App ID and App Secret."
+            } else {
+                msg
+            }
+            return Result.failure(Exception(friendly))
+        }
+    }
+
+    /**
+     * Sign In with Google using Firebase OAuthProvider and sync with Backend
+     */
+    suspend fun signInWithGoogle(
+        activity: Activity,
+        requestedRole: String = "USER",
+        backendBaseUrl: String = "http://173.249.28.110/"
+    ): Result<CurrentUser> {
+        val firebaseAuth = auth ?: return Result.failure(Exception("Firebase Auth is not initialized."))
+
+        try {
+            val provider = OAuthProvider.newBuilder("google.com")
+            provider.scopes = listOf("email", "profile")
+
+            val authResult = if (firebaseAuth.pendingAuthResult != null) {
+                firebaseAuth.pendingAuthResult!!.await()
+            } else {
+                firebaseAuth.startActivityForSignInWithProvider(activity, provider.build()).await()
+            }
+
+            val firebaseUser = authResult.user
+                ?: return Result.failure(Exception("Failed to retrieve Google account information."))
+
+            val cleanEmail = firebaseUser.email ?: "google_${firebaseUser.uid.take(10)}@modolconnect.com"
+            val displayName = firebaseUser.displayName?.ifEmpty { null } ?: "Google User"
+            val photoUrl = firebaseUser.photoUrl?.toString() ?: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde"
+
+            val role = when {
+                isAdmin(firebaseUser.uid, cleanEmail) -> "ADMIN"
+                requestedRole == "MODEL" -> "MODEL"
+                requestedRole == "CASH_AGENT" -> "CASH_AGENT"
+                else -> "USER"
+            }
+
+            val user = CurrentUser(
+                id = firebaseUser.uid,
+                name = displayName,
+                role = role,
+                balance = 0.0,
+                avatarUrl = photoUrl,
+                isVerified = true,
+                email = cleanEmail,
+                city = "Dhaka",
+                country = "Bangladesh"
+            )
+
+            try {
+                com.example.data.network.BackendApiClient.syncFirebaseUserWithBackend(
+                    baseUrl = backendBaseUrl,
+                    uid = firebaseUser.uid,
+                    email = cleanEmail,
+                    name = displayName,
+                    role = role
+                )
+            } catch (e: Exception) {
+                Log.w("FirebaseAuthManager", "Backend Google user sync note: ${e.message}")
+            }
+
+            repository.insertCurrentUser(user)
+            return Result.success(user)
+        } catch (e: Exception) {
+            val msg = e.localizedMessage ?: "Google sign-in failed."
+            return Result.failure(Exception(msg))
+        }
+    }
+
+    /**
      * Sign In with Email and Password using Firebase Auth and sync with Backend (173.249.28.110)
      */
     suspend fun signInWithEmail(
@@ -226,7 +377,7 @@ class FirebaseAuthManager(
                 id = "model_1",
                 name = "Jessica (Top Model)",
                 role = "MODEL",
-                balance = 12500.0,
+                balance = 0.0,
                 avatarUrl = "https://images.unsplash.com/photo-1534528741775-53994a69daeb",
                 isVerified = true,
                 email = if (lowerEmail.contains("@")) cleanEmail else "model@modolconnect.com",
@@ -241,7 +392,7 @@ class FirebaseAuthManager(
                 id = "user_client_1",
                 name = "Rahul Verma (Client)",
                 role = "USER",
-                balance = 5000.0,
+                balance = 0.0,
                 avatarUrl = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
                 isVerified = true,
                 email = if (lowerEmail.contains("@")) cleanEmail else "client@modolconnect.com",
@@ -256,7 +407,7 @@ class FirebaseAuthManager(
                 id = "agent_1",
                 name = "Karim Uddin (Cash Agent)",
                 role = "CASH_AGENT",
-                balance = 35000.0,
+                balance = 0.0,
                 avatarUrl = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e",
                 isVerified = true,
                 email = if (lowerEmail.contains("@")) cleanEmail else "agent@modolconnect.com",
@@ -547,8 +698,8 @@ class FirebaseAuthManager(
         val displayName = when {
             userName.isNotBlank() -> userName
             role == "ADMIN" -> "System Admin (Miraz Reza)"
-            role == "CASH_AGENT" -> "Agent Sumon"
-            role == "MODEL" -> "Jessica (Model)"
+            role == "CASH_AGENT" -> "Agent ${cleanPhone.takeLast(4)}"
+            role == "MODEL" -> "Model ${cleanPhone.takeLast(4)}"
             else -> "User ${cleanPhone.takeLast(4)}"
         }
 

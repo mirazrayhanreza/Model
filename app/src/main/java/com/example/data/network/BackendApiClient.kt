@@ -259,7 +259,7 @@ object BackendApiClient {
                     val userName = data?.optString("name", name) ?: name
                     val userEmail = data?.optString("email", email) ?: email
                     val userRole = data?.optString("role", role) ?: role
-                    val userBalance = data?.optDouble("wallet_balance", 500.0) ?: 500.0
+                    val userBalance = data?.optDouble("wallet_balance", 0.0) ?: 0.0
 
                     return@withContext Result.success(
                         CurrentUser(
@@ -288,7 +288,7 @@ object BackendApiClient {
                 id = uid.ifEmpty { "user_${System.currentTimeMillis()}" },
                 name = name,
                 role = role,
-                balance = 500.0,
+                balance = 0.0,
                 avatarUrl = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
                 isVerified = true,
                 email = email,
@@ -609,5 +609,47 @@ object BackendApiClient {
             }
         }
         Result.failure(Exception("Verification failed on server"))
+    }
+
+    /**
+     * Fetch Live B2B Cash Agents from backend (api/agents.php)
+     */
+    suspend fun fetchLiveCashAgents(
+        baseUrl: String = "http://173.249.28.110/",
+        country: String = ""
+    ): Result<List<JSONObject>> = withContext(Dispatchers.IO) {
+        val rootUrl = normalizeBaseUrl(baseUrl)
+        val queryParam = if (country.isNotBlank()) "?country=${java.net.URLEncoder.encode(country, "UTF-8")}" else ""
+        val endpoints = listOf(
+            "${rootUrl}api/agents.php$queryParam",
+            "${rootUrl}backend/api/agents.php$queryParam"
+        )
+        for (endpoint in endpoints) {
+            try {
+                val request = Request.Builder()
+                    .url(endpoint)
+                    .get()
+                    .addHeader("Accept", "application/json")
+                    .build()
+                client.newCall(request).execute().use { response ->
+                    val respStr = response.body?.string() ?: ""
+                    if (respStr.isNotBlank()) {
+                        val json = JSONObject(respStr)
+                        if (json.optString("status") == "success") {
+                            val data = json.optJSONObject("data")
+                            val arr = data?.optJSONArray("agents") ?: org.json.JSONArray()
+                            val list = mutableListOf<JSONObject>()
+                            for (i in 0 until arr.length()) {
+                                list.add(arr.getJSONObject(i))
+                            }
+                            return@withContext Result.success(list)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.d(TAG, "fetchLiveCashAgents error on $endpoint: ${e.message}")
+            }
+        }
+        Result.failure(Exception("Failed to fetch cash agents from server"))
     }
 }

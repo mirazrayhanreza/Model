@@ -3143,7 +3143,7 @@ fun AdminDashboardTab(viewModel: AppViewModel) {
 
                         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                             SystemOverviewRow(icon = Icons.Default.Person, label = "Online Users", value = "256", iconTint = Color(0xFF4CAF50))
-                            SystemOverviewRow(icon = Icons.Default.Layers, label = "App Version", value = "2.00", iconTint = Color(0xFF9C27B0))
+                            SystemOverviewRow(icon = Icons.Default.Layers, label = "App Version", value = "2.0.0", iconTint = Color(0xFF9C27B0))
                             SystemOverviewRow(icon = Icons.Default.SwapHoriz, label = "Total Transactions", value = "24,856", iconTint = Color(0xFF2196F3))
                             SystemOverviewRow(icon = Icons.Default.Public, label = "Active Countries", value = "16", iconTint = Color(0xFFFF9800))
                         }
@@ -3539,8 +3539,10 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                 .horizontalScroll(rememberScrollState()),
             horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
+            val pendingKycCount = viewModel.submittedIdentityVerifications.count { it.status == "PENDING_REVIEW" }
             listOf(
                 "Verification Center ($totalPendingCount)" to 0,
+                "📄 NID & Passport KYC ($pendingKycCount)" to 7,
                 "All Users (${managedUsers.size})" to 1,
                 "Models (${models.size})" to 2,
                 "Cash Agents (${dbAgents.size})" to 3,
@@ -4382,7 +4384,7 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                                                     Text("🎲 Random", color = Color.White, fontSize = 11.sp)
                                                 }
 
-                                                Button(
+                                                 Button(
                                                     onClick = {
                                                         editOtpValue = currentOtp
                                                         isEditing = true
@@ -4397,6 +4399,229 @@ fun AdminUsersTab(viewModel: AppViewModel) {
                                                     Text("Change", color = Color.White, fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                                 }
                                             }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if (tabSelected == 7) {
+                // Tab 7: National ID & Passport KYC Submissions
+                val kycDocs = viewModel.submittedIdentityVerifications
+                if (kycDocs.isEmpty()) {
+                    item {
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth().padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(Icons.Default.Badge, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(36.dp))
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text("No KYC Submissions Found", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text("Uploaded National IDs and Passports from users and models will appear here.", color = TextSecondary, fontSize = 11.sp)
+                            }
+                        }
+                    }
+                } else {
+                    items(kycDocs) { doc ->
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = DarkSurface),
+                            shape = RoundedCornerShape(14.dp),
+                            border = BorderStroke(
+                                1.dp,
+                                when (doc.status) {
+                                    "VERIFIED" -> Color(0xFF10B981)
+                                    "REJECTED" -> Color(0xFFEF4444)
+                                    else -> Color(0xFFF59E0B)
+                                }
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                                // Header: Name, Doc Type, Status badge
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(doc.userName, color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = when (doc.userRole) {
+                                                    "MODEL" -> Color(0xFFFF2A6D).copy(alpha = 0.2f)
+                                                    else -> Color(0xFF3B82F6).copy(alpha = 0.2f)
+                                                }
+                                            ) {
+                                                Text(
+                                                    doc.userRole,
+                                                    color = when (doc.userRole) {
+                                                        "MODEL" -> Color(0xFFFF80AB)
+                                                        else -> Color(0xFF93C5FD)
+                                                    },
+                                                    fontSize = 9.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                )
+                                            }
+                                        }
+                                        Text("${doc.documentType} No: ${doc.documentNumber} • Submitted: ${doc.submittedAt}", color = TextSecondary, fontSize = 10.sp)
+                                    }
+
+                                    Surface(
+                                        shape = RoundedCornerShape(6.dp),
+                                        color = when (doc.status) {
+                                            "VERIFIED" -> Color(0xFF10B981).copy(alpha = 0.2f)
+                                            "REJECTED" -> Color(0xFFEF4444).copy(alpha = 0.2f)
+                                            else -> Color(0xFFF59E0B).copy(alpha = 0.2f)
+                                        },
+                                        border = BorderStroke(
+                                            0.8.dp,
+                                            when (doc.status) {
+                                                "VERIFIED" -> Color(0xFF10B981)
+                                                "REJECTED" -> Color(0xFFEF4444)
+                                                else -> Color(0xFFF59E0B)
+                                            }
+                                        )
+                                    ) {
+                                        Text(
+                                            text = when (doc.status) {
+                                                "VERIFIED" -> "APPROVED ✓"
+                                                "REJECTED" -> "REJECTED ✗"
+                                                else -> "PENDING REVIEW ⏳"
+                                            },
+                                            color = when (doc.status) {
+                                                "VERIFIED" -> Color(0xFF34D399)
+                                                "REJECTED" -> Color(0xFFF87171)
+                                                else -> Color(0xFFFBBF24)
+                                            },
+                                            fontSize = 10.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                        )
+                                    }
+                                }
+
+                                // Photo Previews: Front, Back, Selfie
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    // Front
+                                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("Front Side", color = TextSecondary, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(75.dp)
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(Color(0xFF1E293B))
+                                                .border(1.dp, Color(0xFF374151), RoundedCornerShape(6.dp))
+                                        ) {
+                                            if (doc.frontPhotoUri.isNotBlank()) {
+                                                val safe = if (doc.frontPhotoUri.startsWith("/") && !doc.frontPhotoUri.startsWith("file://")) "file://${doc.frontPhotoUri}" else doc.frontPhotoUri
+                                                SubcomposeAsyncImage(model = safe, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                                            } else {
+                                                Icon(Icons.Default.Image, contentDescription = null, tint = Color.Gray, modifier = Modifier.align(Alignment.Center))
+                                            }
+                                        }
+                                    }
+
+                                    // Back
+                                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("Back Side", color = TextSecondary, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(75.dp)
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(Color(0xFF1E293B))
+                                                .border(1.dp, Color(0xFF374151), RoundedCornerShape(6.dp))
+                                        ) {
+                                            if (doc.backPhotoUri.isNotBlank()) {
+                                                val safe = if (doc.backPhotoUri.startsWith("/") && !doc.backPhotoUri.startsWith("file://")) "file://${doc.backPhotoUri}" else doc.backPhotoUri
+                                                SubcomposeAsyncImage(model = safe, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                                            } else {
+                                                Text("N/A (Passport)", color = Color.Gray, fontSize = 9.sp, modifier = Modifier.align(Alignment.Center))
+                                            }
+                                        }
+                                    }
+
+                                    // Selfie
+                                    Column(modifier = Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("Selfie Face", color = TextSecondary, fontSize = 9.sp, fontWeight = FontWeight.Bold)
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(75.dp)
+                                                .clip(RoundedCornerShape(6.dp))
+                                                .background(Color(0xFF1E293B))
+                                                .border(1.dp, Color(0xFF374151), RoundedCornerShape(6.dp))
+                                        ) {
+                                            if (doc.selfiePhotoUri.isNotBlank()) {
+                                                val safe = if (doc.selfiePhotoUri.startsWith("/") && !doc.selfiePhotoUri.startsWith("file://")) "file://${doc.selfiePhotoUri}" else doc.selfiePhotoUri
+                                                SubcomposeAsyncImage(model = safe, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                                            } else {
+                                                Icon(Icons.Default.Face, contentDescription = null, tint = Color.Gray, modifier = Modifier.align(Alignment.Center))
+                                            }
+                                        }
+                                    }
+                                }
+
+                                if (doc.rejectionReason.isNotBlank()) {
+                                    Text(
+                                        "Rejection Note: ${doc.rejectionReason}",
+                                        color = Color(0xFFF87171),
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.SemiBold
+                                    )
+                                }
+
+                                // Action Buttons (Approve / Reject)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    if (doc.status != "VERIFIED") {
+                                        Button(
+                                            onClick = {
+                                                viewModel.adminApproveIdentityVerification(doc.id)
+                                                Toast.makeText(context, "${doc.userName}'s KYC Approved!", Toast.LENGTH_SHORT).show()
+                                            },
+                                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF10B981)),
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.weight(1f).height(36.dp)
+                                        ) {
+                                            Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Approve KYC ✓", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                        }
+                                    }
+
+                                    if (doc.status != "REJECTED") {
+                                        OutlinedButton(
+                                            onClick = {
+                                                viewModel.adminRejectIdentityVerification(doc.id, "Image blurry or document number unverified.")
+                                                Toast.makeText(context, "${doc.userName}'s KYC Marked for Re-upload", Toast.LENGTH_SHORT).show()
+                                            },
+                                            border = BorderStroke(1.dp, Color(0xFFEF4444)),
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.weight(1f).height(36.dp),
+                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFEF4444))
+                                        ) {
+                                            Icon(Icons.Default.Close, contentDescription = null, modifier = Modifier.size(16.dp))
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text("Request Re-upload", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                         }
                                     }
                                 }
@@ -8046,31 +8271,10 @@ fun CashAgentDashboardTab(viewModel: AppViewModel) {
                         }
                     }
 
-                    TextButton(onClick = {
-                        // Quick test: simulate an incoming B2B order if list is low
-                        coroutineScope.launch {
-                            val dummyAgent = PaymentAgent(
-                                id = "agent_sumon",
-                                name = "Agent Sumon",
-                                agentCode = "CA-2048",
-                                country = "Bangladesh",
-                                phone = "+880 1711-204899",
-                                paymentMethod = "bKash / Nagad",
-                                accountNumber = "01711204899",
-                                accountHolder = "Md. Sumon Reza"
-                            )
-                            viewModel.createB2BOrder(
-                                agent = dummyAgent,
-                                type = if (allOrders.size % 2 == 0) "DEPOSIT" else "WITHDRAWAL",
-                                amount = 3500.0,
-                                paymentMethod = "bKash Personal",
-                                onOrderCreated = {
-                                    Toast.makeText(context, "New B2B Trade Order #${it.orderId} Created!", Toast.LENGTH_SHORT).show()
-                                }
-                            )
-                        }
+                    IconButton(onClick = {
+                        Toast.makeText(context, "Orders up to date", Toast.LENGTH_SHORT).show()
                     }) {
-                        Text("+ Simulate Order", color = PinkHighlight, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                        Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh", tint = PinkHighlight, modifier = Modifier.size(18.dp))
                     }
                 }
 
@@ -8126,7 +8330,7 @@ fun CashAgentDashboardTab(viewModel: AppViewModel) {
                     ) {
                         Icon(imageVector = Icons.Default.Inbox, contentDescription = null, tint = TextSecondary, modifier = Modifier.size(36.dp))
                         Text("No orders in '$selectedFilter'", color = TextPrimary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                        Text("Tap '+ Simulate Order' above to generate an active B2B escrow order for evaluation.", color = TextSecondary, fontSize = 11.sp, textAlign = TextAlign.Center)
+                        Text("Active P2P escrow orders and wallet transactions will appear here.", color = TextSecondary, fontSize = 11.sp, textAlign = TextAlign.Center)
                     }
                 }
             }
@@ -9706,10 +9910,10 @@ fun ModelOfferedServicesScreen(viewModel: AppViewModel) {
 
     // Google Play Billing / In-App Purchase Config
     var googlePlayLicenseKey by remember { mutableStateOf("MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQE3x8...") }
-    var googlePlayMerchantId by remember { mutableStateOf("merchant.com.aistudio.app") }
-    var googlePlayPackageName by remember { mutableStateOf("com.aistudio.app") }
+    var googlePlayMerchantId by remember { mutableStateOf("merchant.com.modol.connect.app") }
+    var googlePlayPackageName by remember { mutableStateOf("com.modol.connect.app") }
     var googlePlaySkuPrefix by remember { mutableStateOf("booking_payment_") }
-    var googlePlaySandboxMode by remember { mutableStateOf(true) }
+    var googlePlaySandboxMode by remember { mutableStateOf(false) }
     var googlePlayAutoSync by remember { mutableStateOf(true) }
     var googlePlayStatusMsg by remember { mutableStateOf("") }
 
@@ -12088,6 +12292,7 @@ fun B2BCashAgentMarketplaceContent(
     // Sync countries and payment methods from backend
     LaunchedEffect(Unit) {
         viewModel.syncCountriesFromBackend()
+        viewModel.syncPaymentAgentsFromBackend()
     }
 
     // Reset payment method filter whenever selected country changes
@@ -12752,13 +12957,55 @@ fun B2BCashAgentMarketplaceContent(
                 // =========================================================================
                 // MARKETPLACE AGENTS LIST (SOFT, HIGH-CONTRAST, SUPER VISIBLE & ELEGANT)
                 // =========================================================================
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(displayedAgents) { agent ->
+                if (displayedAgents.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Card(
+                            shape = RoundedCornerShape(18.dp),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
+                            modifier = Modifier.padding(20.dp)
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(24.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(60.dp)
+                                        .background(Color(0xFFFF2A6D).copy(alpha = 0.1f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(imageVector = Icons.Default.Storefront, contentDescription = null, tint = Color(0xFFFF2A6D), modifier = Modifier.size(32.dp))
+                                }
+                                Text("No Active B2B Agents in ${selectedCountry.countryName}", color = Color(0xFF0F172A), fontWeight = FontWeight.Bold, fontSize = 15.sp, textAlign = TextAlign.Center)
+                                Text("No live cash agent is currently registered for this country yet. Register as an official cash agent to start receiving B2B trade orders.", color = Color(0xFF64748B), fontSize = 12.sp, textAlign = TextAlign.Center)
+                                Spacer(modifier = Modifier.height(6.dp))
+                                Button(
+                                    onClick = { viewModel.navigateTo("REGISTER_CASH_AGENT") },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF2A6D)),
+                                    shape = RoundedCornerShape(12.dp)
+                                ) {
+                                    Icon(Icons.Default.AddBusiness, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Register as Cash Agent", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        items(displayedAgents) { agent ->
                         Card(
                             colors = CardDefaults.cardColors(containerColor = Color.White),
                             shape = RoundedCornerShape(20.dp),
@@ -13107,6 +13354,7 @@ fun B2BCashAgentMarketplaceContent(
             }
         }
     }
+}
 
     // =========================================================================
     // MODAL: HOW B2B ESCROW SYSTEM WORKS
@@ -13844,85 +14092,7 @@ fun getMarketplaceAgentsForCountry(
         )
     }
 
-    if (matchedDb.isNotEmpty()) {
-        return matchedDb
-    }
-
-    // 2. Dynamic Binance P2P Agent generation for this country
-    val methodNames = country.paymentMethods.map { it.methodName }
-    val (sym, baseBuy, baseSell) = when (country.currencyCode) {
-        "BDT" -> Triple("৳", 122.50, 120.80)
-        "INR" -> Triple("₹", 83.50, 82.80)
-        "PKR" -> Triple("Rs ", 278.50, 275.00)
-        "AED" -> Triple("AED ", 3.67, 3.65)
-        "SAR" -> Triple("SAR ", 3.75, 3.73)
-        "MYR" -> Triple("RM ", 4.45, 4.40)
-        "SGD" -> Triple("S$", 1.34, 1.32)
-        "THB" -> Triple("฿", 35.20, 34.80)
-        "PHP" -> Triple("₱", 56.40, 55.80)
-        "EUR" -> Triple("€", 0.92, 0.90)
-        "GBP" -> Triple("£", 0.78, 0.76)
-        "USD" -> Triple("$", 1.004, 0.996)
-        else -> Triple("${country.currencyCode} ", 1.0, 0.98)
-    }
-
-    val agentNames = when (country.isoCode) {
-        "BD" -> listOf("Rahim Agent", "BD Exchange Hub", "Agent Sumon", "Dhaka Central Cash")
-        "IN" -> listOf("Mumbai Cash Node", "Delhi Express Pay", "UPI Pro Trader", "Bangalore Escrow")
-        "PK" -> listOf("Lahore Cash Hub", "Karachi Fast Exchange", "Pak Remit Express", "Islamabad P2P")
-        "AE" -> listOf("Dubai Cash Pro", "Gulf Remit Hub", "Emirates P2P Escrow", "Abu Dhabi Trader")
-        "MY" -> listOf("KL Pay Master", "Ringgit Express", "Penang Cash Desk", "Borneo P2P")
-        "SG" -> listOf("Global Pay Agent", "SingaCash Hub", "Marina Bay Escrow", "Lion City Trader")
-        "SA" -> listOf("Riyadh Cash Station", "Jeddah Safe Pay", "Al-Khobar Fast P2P", "Saudi Escrow")
-        "US" -> listOf("NYC Cash Escrow", "Apex USD Trader", "Pacific P2P Desk", "US Fast Remit")
-        "GB" -> listOf("London Cash Express", "Sterling P2P Node", "UK Safe Trader", "Britannia Escrow")
-        else -> listOf(
-            "${country.countryName} Fast Trader",
-            "${country.countryName} Cash Node",
-            "Express ${country.currencyCode} Desk",
-            "SafeEscrow ${country.countryName}"
-        )
-    }
-
-    val avatars = listOf(
-        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
-        "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d",
-        "https://images.unsplash.com/photo-1500648767791-00dcc994a43e",
-        "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7"
-    )
-
-    return agentNames.mapIndexed { idx, name ->
-        val pMethods = if (methodNames.size >= 2) {
-            val start = (idx * 2) % methodNames.size
-            listOf(methodNames[start], methodNames[(start + 1) % methodNames.size])
-        } else if (methodNames.isNotEmpty()) methodNames else listOf("Bank Transfer", "Cash")
-
-        MarketplaceAgentItem(
-            id = "agent_${country.isoCode.lowercase()}_$idx",
-            name = name,
-            avatarUrl = avatars[idx % avatars.size],
-            country = country.countryName,
-            location = "${country.countryName} Verified Node #${idx + 1}",
-            flagEmoji = country.flag,
-            rating = 4.8 + (idx % 3) * 0.08,
-            reviewsCount = 180 + idx * 85,
-            ordersCount = 850 + idx * 380,
-            buyRate = baseBuy + (idx * 0.05),
-            sellRate = baseSell - (idx * 0.05),
-            currency = country.currencyCode,
-            currencySymbol = sym,
-            minLimit = (country.paymentMethods.firstOrNull()?.minAmount ?: 500.0) * (idx + 1),
-            maxLimit = (country.paymentMethods.firstOrNull()?.maxAmount ?: 100000.0),
-            availableBalance = 25000.0 * (idx + 1),
-            paymentMethods = pMethods,
-            buttonLabel = "Trade",
-            isOnline = true,
-            isVerified = true,
-            completionRate = "${99.0 + (idx % 10) * 0.1}%",
-            avgReleaseTime = "${1.8 + idx * 0.3} min",
-            accountNumber = "${country.phoneCode} ${idx + 1}09876543"
-        )
-    }
+    return matchedDb
 }
 
 @Composable

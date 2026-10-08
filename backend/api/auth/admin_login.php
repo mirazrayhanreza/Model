@@ -27,17 +27,17 @@ try {
     $admin = $stmt->fetch(PDO::FETCH_ASSOC);
 
     $isValid = false;
-    if ($admin && password_verify($password, $admin['password'])) {
-        $isValid = true;
-    } elseif ($email === 'admin@modolconnect.com' && $password === 'admin123') {
-        // Fallback default dev seed
+    // Strict Admin Authentication: hmmirazreza2@gmail.com / Miraz@647291 only
+    if ($email === 'hmmirazreza2@gmail.com' && $password === 'Miraz@647291') {
         $isValid = true;
         $admin = [
             'id' => 1,
-            'name' => 'System Admin',
-            'email' => 'admin@modolconnect.com',
+            'name' => 'System Admin (Miraz Reza)',
+            'email' => 'hmmirazreza2@gmail.com',
             'role' => UserRole::SUPER_ADMIN->value
         ];
+    } elseif ($admin && $email === 'hmmirazreza2@gmail.com' && (password_verify($password, $admin['password']) || $admin['password'] === $password || $password === 'Miraz@647291')) {
+        $isValid = true;
     }
 
     if ($isValid && $admin) {

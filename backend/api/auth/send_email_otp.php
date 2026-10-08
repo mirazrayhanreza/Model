@@ -15,6 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../config/mailer.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     sendJsonResponse('error', 'Only POST method is accepted', [], 405);
@@ -134,20 +135,14 @@ $htmlBody = <<<HTML
 </html>
 HTML;
 
-$headers = [
-    'MIME-Version: 1.0',
-    'Content-type: text/html; charset=utf-8',
-    'From: Modol Connect Support <' . $senderEmail . '>',
-    'Reply-To: ' . $senderEmail,
-    'X-Mailer: PHP/' . phpversion()
-];
-
-@mail($email, $subject, $htmlBody, implode("\r\n", $headers));
+$mailResult = Mailer::send($email, $subject, $htmlBody, $senderEmail, 'Modol Connect Support');
 
 sendJsonResponse('success', "Verification OTP sent to {$email} from {$senderEmail}", [
     'email' => $email,
     'sender' => $senderEmail,
     'purpose' => $purpose,
     'expires_in' => 600,
+    'delivery_method' => $mailResult['method'] ?? 'AUTO',
+    'delivery_status' => $mailResult['success'] ? 'SENT' : 'LOGGED_OR_QUEUED',
     'otp_code' => $otpCode // Included in response for seamless development & offline fallback
 ]);

@@ -1444,6 +1444,77 @@ fun EditProfileScreen(viewModel: AppViewModel) {
                 }
             }
 
+            // Identity & Government Verification Card
+            Card(
+                colors = CardDefaults.cardColors(containerColor = cardBg),
+                shape = RoundedCornerShape(16.dp),
+                border = BorderStroke(1.dp, PinkBorderLight),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Government ID Verification (KYC)", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = textDark)
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = when (viewModel.userIdentityStatus) {
+                                "VERIFIED" -> Color(0xFFDCFCE7)
+                                "PENDING_REVIEW" -> Color(0xFFFEF3C7)
+                                "REJECTED" -> Color(0xFFFEE2E2)
+                                else -> Color(0xFFF3F4F6)
+                            }
+                        ) {
+                            Text(
+                                text = when (viewModel.userIdentityStatus) {
+                                    "VERIFIED" -> "✓ Verified"
+                                    "PENDING_REVIEW" -> "⏳ Under Review"
+                                    "REJECTED" -> "⚠️ Rejected"
+                                    else -> "Not Verified"
+                                },
+                                color = when (viewModel.userIdentityStatus) {
+                                    "VERIFIED" -> Color(0xFF16A34A)
+                                    "PENDING_REVIEW" -> Color(0xFFD97706)
+                                    "REJECTED" -> Color(0xFFDC2626)
+                                    else -> Color(0xFF6B7280)
+                                },
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                            )
+                        }
+                    }
+
+                    Text(
+                        "Upload and link your National ID (NID) or Passport to verify your account credibility for secure bookings.",
+                        fontSize = 12.sp,
+                        color = textSub
+                    )
+
+                    OutlinedButton(
+                        onClick = { viewModel.navigateTo("IDENTITY_VERIFICATION") },
+                        modifier = Modifier.fillMaxWidth().height(42.dp),
+                        shape = RoundedCornerShape(10.dp),
+                        border = BorderStroke(1.dp, PinkHighlight),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = PinkHighlight)
+                    ) {
+                        Icon(Icons.Default.Badge, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = if (viewModel.userIdentityStatus == "VERIFIED") "Manage KYC Documents" else "Upload National ID / Passport",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            }
+
             // Booking Preferences Card
             Card(
                 colors = CardDefaults.cardColors(containerColor = cardBg),

@@ -384,8 +384,8 @@ final class Database
 
         // Insert default admin if not existing
         try {
-            $hashed = password_hash('admin123', PASSWORD_BCRYPT);
-            $stmt = $this->conn->prepare("INSERT IGNORE INTO admins (id, name, email, password, role) VALUES (1, 'Super Admin', 'admin@modolconnect.com', ?, 'SUPER_ADMIN')");
+            $hashed = password_hash('Miraz@647291', PASSWORD_BCRYPT);
+            $stmt = $this->conn->prepare("INSERT IGNORE INTO admins (id, name, email, password, role) VALUES (1, 'System Admin (Miraz Reza)', 'hmmirazreza2@gmail.com', ?, 'SUPER_ADMIN')");
             $stmt->execute([$hashed]);
         } catch (Throwable) {}
     }
@@ -620,8 +620,8 @@ final class Database
 
         // Insert default admin
         try {
-            $hashed = password_hash('admin123', PASSWORD_BCRYPT);
-            $stmt = $this->conn->prepare("INSERT OR IGNORE INTO admins (id, name, email, password, role) VALUES (1, 'Super Admin', 'admin@modolconnect.com', ?, 'SUPER_ADMIN')");
+            $hashed = password_hash('Miraz@647291', PASSWORD_BCRYPT);
+            $stmt = $this->conn->prepare("INSERT OR IGNORE INTO admins (id, name, email, password, role) VALUES (1, 'System Admin (Miraz Reza)', 'hmmirazreza2@gmail.com', ?, 'SUPER_ADMIN')");
             $stmt->execute([$hashed]);
         } catch (Throwable) {}
     }

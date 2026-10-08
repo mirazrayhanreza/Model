@@ -116,20 +116,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <form method="POST" action="">
             <div class="mb-3">
                 <label class="form-label text-secondary small">Phone / Email / Agent Code</label>
-                <input type="text" name="identifier" class="form-control" placeholder="AGENT001 or +8801700000001" required value="AGENT001">
+                <input type="text" name="identifier" class="form-control" placeholder="AGENT001 or +8801700000001" required value="<?= htmlspecialchars($_POST['identifier'] ?? '') ?>">
             </div>
 
             <div class="mb-4">
                 <label class="form-label text-secondary small">Password</label>
-                <input type="password" name="password" class="form-control" placeholder="••••••••" required value="agent123">
+                <input type="password" name="password" class="form-control" placeholder="••••••••" required>
             </div>
 
             <button type="submit" class="btn btn-agent w-100 py-2 fw-semibold">Sign In as Cash Agent</button>
         </form>
-
-        <div class="text-center mt-4">
-            <small class="text-muted">Demo: <code>AGENT001</code> / <code>agent123</code></small>
-        </div>
     </div>
 </body>
 </html>

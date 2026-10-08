@@ -1,5 +1,6 @@
 package com.example.viewmodel
 
+import android.app.Activity
 import android.app.Application
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -38,6 +39,22 @@ data class ManagedUser(
     var verifiedByAdmin: Boolean = false,
     var city: String = "Dhaka",
     var avatarUrl: String = ""
+)
+
+data class IdentityVerificationDocument(
+    val id: String = java.util.UUID.randomUUID().toString(),
+    val userId: String,
+    val userName: String,
+    val userRole: String, // "CLIENT", "MODEL", "AGENT"
+    val documentType: String, // "NID" or "PASSPORT"
+    val documentNumber: String,
+    val frontPhotoUri: String,
+    val backPhotoUri: String = "",
+    val selfiePhotoUri: String = "",
+    var status: String = "PENDING_REVIEW", // "PENDING_REVIEW", "VERIFIED", "REJECTED"
+    var rejectionReason: String = "",
+    val submittedAt: String = "Just now",
+    var reviewedAt: String? = null
 )
 
 data class BackendMediaUpload(
@@ -96,6 +113,17 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
     var profileOtpError by mutableStateOf<String?>(null)
     var profileOtpSuccess by mutableStateOf<String?>(null)
     var profileOtpCountdown by mutableStateOf(60)
+
+    // --- Government ID & Passport Verification (KYC) States ---
+    var userIdentityStatus by mutableStateOf("NOT_SUBMITTED") // "NOT_SUBMITTED", "PENDING_REVIEW", "VERIFIED", "REJECTED"
+    var userIdentityDocType by mutableStateOf("NID") // "NID" or "PASSPORT"
+    var userIdentityDocNumber by mutableStateOf("")
+    var userIdentityFrontPhotoUri by mutableStateOf("")
+    var userIdentityBackPhotoUri by mutableStateOf("")
+    var userIdentitySelfiePhotoUri by mutableStateOf("")
+    var userIdentityRejectionReason by mutableStateOf("")
+    var userIdentitySubmittedAt by mutableStateOf("")
+    val submittedIdentityVerifications = mutableStateListOf<IdentityVerificationDocument>()
 
     // Managed Users list for Admin Panel (Full Reactive List with One-Time Password support)
     val managedUsers = mutableStateListOf(
@@ -305,10 +333,7 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
         .stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5000),
-            listOf(
-                PaymentAgent(id = "AGENT-1024", name = "Dhaka Central Cash Agent #1024", agentCode = "1024", country = "Bangladesh", phone = "01711223344", paymentMethod = "bKash", accountNumber = "01711223344", accountHolder = "Dhaka Agent Ltd", commissionRate = 1.5, minLimit = 500.0, maxLimit = 100000.0, availableBalance = 50000.0, verificationStatus = "VERIFIED"),
-                PaymentAgent(id = "AGENT-2048", name = "Uttara Nagad Agent #2048", agentCode = "2048", country = "Bangladesh", phone = "01822334455", paymentMethod = "Nagad", accountNumber = "01822334455", accountHolder = "Uttara Cash Express", commissionRate = 1.0, minLimit = 300.0, maxLimit = 50000.0, availableBalance = 30000.0, verificationStatus = "VERIFIED")
-            )
+            emptyList()
         )
 
     // Modal UI States
@@ -716,6 +741,72 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
                 }
             } catch (e: Exception) {
                 android.util.Log.d("AppViewModel", "syncCountriesFromBackend: ${e.message}")
+            }
+        }
+    }
+
+    fun syncPaymentAgentsFromBackend() {
+        viewModelScope.launch {
+            try {
+                val result = com.example.data.network.BackendApiClient.fetchLiveCashAgents(
+                    baseUrl = backendServerUrl,
+                    country = ""
+                )
+                result.getOrNull()?.let { remoteAgentsJson ->
+                    for (obj in remoteAgentsJson) {
+                        val id = obj.optString("id", "")
+                        val code = obj.optString("agent_code", "")
+                        val name = obj.optString("name", "")
+                        val phone = obj.optString("phone", "")
+                        val country = obj.optString("country", "Bangladesh")
+                        val city = obj.optString("city", "Dhaka")
+                        val currency = obj.optString("currency", "BDT")
+                        val methods = obj.optString("payment_methods", "bKash, Nagad")
+                        val comm = obj.optDouble("commission_rate", 1.5)
+                        val buyRate = obj.optDouble("buy_rate", 122.5)
+                        val sellRate = obj.optDouble("sell_rate", 120.8)
+                        val minL = obj.optDouble("min_limit", 500.0)
+                        val maxL = obj.optDouble("max_limit", 100000.0)
+                        val bal = obj.optDouble("available_balance", 0.0)
+                        val totalOrd = obj.optInt("total_orders", 0)
+                        val compRate = obj.optString("completion_rate", "100%")
+                        val avgRel = obj.optString("avg_release_time", "2.0 min")
+                        val isOnline = obj.optInt("is_online", 1) == 1
+                        val isVerified = obj.optInt("is_verified", 1) == 1
+                        val rating = obj.optDouble("rating", 5.0)
+
+                        val agentEntity = PaymentAgent(
+                            id = if (id.isNotBlank()) "AGENT_$id" else "AGENT_$code",
+                            name = name,
+                            agentCode = code,
+                            country = country,
+                            city = city,
+                            phone = phone,
+                            currency = currency,
+                            paymentMethod = methods.split(",").firstOrNull()?.trim() ?: "Bank Transfer",
+                            accountNumber = phone,
+                            accountHolder = name,
+                            commissionRate = comm,
+                            buyRate = buyRate,
+                            sellRate = sellRate,
+                            minLimit = minL,
+                            maxLimit = maxL,
+                            availableBalance = bal,
+                            allowedMethods = methods,
+                            supportsDeposit = true,
+                            supportsWithdraw = true,
+                            verificationStatus = if (isVerified) "VERIFIED" else "PENDING",
+                            isOnline = isOnline,
+                            rating = rating.toFloat(),
+                            totalOrders = totalOrd,
+                            completionRate = compRate,
+                            avgReleaseTime = avgRel
+                        )
+                        repository.insertPaymentAgent(agentEntity)
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.d("AppViewModel", "syncPaymentAgentsFromBackend: ${e.message}")
             }
         }
     }
@@ -1393,13 +1484,8 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
         val adminAssignedCode = if (profileVerificationType == "PHONE") userItem?.pendingPhoneOtp else userItem?.pendingEmailOtp
 
         val isValid = trimmed == profilePendingOtp || 
-            trimmed == "123456" || 
             (adminAssignedCode != null && trimmed == adminAssignedCode) ||
-            trimmed == userItem?.oneTimePassword ||
-            trimmed == userMasterOtp ||
-            trimmed == modelMasterOtp ||
-            trimmed == cashAgentMasterOtp ||
-            trimmed == adminMasterOtp
+            trimmed == userItem?.oneTimePassword
 
         if (isValid) {
             if (profileVerificationType == "PHONE") {
@@ -1590,6 +1676,155 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
         return generated
     }
 
+    // --- Identity Verification (NID & Passport KYC) Engine ---
+    fun submitIdentityVerification(
+        documentType: String,
+        documentNumber: String,
+        frontPhotoUri: String,
+        backPhotoUri: String = "",
+        selfiePhotoUri: String = ""
+    ) {
+        val current = currentUser.value
+        val userId = current?.id ?: "user_1"
+        val userName = current?.name ?: "Rahul Verma"
+        val userRole = current?.role ?: "CLIENT"
+
+        userIdentityStatus = "PENDING_REVIEW"
+        userIdentityDocType = documentType
+        userIdentityDocNumber = documentNumber
+        userIdentityFrontPhotoUri = frontPhotoUri
+        userIdentityBackPhotoUri = backPhotoUri
+        userIdentitySelfiePhotoUri = selfiePhotoUri
+        userIdentityRejectionReason = ""
+        userIdentitySubmittedAt = "Just now"
+
+        // Persist to SharedPreferences
+        sessionPrefs.edit()
+            .putString("kyc_status", "PENDING_REVIEW")
+            .putString("kyc_doc_type", documentType)
+            .putString("kyc_doc_number", documentNumber)
+            .putString("kyc_front_uri", frontPhotoUri)
+            .putString("kyc_back_uri", backPhotoUri)
+            .putString("kyc_selfie_uri", selfiePhotoUri)
+            .putString("kyc_rejection_reason", "")
+            .apply()
+
+        // Also register front photo in Backend Media Uploads list
+        backendUploadedPhotos.add(
+            0,
+            BackendMediaUpload(
+                id = "KYC-${System.currentTimeMillis() % 10000}",
+                fileName = "${userName.lowercase().replace(" ", "_")}_${documentType.lowercase()}_front.jpg",
+                fileUrl = frontPhotoUri,
+                fileSizeBytes = 385420L,
+                timestamp = "Just now",
+                uploaderName = userName,
+                uploaderId = userId,
+                mediaType = "KYC_DOCUMENT",
+                backendStatus = "STORED_IN_DATABASE"
+            )
+        )
+
+        // Remove existing submission for this user if any
+        submittedIdentityVerifications.removeAll { it.userId == userId }
+        val doc = IdentityVerificationDocument(
+            id = java.util.UUID.randomUUID().toString(),
+            userId = userId,
+            userName = userName,
+            userRole = userRole,
+            documentType = documentType,
+            documentNumber = documentNumber,
+            frontPhotoUri = frontPhotoUri,
+            backPhotoUri = backPhotoUri,
+            selfiePhotoUri = selfiePhotoUri,
+            status = "PENDING_REVIEW",
+            submittedAt = "Just now"
+        )
+        submittedIdentityVerifications.add(0, doc)
+
+        addNotification(
+            title = "Identity Documents Submitted ✓",
+            message = "Your $documentType documents ($documentNumber) have been submitted to Modol Admin for compliance review.",
+            category = "Security"
+        )
+        addNotification(
+            title = "Admin: New KYC Submission",
+            message = "New $documentType KYC verification received from $userName ($userRole). Please review in Admin Panel.",
+            category = "Admin"
+        )
+    }
+
+    fun adminApproveIdentityVerification(docId: String) {
+        val doc = submittedIdentityVerifications.firstOrNull { it.id == docId } ?: return
+        doc.status = "VERIFIED"
+        doc.reviewedAt = "Just now"
+
+        val current = currentUser.value
+        if (current?.id == doc.userId || doc.userId == "user_1") {
+            userIdentityStatus = "VERIFIED"
+            sessionPrefs.edit().putString("kyc_status", "VERIFIED").apply()
+            viewModelScope.launch {
+                val updated = current?.copy(isVerified = true) ?: CurrentUser(
+                    id = doc.userId,
+                    name = doc.userName,
+                    role = doc.userRole,
+                    balance = 0.0,
+                    avatarUrl = doc.selfiePhotoUri.ifBlank { "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde" },
+                    isVerified = true,
+                    email = "user@modolconnect.com"
+                )
+                repository.insertCurrentUser(updated)
+            }
+        }
+
+        // If it was a model KYC, update model verified badge in database
+        viewModelScope.launch {
+            val models = repository.allModels.firstOrNull() ?: emptyList()
+            val matchedModel = models.firstOrNull { it.name.equals(doc.userName, ignoreCase = true) }
+            if (matchedModel != null) {
+                repository.updateModel(matchedModel.copy(isVerified = true))
+            }
+        }
+
+        // Mark managed user as verified
+        val managed = managedUsers.firstOrNull { it.id == doc.userId }
+        if (managed != null) {
+            managed.verifiedByAdmin = true
+            managed.isPhoneVerified = true
+            managed.isEmailVerified = true
+        }
+
+        addNotification(
+            title = "KYC Verification Approved ✓",
+            message = "Identity documents for ${doc.userName} have been approved. Account is now verified.",
+            category = "Security"
+        )
+    }
+
+    fun adminRejectIdentityVerification(docId: String, reason: String) {
+        val cleanReason = reason.ifBlank { "Unclear photo or mismatched identity information. Please upload clear scans." }
+        val doc = submittedIdentityVerifications.firstOrNull { it.id == docId } ?: return
+        doc.status = "REJECTED"
+        doc.rejectionReason = cleanReason
+        doc.reviewedAt = "Just now"
+
+        val current = currentUser.value
+        if (current?.id == doc.userId || doc.userId == "user_1") {
+            userIdentityStatus = "REJECTED"
+            userIdentityRejectionReason = cleanReason
+            sessionPrefs.edit()
+                .putString("kyc_status", "REJECTED")
+                .putString("kyc_rejection_reason", cleanReason)
+                .apply()
+        }
+
+        addNotification(
+            title = "KYC Verification Rejected",
+            message = "Documents for ${doc.userName} rejected. Reason: $cleanReason",
+            category = "Security"
+        )
+    }
+
     // Forgot / Reset Password States
     var forgotResetMethod by mutableStateOf("PHONE") // "PHONE" or "EMAIL"
     var forgotPhone by mutableStateOf("")
@@ -1638,16 +1873,8 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
     private val _notifications = MutableStateFlow<List<AppNotification>>(emptyList())
     val notifications: StateFlow<List<AppNotification>> = _notifications.asStateFlow()
 
-    // Cash Collections List (Pre-populated to match the mockup!)
-    private val _cashCollections = MutableStateFlow<List<CashCollectionRequest>>(
-        listOf(
-            CashCollectionRequest("CC88521", "Agent Sumon", 3500.0, "BK89562", "PENDING", "al_amin@example.com", "18 May 2025"),
-            CashCollectionRequest("CC88520", "Agent Rafiq", 2500.0, "BK89560", "PAID", "rashid@example.com", "18 May 2025"),
-            CashCollectionRequest("CC88519", "Agent Arif", 4000.0, "BK89561", "PENDING", "sojib@example.com", "18 May 2025"),
-            CashCollectionRequest("CC88518", "Agent Jibon", 3000.0, "BK89559", "PAID", "mahmudul@example.com", "18 May 2025"),
-            CashCollectionRequest("CC88517", "Agent Hasan", 4500.0, "BK89558", "PENDING", "jahid@example.com", "18 May 2025")
-        )
-    )
+    // Cash Collections List (Live empty state)
+    private val _cashCollections = MutableStateFlow<List<CashCollectionRequest>>(emptyList())
     val cashCollections: StateFlow<List<CashCollectionRequest>> = _cashCollections.asStateFlow()
 
     // Agent & Escrow Rates Config (Admin Configurable)
@@ -1669,7 +1896,7 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
                         id = savedId,
                         name = sessionPrefs.getString("session_user_name", "User") ?: "User",
                         role = sessionPrefs.getString("session_user_role", "USER") ?: "USER",
-                        balance = sessionPrefs.getFloat("session_user_balance", 500f).toDouble(),
+                        balance = sessionPrefs.getFloat("session_user_balance", 0f).toDouble(),
                         avatarUrl = sessionPrefs.getString("session_user_avatar", "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde") ?: "",
                         isVerified = true,
                         email = sessionPrefs.getString("session_user_email", "") ?: "",
@@ -1699,16 +1926,78 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
 
             // Sync Binance Dynamic Multi-Country & Payment Methods from Backend
             syncCountriesFromBackend()
+            syncPaymentAgentsFromBackend()
             
-            // Add initial mock notifications to match the screenshot perfectly
-            addNotification("Welcome to Modol Connect", "Thank you for joining us. Explore and book your favorite model.", "System", "2 Days Ago", true)
-            addNotification("Account Verified", "Your account has been verified successfully.", "System", "Yesterday", true)
-            addNotification("Wallet Credited", "৳50 cashback received in your wallet.", "Payment", "Yesterday", true)
-            addNotification("Booking Reminder", "Your booking with Nusrat is today at 04:00 PM.", "Booking", "03:30 PM", true)
-            addNotification("Special Offer", "Get 20% OFF on your next booking. Use code: MODOL20", "Promotions", "09:00 AM", false)
-            addNotification("New Message", "You have a new message from Jessica.", "Chat", "10:25 AM", false)
-            addNotification("Payment Successful", "Your payment of ৳120 was successful for booking with Jessica.", "Payment", "10:28 AM", false)
-            addNotification("Booking Accepted", "Jessica has accepted your booking request.", "Booking", "10:30 AM", false)
+            // Restore KYC State from Preferences
+            val savedKycStatus = sessionPrefs.getString("kyc_status", "NOT_SUBMITTED") ?: "NOT_SUBMITTED"
+            userIdentityStatus = savedKycStatus
+            userIdentityDocType = sessionPrefs.getString("kyc_doc_type", "NID") ?: "NID"
+            userIdentityDocNumber = sessionPrefs.getString("kyc_doc_number", "") ?: ""
+            userIdentityFrontPhotoUri = sessionPrefs.getString("kyc_front_uri", "") ?: ""
+            userIdentityBackPhotoUri = sessionPrefs.getString("kyc_back_uri", "") ?: ""
+            userIdentitySelfiePhotoUri = sessionPrefs.getString("kyc_selfie_uri", "") ?: ""
+            userIdentityRejectionReason = sessionPrefs.getString("kyc_rejection_reason", "") ?: ""
+
+            // Pre-seed sample realistic KYC submissions for live inspection & Admin panel
+            if (submittedIdentityVerifications.isEmpty()) {
+                if (savedKycStatus == "PENDING_REVIEW" || savedKycStatus == "VERIFIED" || savedKycStatus == "REJECTED") {
+                    val currentUsr = currentUser.value
+                    submittedIdentityVerifications.add(
+                        IdentityVerificationDocument(
+                            id = "KYC-USER-1",
+                            userId = currentUsr?.id ?: "user_1",
+                            userName = currentUsr?.name ?: "Rahul Verma",
+                            userRole = currentUsr?.role ?: "CLIENT",
+                            documentType = userIdentityDocType,
+                            documentNumber = userIdentityDocNumber.ifBlank { "19942691234567890" },
+                            frontPhotoUri = userIdentityFrontPhotoUri.ifBlank { "https://images.unsplash.com/photo-1544717305-2782549b5136?fit=crop&w=600&q=80" },
+                            backPhotoUri = userIdentityBackPhotoUri.ifBlank { "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?fit=crop&w=600&q=80" },
+                            selfiePhotoUri = userIdentitySelfiePhotoUri.ifBlank { "https://images.unsplash.com/photo-1534528741775-53994a69daeb?fit=crop&w=600&q=80" },
+                            status = savedKycStatus,
+                            rejectionReason = userIdentityRejectionReason,
+                            submittedAt = "Today, 10:30 AM"
+                        )
+                    )
+                }
+
+                // Add Model KYC submission pending admin review
+                submittedIdentityVerifications.add(
+                    IdentityVerificationDocument(
+                        id = "KYC-MDL-101",
+                        userId = "MDL_001",
+                        userName = "Jessica Chowdhury",
+                        userRole = "MODEL",
+                        documentType = "NID",
+                        documentNumber = "5512984712039",
+                        frontPhotoUri = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?fit=crop&w=600&q=80",
+                        backPhotoUri = "https://images.unsplash.com/photo-1589829545856-d10d557cf95f?fit=crop&w=600&q=80",
+                        selfiePhotoUri = "https://images.unsplash.com/photo-1517841905240-472988babdf9?fit=crop&w=600&q=80",
+                        status = "VERIFIED",
+                        submittedAt = "Yesterday, 04:15 PM",
+                        reviewedAt = "Yesterday, 06:00 PM"
+                    )
+                )
+
+                // Add another Client KYC submission pending review
+                submittedIdentityVerifications.add(
+                    IdentityVerificationDocument(
+                        id = "KYC-USR-202",
+                        userId = "USR_882",
+                        userName = "Tanvir Ahmed",
+                        userRole = "CLIENT",
+                        documentType = "PASSPORT",
+                        documentNumber = "EA0928410",
+                        frontPhotoUri = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?fit=crop&w=600&q=80",
+                        backPhotoUri = "",
+                        selfiePhotoUri = "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?fit=crop&w=600&q=80",
+                        status = "PENDING_REVIEW",
+                        submittedAt = "Today, 11:45 AM"
+                    )
+                )
+            }
+
+            // Welcome notification for live users
+            addNotification("Welcome to Modol Connect", "Welcome to Modol Connect! Discover verified models, manage bookings, and execute secure P2P escrow payments.", "System")
         }
     }
 
@@ -1751,28 +2040,7 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
     }
 
     fun loginAsDemo(role: String) {
-        when (role) {
-            "ADMIN" -> {
-                loginEmail = "admin@modolconnect.com"
-                loginPassword = "admin"
-                login()
-            }
-            "MODEL" -> {
-                loginEmail = "model@modolconnect.com"
-                loginPassword = "model"
-                login()
-            }
-            "USER" -> {
-                loginEmail = "client@modolconnect.com"
-                loginPassword = "user"
-                login()
-            }
-            "CASH_AGENT" -> {
-                loginEmail = "agent@modolconnect.com"
-                loginPassword = "agent"
-                login()
-            }
-        }
+        // Disabled in production live release
     }
 
     // --- Navigation Functions ---
@@ -1822,6 +2090,67 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
 
     fun selectChatPartner(partnerId: String) {
         _activeChatPartnerId.value = partnerId
+    }
+
+    // --- Social Login Handlers (Facebook & Google via Firebase OAuth) ---
+    fun loginWithFacebook(activity: Activity?) {
+        if (activity == null) {
+            authErrorMessage = "Cannot initialize Facebook sign-in window."
+            return
+        }
+        authErrorMessage = null
+        authSuccessMessage = null
+        viewModelScope.launch {
+            isAuthLoading = true
+            val targetRole = if (registerRole.isNotBlank()) registerRole else "USER"
+            val result = authManager.signInWithFacebook(
+                activity = activity,
+                requestedRole = targetRole,
+                backendBaseUrl = backendServerUrl
+            )
+            isAuthLoading = false
+            result.onSuccess { user ->
+                saveUserSession(user)
+                addNotification(
+                    title = "Facebook Sign-In Success",
+                    message = "Welcome to Modol Connect, ${user.name}! Successfully signed in via Facebook.",
+                    category = "Security"
+                )
+                navigateTo("DASHBOARD")
+            }.onFailure { err ->
+                authErrorMessage = err.message ?: "Facebook sign-in failed."
+            }
+        }
+    }
+
+    fun loginWithGoogle(activity: Activity?) {
+        if (activity == null) {
+            authErrorMessage = "Cannot initialize Google sign-in window."
+            return
+        }
+        authErrorMessage = null
+        authSuccessMessage = null
+        viewModelScope.launch {
+            isAuthLoading = true
+            val targetRole = if (registerRole.isNotBlank()) registerRole else "USER"
+            val result = authManager.signInWithGoogle(
+                activity = activity,
+                requestedRole = targetRole,
+                backendBaseUrl = backendServerUrl
+            )
+            isAuthLoading = false
+            result.onSuccess { user ->
+                saveUserSession(user)
+                addNotification(
+                    title = "Google Sign-In Success",
+                    message = "Welcome to Modol Connect, ${user.name}! Successfully signed in via Google.",
+                    category = "Security"
+                )
+                navigateTo("DASHBOARD")
+            }.onFailure { err ->
+                authErrorMessage = err.message ?: "Google sign-in failed."
+            }
+        }
     }
 
     // --- Auth Logic with Firebase Authentication ---
@@ -1881,7 +2210,7 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
                     id = matchedUser.id,
                     name = matchedUser.name,
                     role = role,
-                    balance = if (role == "ADMIN") 75000.0 else if (role == "CASH_AGENT") 35000.0 else if (role == "MODEL") 12500.0 else 5000.0,
+                    balance = 0.0,
                     avatarUrl = if (matchedUser.avatarUrl.isNotEmpty()) matchedUser.avatarUrl else "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
                     isVerified = true,
                     email = matchedUser.email,
@@ -1898,7 +2227,7 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
                     id = "admin_master",
                     name = "Miraz Reza (Admin)",
                     role = "ADMIN",
-                    balance = 75000.0,
+                    balance = 0.0,
                     avatarUrl = "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
                     isVerified = true,
                     email = if (email.contains("@")) email else "admin@modolconnect.com",
@@ -1915,7 +2244,7 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
                     id = "model_1",
                     name = "Jessica (Top Model)",
                     role = "MODEL",
-                    balance = 12500.0,
+                    balance = 0.0,
                     avatarUrl = "https://images.unsplash.com/photo-1534528741775-53994a69daeb",
                     isVerified = true,
                     email = if (email.contains("@")) email else "model@modolconnect.com",
@@ -1932,7 +2261,7 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
                     id = "agent_1",
                     name = "Agent Sumon (Cash Agent)",
                     role = "CASH_AGENT",
-                    balance = 35000.0,
+                    balance = 0.0,
                     avatarUrl = "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e",
                     isVerified = true,
                     email = if (email.contains("@")) email else "agent@modolconnect.com",
@@ -1949,7 +2278,7 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
                     id = "user_1",
                     name = "Rahul Verma (Client)",
                     role = "USER",
-                    balance = 5000.0,
+                    balance = 0.0,
                     avatarUrl = "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d",
                     isVerified = true,
                     email = if (email.contains("@")) email else "client@modolconnect.com",
@@ -2120,7 +2449,7 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
                         sellRate = 120.80,
                         minLimit = 500.0,
                         maxLimit = 100000.0,
-                        availableBalance = 35000.0,
+                        availableBalance = 0.0,
                         allowedMethods = "bKash, Nagad, Rocket, Bank Transfer, Cash",
                         totalOrders = 0,
                         completionRate = "100%",
@@ -2138,7 +2467,7 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
                 )
                 addNotification(
                     title = "Registration Success",
-                    message = "Account created successfully with Auto ID: $autoId and ৳500 signup bonus!",
+                    message = "Account created successfully with Auto ID: $autoId.",
                     category = "System"
                 )
 
@@ -2208,21 +2537,6 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
         phoneVerificationId = null
         isFirebaseSmsSent = false
         startOtpCountdown(60)
-
-        // Check if admin test whitelist phone or test mode is active
-        if (otpGatewayMode == "TEST_MODE" || targetPhone == otpTestPhoneNumber || targetPhone.contains("1700000000")) {
-            phoneVerificationId = "test_verified_sms"
-            isFirebaseSmsSent = true
-            otpCode = otpTestCode
-            authSuccessMessage = "Verification code dispatched to $targetPhone."
-            addNotification(
-                title = "Verification Code Sent",
-                message = "A 6-digit verification code has been dispatched to $targetPhone. Test Code: $otpTestCode",
-                category = "Security"
-            )
-            navigateTo("PHONE_VERIFICATION")
-            return
-        }
 
         if (activity != null) {
             isAuthLoading = true
@@ -2294,21 +2608,6 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
         phoneVerificationId = null
         isFirebaseSmsSent = false
         startOtpCountdown(60)
-
-        // Check if admin test whitelist phone or test mode is active
-        if (otpGatewayMode == "TEST_MODE" || targetPhone == otpTestPhoneNumber || targetPhone.contains("1700000000")) {
-            phoneVerificationId = "test_verified_sms"
-            isFirebaseSmsSent = true
-            otpCode = otpTestCode
-            authSuccessMessage = "Verification code sent to $targetPhone."
-            addNotification(
-                title = "Registration Code Sent",
-                message = "Registration verification code dispatched to $targetPhone.",
-                category = "Security"
-            )
-            navigateTo("PHONE_VERIFICATION")
-            return
-        }
 
         if (activity != null) {
             isAuthLoading = true
@@ -2452,39 +2751,18 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
                 else -> requestedRole
             }
 
-            val isTestCodeMatch = (cleanCode == otpTestCode || cleanCode == "123456" || isBackendRoleMatch || isUserOtpMatch) || 
-                    (verificationTarget == otpTestPhoneNumber || otpGatewayMode == "TEST_MODE" || phoneVerificationId == "test_verified_sms")
-
-            val result = if (isTestCodeMatch) {
-                // Instant test mode verification
-                val testUid = matchedUser?.id ?: "user_verified_${System.currentTimeMillis()}"
-                val localUser = CurrentUser(
-                    id = testUid,
-                    name = if (matchedUser?.name != null && matchedUser.name.isNotBlank()) matchedUser.name else if (userName.isNotBlank()) userName else "Verified User",
-                    role = effectiveRole,
-                    balance = if (effectiveRole == "ADMIN") 75000.0 else if (effectiveRole == "CASH_AGENT") 35000.0 else if (effectiveRole == "MODEL") 12500.0 else 5000.0,
-                    avatarUrl = if (!matchedUser?.avatarUrl.isNullOrEmpty()) matchedUser!!.avatarUrl else "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
-                    isVerified = true,
-                    email = if (!matchedUser?.email.isNullOrEmpty()) matchedUser!!.email else if (userEmail.isNotBlank()) userEmail else "user@modolconnect.com",
-                    city = "Dhaka",
-                    country = registerCountry,
-                    currency = CountryPaymentMaster.getCurrencyForCountry(registerCountry)
-                )
-                repository.insertCurrentUser(localUser)
-                Result.success(localUser)
-            } else {
-                authManager.signInWithPhoneOtp(
-                    phoneNumber = verificationTarget,
-                    otpCode = cleanCode,
-                    verificationId = phoneVerificationId,
-                    backendBaseUrl = backendServerUrl,
-                    requestedRole = requestedRole,
-                    userName = userName,
-                    userEmail = userEmail,
-                    city = "Dhaka",
-                    country = registerCountry
-                )
-            }
+            // Live Phone OTP Verification (Fake OTP bypassed turned off)
+            val result = authManager.signInWithPhoneOtp(
+                phoneNumber = verificationTarget,
+                otpCode = cleanCode,
+                verificationId = phoneVerificationId,
+                backendBaseUrl = backendServerUrl,
+                requestedRole = requestedRole,
+                userName = userName,
+                userEmail = userEmail,
+                city = "Dhaka",
+                country = registerCountry
+            )
 
             isAuthLoading = false
 
@@ -2574,7 +2852,7 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
                             sellRate = 120.80,
                             minLimit = 500.0,
                             maxLimit = 100000.0,
-                            availableBalance = 35000.0,
+                            availableBalance = 0.0,
                             allowedMethods = "bKash, Nagad, Rocket, Bank Transfer, Cash",
                             totalOrders = 0,
                             completionRate = "100%",
@@ -2672,8 +2950,8 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
         }
 
         addNotification(
-            title = "Password Reset Code: $code",
-            message = "From: $supportEmail - Your password reset code is $code. Valid for 10 minutes. Do not share your OTP with anyone.",
+            title = "Password Reset Code Sent",
+            message = "A 6-digit verification code has been dispatched to $targetEmail from $supportEmail. Please check your inbox or spam folder.",
             category = "Security"
         )
         navigateTo("FORGOT_OTP")
@@ -2703,8 +2981,8 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
         }
 
         addNotification(
-            title = "New Email OTP: $code",
-            message = "From: $supportEmail - A fresh 6-digit code ($code) was sent to $verificationTarget. Never share your OTP.",
+            title = "Verification Code Dispatched",
+            message = "A fresh 6-digit verification code was sent to $verificationTarget from $supportEmail. Never share your OTP.",
             category = "Security"
         )
     }
@@ -2719,8 +2997,8 @@ class AppViewModel(application: Application, val repository: Repository) : Andro
             return
         }
 
-        if (cleanCode != otpSentCode && cleanCode != "123456") {
-            authErrorMessage = "Invalid OTP code. Please enter the correct code ($otpSentCode)."
+        if (cleanCode != otpSentCode) {
+            authErrorMessage = "Invalid OTP code. Please enter the correct code sent to your email."
             return
         }
 

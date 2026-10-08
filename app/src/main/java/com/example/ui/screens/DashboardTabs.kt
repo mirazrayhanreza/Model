@@ -2901,7 +2901,110 @@ fun ProfileTab(viewModel: AppViewModel) {
                                 }
                             }
 
-                            // 3. Problem & Admin Manual Code Assistance Box
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // 3. National ID & Passport Verification (KYC) Row
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFF9FAFB), RoundedCornerShape(12.dp))
+                                    .border(1.dp, PinkBorderLight, RoundedCornerShape(12.dp))
+                                    .padding(12.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(
+                                                when (viewModel.userIdentityStatus) {
+                                                    "VERIFIED" -> Color(0xFFDCFCE7)
+                                                    "PENDING_REVIEW" -> Color(0xFFFEF3C7)
+                                                    "REJECTED" -> Color(0xFFFEE2E2)
+                                                    else -> Color(0xFFFFF1F2)
+                                                },
+                                                CircleShape
+                                            ),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = when (viewModel.userIdentityStatus) {
+                                                "VERIFIED" -> Icons.Default.VerifiedUser
+                                                "PENDING_REVIEW" -> Icons.Default.Pending
+                                                "REJECTED" -> Icons.Default.ErrorOutline
+                                                else -> Icons.Default.Badge
+                                            },
+                                            contentDescription = null,
+                                            tint = when (viewModel.userIdentityStatus) {
+                                                "VERIFIED" -> greenSuccess
+                                                "PENDING_REVIEW" -> Color(0xFFD97706)
+                                                "REJECTED" -> Color(0xFFDC2626)
+                                                else -> PinkHighlight
+                                            },
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Column {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text("NID / Passport KYC", color = textDark, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = when (viewModel.userIdentityStatus) {
+                                                    "VERIFIED" -> "Verified ✓"
+                                                    "PENDING_REVIEW" -> "Under Review ⏳"
+                                                    "REJECTED" -> "Rejected ✗"
+                                                    else -> "Not Verified"
+                                                },
+                                                color = when (viewModel.userIdentityStatus) {
+                                                    "VERIFIED" -> greenSuccess
+                                                    "PENDING_REVIEW" -> Color(0xFFD97706)
+                                                    "REJECTED" -> Color(0xFFDC2626)
+                                                    else -> Color(0xFF6B7280)
+                                                },
+                                                fontWeight = FontWeight.SemiBold,
+                                                fontSize = 10.sp
+                                            )
+                                        }
+                                        Text(
+                                            text = if (viewModel.userIdentityDocNumber.isNotBlank()) "${viewModel.userIdentityDocType}: ${viewModel.userIdentityDocNumber}" else "Govt. ID Photo & Selfie verification",
+                                            color = textSub,
+                                            fontSize = 11.sp,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+
+                                Button(
+                                    onClick = { viewModel.navigateTo("IDENTITY_VERIFICATION") },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = when (viewModel.userIdentityStatus) {
+                                            "VERIFIED" -> Color(0xFF10B981)
+                                            "PENDING_REVIEW" -> Color(0xFFF59E0B)
+                                            else -> PinkHighlight
+                                        }
+                                    ),
+                                    shape = RoundedCornerShape(8.dp),
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                                    modifier = Modifier.height(34.dp)
+                                ) {
+                                    Text(
+                                        text = when (viewModel.userIdentityStatus) {
+                                            "VERIFIED" -> "View ID ✓"
+                                            "PENDING_REVIEW" -> "Check Status"
+                                            "REJECTED" -> "Re-Upload"
+                                            else -> "Verify ID"
+                                        },
+                                        color = Color.White,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+
+                            // 4. Problem & Admin Manual Code Assistance Box
                             Spacer(modifier = Modifier.height(12.dp))
                             Surface(
                                 color = Color(0xFFFFF8F0),
@@ -3297,6 +3400,22 @@ fun ProfileTab(viewModel: AppViewModel) {
                                     Text("Safely log out of this device", color = textSub, fontSize = 11.sp)
                                 }
                                 Icon(imageVector = Icons.Default.ChevronRight, contentDescription = null, tint = textSub, modifier = Modifier.size(18.dp))
+                            }
+
+                            HorizontalDivider(color = PinkBorderLight, thickness = 0.8.dp)
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Modol Connect v2.0.0",
+                                    color = textSub,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
                             }
                         }
                     }
@@ -6295,6 +6414,25 @@ fun ModelProfileTab(viewModel: AppViewModel) {
                         .fillMaxWidth()
                         .padding(4.dp)
                 ) {
+                    ProfileOptionRow(
+                        title = "Identity & Model KYC Verification (এনআইডি / পাসপোর্ট)",
+                        desc = when (viewModel.userIdentityStatus) {
+                            "VERIFIED" -> "✓ Verified Model Account (Approved)"
+                            "PENDING_REVIEW" -> "⏳ Documents submitted (Under Review)"
+                            "REJECTED" -> "⚠️ Action needed: Document re-upload requested"
+                            else -> "Upload National ID / Passport to earn Verified Host badge"
+                        },
+                        icon = Icons.Default.Badge,
+                        tint = when (viewModel.userIdentityStatus) {
+                            "VERIFIED" -> Color(0xFF10B981)
+                            "PENDING_REVIEW" -> Color(0xFFD97706)
+                            else -> PinkHighlight
+                        },
+                        onClick = { viewModel.navigateTo("IDENTITY_VERIFICATION") }
+                    )
+
+                    HorizontalDivider(color = PinkBorderLight, thickness = 0.8.dp)
+
                     ProfileOptionRow(
                         title = "Offered Services & Price Configuration",
                         desc = "Manage categories, hourly rates, travel & schedule",

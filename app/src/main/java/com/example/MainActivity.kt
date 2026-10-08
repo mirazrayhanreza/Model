@@ -80,18 +80,8 @@ fun MainContent(viewModel: AppViewModel) {
             add(android.Manifest.permission.RECORD_AUDIO)
             add(android.Manifest.permission.ACCESS_FINE_LOCATION)
             add(android.Manifest.permission.ACCESS_COARSE_LOCATION)
-            add(android.Manifest.permission.READ_CONTACTS)
-            add(android.Manifest.permission.READ_PHONE_STATE)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
                 add(android.Manifest.permission.POST_NOTIFICATIONS)
-                add(android.Manifest.permission.READ_MEDIA_IMAGES)
-                add(android.Manifest.permission.READ_MEDIA_VIDEO)
-            } else {
-                add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
-            }
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                add(android.Manifest.permission.BLUETOOTH_CONNECT)
-                add(android.Manifest.permission.BLUETOOTH_SCAN)
             }
         }
 
@@ -210,6 +200,7 @@ fun MainContent(viewModel: AppViewModel) {
             "MODEL_OFFERED_SERVICES" -> ModelOfferedServicesScreen(viewModel)
             "SETTINGS" -> SettingsScreen(viewModel)
             "EDIT_PROFILE" -> EditProfileScreen(viewModel)
+            "IDENTITY_VERIFICATION" -> IdentityVerificationScreen(viewModel)
             "AUDIO_CALL" -> AudioCallScreen(viewModel)
             else -> SplashScreen(viewModel)
         }

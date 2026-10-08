@@ -8,6 +8,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/auth.php';
 require_once __DIR__ . '/../config/firebase.php';
+require_once __DIR__ . '/../config/mailer.php';
 require_once __DIR__ . '/layout.php';
 
 checkAdminAuth();
@@ -25,7 +26,15 @@ $currentSettings = [
     'currency_default' => 'BDT (৳)',
     'maintenance_mode' => false,
     'app_name' => 'Modol Connect',
-    'show_live_gps_tab' => false
+    'show_live_gps_tab' => false,
+    'smtp_enabled' => false,
+    'smtp_host' => 'mail.modolconncet.fun',
+    'smtp_port' => 465,
+    'smtp_encryption' => 'ssl',
+    'smtp_username' => 'support@modolconncet.fun',
+    'smtp_password' => '',
+    'smtp_from_email' => 'support@modolconncet.fun',
+    'smtp_from_name' => 'Modol Connect Support'
 ];
 
 if (file_exists($settingsFile)) {
@@ -36,17 +45,49 @@ if (file_exists($settingsFile)) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $currentSettings['platform_fee_percent'] = (float)($_POST['platform_fee_percent'] ?? 15.0);
-    $currentSettings['agent_commission_percent'] = (float)($_POST['agent_commission_percent'] ?? 5.0);
-    $currentSettings['min_deposit'] = (float)($_POST['min_deposit'] ?? 500.0);
-    $currentSettings['min_withdrawal'] = (float)($_POST['min_withdrawal'] ?? 1000.0);
-    $currentSettings['p2p_timeout_minutes'] = (int)($_POST['p2p_timeout_minutes'] ?? 15);
-    $currentSettings['app_name'] = trim((string)($_POST['app_name'] ?? 'Modol Connect'));
-    $currentSettings['maintenance_mode'] = isset($_POST['maintenance_mode']);
-    $currentSettings['show_live_gps_tab'] = isset($_POST['show_live_gps_tab']);
+    if (isset($_POST['action']) && $_POST['action'] === 'send_test_email') {
+        $testRecipient = trim((string)($_POST['test_email_recipient'] ?? ''));
+        if (empty($testRecipient) || !filter_var($testRecipient, FILTER_VALIDATE_EMAIL)) {
+            $msg = 'Please enter a valid test recipient email address.';
+            $msgType = 'danger';
+        } else {
+            $subject = 'Modol Connect - Test Email & SMTP Diagnostics';
+            $body = "<h3>SMTP Test Successful!</h3><p>This is a test email sent from Modol Connect Admin Panel to verify that SMTP / email sending is properly configured.</p><p>Sender: <strong>support@modolconncet.fun</strong><br>Time: " . date('Y-m-d H:i:s') . "</p>";
+            $res = Mailer::send($testRecipient, $subject, $body);
+            if ($res['success']) {
+                $msg = "Test email sent successfully to {$testRecipient} via " . ($res['method'] ?? 'SMTP') . "!";
+                $msgType = 'success';
+            } else {
+                $msg = "Email delivery failed: " . ($res['error'] ?? 'Unknown error') . ". Notice: " . ($res['message'] ?? '');
+                $msgType = 'danger';
+            }
+        }
+    } else {
+        $currentSettings['platform_fee_percent'] = (float)($_POST['platform_fee_percent'] ?? 15.0);
+        $currentSettings['agent_commission_percent'] = (float)($_POST['agent_commission_percent'] ?? 5.0);
+        $currentSettings['min_deposit'] = (float)($_POST['min_deposit'] ?? 500.0);
+        $currentSettings['min_withdrawal'] = (float)($_POST['min_withdrawal'] ?? 1000.0);
+        $currentSettings['p2p_timeout_minutes'] = (int)($_POST['p2p_timeout_minutes'] ?? 15);
+        $currentSettings['app_name'] = trim((string)($_POST['app_name'] ?? 'Modol Connect'));
+        $currentSettings['maintenance_mode'] = isset($_POST['maintenance_mode']);
+        $currentSettings['show_live_gps_tab'] = isset($_POST['show_live_gps_tab']);
 
-    file_put_contents($settingsFile, json_encode($currentSettings, JSON_PRETTY_PRINT));
-    $msg = 'Platform parameters updated successfully!';
+        // SMTP settings
+        $currentSettings['smtp_enabled'] = isset($_POST['smtp_enabled']);
+        $currentSettings['smtp_host'] = trim((string)($_POST['smtp_host'] ?? 'mail.modolconncet.fun'));
+        $currentSettings['smtp_port'] = (int)($_POST['smtp_port'] ?? 465);
+        $currentSettings['smtp_encryption'] = trim((string)($_POST['smtp_encryption'] ?? 'ssl'));
+        $currentSettings['smtp_username'] = trim((string)($_POST['smtp_username'] ?? 'support@modolconncet.fun'));
+        if (!empty($_POST['smtp_password'])) {
+            $currentSettings['smtp_password'] = (string)$_POST['smtp_password'];
+        }
+        $currentSettings['smtp_from_email'] = trim((string)($_POST['smtp_from_email'] ?? 'support@modolconncet.fun'));
+        $currentSettings['smtp_from_name'] = trim((string)($_POST['smtp_from_name'] ?? 'Modol Connect Support'));
+
+        file_put_contents($settingsFile, json_encode($currentSettings, JSON_PRETTY_PRINT));
+        $msg = 'Platform parameters and SMTP settings updated successfully!';
+        $msgType = 'success';
+    }
 }
 
 renderAdminHeader('Settings', 'settings');
@@ -72,6 +113,7 @@ renderAdminHeader('Settings', 'settings');
             <li class="nav-item"><a class="nav-link active fw-semibold" data-bs-toggle="tab" href="#general">General & App</a></li>
             <li class="nav-item"><a class="nav-link fw-semibold" data-bs-toggle="tab" href="#commission">Commissions & Fees</a></li>
             <li class="nav-item"><a class="nav-link fw-semibold" data-bs-toggle="tab" href="#p2p_limits">P2P & Escrow Limits</a></li>
+            <li class="nav-item"><a class="nav-link fw-semibold" data-bs-toggle="tab" href="#email_smtp"><i class="bi bi-envelope-at-fill text-primary me-1"></i>Email & SMTP</a></li>
             <li class="nav-item"><a class="nav-link fw-semibold" data-bs-toggle="tab" href="#firebase_tab">Firebase & Cloud</a></li>
         </ul>
     </div>
@@ -158,6 +200,79 @@ renderAdminHeader('Settings', 'settings');
                 </div>
             </div>
 
+            <!-- Email & SMTP Tab -->
+            <div class="tab-pane fade" id="email_smtp">
+                <div class="p-3 bg-light rounded-3 border mb-4">
+                    <h6 class="fw-bold text-dark mb-1"><i class="bi bi-shield-check text-success me-2"></i>Official Outgoing Mail Server (support@modolconncet.fun)</h6>
+                    <p class="small text-secondary mb-0">Configure your domain mail server / SMTP to deliver OTPs, password reset links, and security alerts directly into user inboxes without being flagged as spam.</p>
+                </div>
+
+                <div class="row g-3 max-w-700">
+                    <div class="col-12">
+                        <div class="form-check form-switch p-2 ps-5 rounded border bg-white">
+                            <input class="form-check-input" type="checkbox" name="smtp_enabled" id="smtpSwitch" <?= !empty($currentSettings['smtp_enabled']) ? 'checked' : '' ?>>
+                            <label class="form-check-label fw-bold text-dark" for="smtpSwitch">Enable SMTP Mail Delivery</label>
+                            <small class="d-block text-muted">When enabled, emails are authenticated and sent directly via your SMTP server instead of default unauthenticated PHP mail().</small>
+                        </div>
+                    </div>
+
+                    <div class="col-md-8">
+                        <label class="form-label small fw-semibold text-secondary">SMTP Host / Server</label>
+                        <input type="text" name="smtp_host" class="form-control" value="<?= htmlspecialchars($currentSettings['smtp_host'] ?? 'mail.modolconncet.fun') ?>" placeholder="mail.modolconncet.fun or smtp.gmail.com">
+                        <small class="text-muted">Webmail/cPanel default is usually <code>mail.yourdomain.com</code></small>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold text-secondary">SMTP Port</label>
+                        <input type="number" name="smtp_port" class="form-control" value="<?= (int)($currentSettings['smtp_port'] ?? 465) ?>" placeholder="465 or 587">
+                        <small class="text-muted">SSL: <code>465</code> | TLS: <code>587</code></small>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-secondary">Encryption Protocol</label>
+                        <select name="smtp_encryption" class="form-select">
+                            <option value="ssl" <?= (($currentSettings['smtp_encryption'] ?? 'ssl') === 'ssl') ? 'selected' : '' ?>>SSL (Port 465 Recommended)</option>
+                            <option value="tls" <?= (($currentSettings['smtp_encryption'] ?? '') === 'tls') ? 'selected' : '' ?>>TLS (Port 587)</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-secondary">SMTP Username / Email</label>
+                        <input type="email" name="smtp_username" class="form-control" value="<?= htmlspecialchars($currentSettings['smtp_username'] ?? 'support@modolconncet.fun') ?>" placeholder="support@modolconncet.fun">
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-secondary">SMTP Password</label>
+                        <input type="password" name="smtp_password" class="form-control" value="<?= htmlspecialchars($currentSettings['smtp_password'] ?? '') ?>" placeholder="Enter email account password">
+                        <small class="text-muted">Password of your support@modolconncet.fun mailbox</small>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-secondary">Sender Display Name</label>
+                        <input type="text" name="smtp_from_name" class="form-control" value="<?= htmlspecialchars($currentSettings['smtp_from_name'] ?? 'Modol Connect Support') ?>">
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label small fw-semibold text-secondary">Sender Email Address</label>
+                        <input type="email" name="smtp_from_email" class="form-control" value="<?= htmlspecialchars($currentSettings['smtp_from_email'] ?? 'support@modolconncet.fun') ?>" readonly style="background-color: #f8fafc;">
+                        <small class="text-muted">Always sends from <strong>support@modolconncet.fun</strong></small>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="card p-3 border rounded-3 bg-white max-w-700">
+                    <h6 class="fw-bold text-dark mb-1"><i class="bi bi-send-check text-primary me-2"></i>Send Test Email & Verify Delivery</h6>
+                    <p class="small text-secondary mb-3">Save your SMTP settings first above, then enter an email address below to test live delivery.</p>
+                    <div class="input-group">
+                        <input type="email" form="testEmailForm" name="test_email_recipient" class="form-control" placeholder="recipient@gmail.com" required value="<?= htmlspecialchars($_SESSION['admin_email'] ?? 'hmmirazreza2@gmail.com') ?>">
+                        <button type="submit" form="testEmailForm" class="btn btn-outline-primary fw-semibold">
+                            <i class="bi bi-envelope-paper me-1"></i> Send Test Email
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Firebase Tab -->
             <div class="tab-pane fade" id="firebase_tab">
                 <div class="p-3 bg-light rounded-3 border mb-3">
@@ -175,6 +290,9 @@ renderAdminHeader('Settings', 'settings');
                 <i class="bi bi-save me-1"></i> Save Platform Settings
             </button>
         </div>
+    </form>
+    <form id="testEmailForm" method="POST" style="display:none;">
+        <input type="hidden" name="action" value="send_test_email">
     </form>
 </div>
 

@@ -206,15 +206,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $minLimit = (float)($_POST['min_limit'] ?? 500.0);
         $maxLimit = (float)($_POST['max_limit'] ?? 500000.0);
         $dailyLimit = (float)($_POST['daily_limit'] ?? 500000.0);
-        $initialBalance = (float)($_POST['wallet_balance'] ?? 50000.0);
+        $initialBalance = (float)($_POST['wallet_balance'] ?? 0.0);
         $availableBalance = (float)($_POST['available_balance'] ?? $initialBalance);
-        $commissionRate = (float)($_POST['commission_rate'] ?? 5.0);
+        $commissionRate = (float)($_POST['commission_rate'] ?? 1.5);
         $paymentMethods = trim($_POST['payment_methods'] ?? 'bKash, Nagad, Bank Transfer');
         $isOnline = isset($_POST['is_online']) ? 1 : 0;
         $isVerified = isset($_POST['is_verified']) ? 1 : 0;
-        $totalOrders = (int)($_POST['total_orders'] ?? 1250);
-        $completionRate = trim($_POST['completion_rate'] ?? '99.4%');
-        $avgReleaseTime = trim($_POST['avg_release_time'] ?? '2.4 min');
+        $totalOrders = (int)($_POST['total_orders'] ?? 0);
+        $completionRate = trim($_POST['completion_rate'] ?? '100%');
+        $avgReleaseTime = trim($_POST['avg_release_time'] ?? '2.0 min');
         $status = trim($_POST['status'] ?? 'ACTIVE');
 
         if (empty($code)) {

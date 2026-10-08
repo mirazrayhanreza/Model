@@ -290,7 +290,7 @@ CREATE TABLE IF NOT EXISTS `payment_gateways` (
     `gateway_id` VARCHAR(50) UNIQUE NOT NULL,
     `name` VARCHAR(100) NOT NULL,
     `type` VARCHAR(50) DEFAULT 'GLOBAL',
-    `environment` VARCHAR(20) DEFAULT 'SANDBOX',
+    `environment` VARCHAR(20) DEFAULT 'PRODUCTION',
     `merchant_id` VARCHAR(255) NULL,
     `merchant_name` VARCHAR(100) NULL,
     `api_key` VARCHAR(255) NULL,
@@ -332,16 +332,14 @@ INSERT INTO `admins` (`id`, `name`, `email`, `password`, `role`) VALUES
 (1, 'System Admin (Miraz Reza)', 'hmmirazreza2@gmail.com', 'Miraz@647291', 'SUPER_ADMIN')
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`), `email` = VALUES(`email`), `password` = VALUES(`password`);
 
-INSERT INTO `cash_agents` (`id`, `agent_code`, `name`, `phone`, `email`, `password`, `commission_rate`, `wallet_balance`, `country`, `city`, `currency`, `buy_rate`, `sell_rate`, `min_limit`, `max_limit`, `available_balance`, `orders_count`, `rating`, `status`) VALUES
-(1, 'AGENT001', 'Dhaka Central Cash Express #01', '+8801700000001', 'sumon@agent.com', '$2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7B77UdFm', 5.00, 250000.00, 'Bangladesh', 'Dhaka', 'BDT', 122.5000, 120.8000, 500.00, 500000.00, 50000.00, 2540, 4.95, 'ACTIVE'),
-(2, 'AGENT002', 'Dubai Deira Exchange Agent #02', '+97143214321', 'deira@agent.com', '$2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7B77UdFm', 4.50, 45000.00, 'UAE', 'Deira, Dubai', 'AED', 3.6700, 3.6500, 50.00, 100000.00, 45000.00, 1850, 4.92, 'ACTIVE')
-ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
+-- Real B2B Cash Agents are registered live via App/Web portal or Admin Panel
+
 
 INSERT INTO `users` (`id`, `uid`, `name`, `email`, `phone`, `password`, `country`, `city`, `role`, `wallet_balance`, `currency`, `kyc_status`, `is_verified`, `status`) VALUES
-(1, 'usr_1012', 'Rahim Uddin', 'rahim.uddin@gmail.com', '+880 1711 223344', '$2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7B77UdFm', 'Bangladesh', 'Dhaka', 'USER', 12500.00, 'BDT (৳)', 'VERIFIED', 1, 'ACTIVE'),
-(2, 'usr_1013', 'Karim Khan', 'karim.khan@gmail.com', '+880 1822 334455', '$2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7B77UdFm', 'Bangladesh', 'Chittagong', 'USER', 2000.00, 'BDT (৳)', 'SUBMITTED', 0, 'ACTIVE'),
-(3, 'usr_1014', 'Faisal Al-Mansoor', 'faisal.mansoor@uaenet.ae', '+971 55 987 6543', '$2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7B77UdFm', 'UAE', 'Dubai', 'VIP', 8400.00, 'AED (د.إ)', 'VERIFIED', 1, 'ACTIVE'),
-(4, 'usr_1015', 'Tan Wei Ming', 'tan.weiming@klmail.my', '+60 19 888 7766', '$2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7B77UdFm', 'Malaysia', 'Kuala Lumpur', 'USER', 3500.00, 'MYR (RM)', 'VERIFIED', 1, 'ACTIVE')
+(1, 'usr_1012', 'Rahim Uddin', 'rahim.uddin@gmail.com', '+880 1711 223344', '$2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7B77UdFm', 'Bangladesh', 'Dhaka', 'USER', 0.00, 'BDT (৳)', 'VERIFIED', 1, 'ACTIVE'),
+(2, 'usr_1013', 'Karim Khan', 'karim.khan@gmail.com', '+880 1822 334455', '$2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7B77UdFm', 'Bangladesh', 'Chittagong', 'USER', 0.00, 'BDT (৳)', 'SUBMITTED', 0, 'ACTIVE'),
+(3, 'usr_1014', 'Faisal Al-Mansoor', 'faisal.mansoor@uaenet.ae', '+971 55 987 6543', '$2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7B77UdFm', 'UAE', 'Dubai', 'VIP', 0.00, 'AED (د.إ)', 'VERIFIED', 1, 'ACTIVE'),
+(4, 'usr_1015', 'Tan Wei Ming', 'tan.weiming@klmail.my', '+60 19 888 7766', '$2y$10$TKh8H1.PfQx37YgCzwiKb.KjNyWgaHb9cbcoQgdIVFlYg7B77UdFm', 'Malaysia', 'Kuala Lumpur', 'USER', 0.00, 'MYR (RM)', 'VERIFIED', 1, 'ACTIVE')
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
 
 INSERT INTO `models` (`id`, `uid`, `name`, `hourly_rate`, `daily_rate`, `category`, `location`, `country`, `phone`, `email`, `rating`, `review_count`, `avatar_url`, `status`) VALUES
@@ -367,20 +365,10 @@ INSERT INTO `payment_methods` (`id`, `country_id`, `method_name`, `method_type`,
 (6, 4, 'DuitNow', 'Mobile Wallet', 50.00, 50000.00, 'Active')
 ON DUPLICATE KEY UPDATE `method_name` = VALUES(`method_name`);
 
-INSERT INTO `disputes` (`id`, `case_code`, `type`, `ref_code`, `user_name`, `agent_name`, `amount`, `status`, `timer`, `user_statement`, `agent_statement`, `proof_img`, `device_ip`, `wallet_log`) VALUES
-(1, 'DSP-901', 'P2P Order Payment Discrepancy', '#P20184', 'Hasan Ali', 'Agent 004 (Gulshan Escrow)', '৳10,000', 'Open', 'Active 2h', 'Payment done via bKash counter.', 'Statement was not updated at 09:15 AM.', 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44', '103.114.98.22', 'Agent Escrow Hold: ৳10,000')
-ON DUPLICATE KEY UPDATE `case_code` = VALUES(`case_code`);
-
 INSERT INTO `payment_gateways` (`id`, `gateway_id`, `name`, `type`, `environment`, `merchant_id`, `merchant_name`, `api_key`, `currency`, `min_amount`, `max_amount`, `fee_percent`, `is_enabled`, `supported_cards`, `instructions`) VALUES
-(1, 'google_pay', 'Google Pay', 'DIGITAL_WALLET', 'SANDBOX', 'BCR2DN4T77889900', 'Modol Connect Enterprise', 'gpay_pub_live_998877665544332211', 'BDT', 100.00, 500000.00, 1.50, 1, 'VISA, MASTERCARD, AMEX, DISCOVER', '1-tap biometric checkout via Google Pay wallet.'),
-(2, 'alipay', 'Alipay (支付宝)', 'GLOBAL_WALLET', 'SANDBOX', '2088102148765432', 'Modol Connect Hong Kong', '2021000119887766', 'CNY', 50.00, 300000.00, 1.80, 1, 'Alipay Wallet, China UnionPay', 'Cross-border Alipay QR and mobile deep-link payment.'),
-(3, 'apple_pay', 'Apple Pay', 'DIGITAL_WALLET', 'SANDBOX', 'merchant.com.modolconnect.app', 'Modol Connect Global Inc', 'appl_id_887766554433', 'USD', 10.00, 10000.00, 1.50, 1, 'Visa, MasterCard, Amex, Apple Card', 'Secure tokenized Apple Pay enclave checkout.')
+(1, 'google_pay', 'Google Pay', 'DIGITAL_WALLET', 'PRODUCTION', 'BCR2DN4T77889900', 'Modol Connect Enterprise', 'gpay_pub_live_998877665544332211', 'BDT', 100.00, 500000.00, 1.50, 1, 'VISA, MASTERCARD, AMEX, DISCOVER', '1-tap biometric checkout via Google Pay wallet.'),
+(2, 'alipay', 'Alipay (支付宝)', 'GLOBAL_WALLET', 'PRODUCTION', '2088102148765432', 'Modol Connect Hong Kong', '2021000119887766', 'CNY', 50.00, 300000.00, 1.80, 1, 'Alipay Wallet, China UnionPay', 'Cross-border Alipay QR and mobile deep-link payment.'),
+(3, 'apple_pay', 'Apple Pay', 'DIGITAL_WALLET', 'PRODUCTION', 'merchant.com.modolconnect.app', 'Modol Connect Global Inc', 'appl_id_887766554433', 'USD', 10.00, 10000.00, 1.50, 1, 'Visa, MasterCard, Amex, Apple Card', 'Secure tokenized Apple Pay enclave checkout.')
 ON DUPLICATE KEY UPDATE `name` = VALUES(`name`);
-
-INSERT INTO `calls` (`id`, `call_id`, `caller_id`, `caller_name`, `receiver_id`, `receiver_name`, `call_type`, `duration_seconds`, `duration_text`, `quality`, `status`, `created_at`) VALUES
-(1, 'CALL-8821', 'usr_1012', 'Rahim Uddin', 'mod_1', 'Jessica Chowdhury', 'Audio Call (WebRTC)', 860, '14m 20s', 'HD Voice (Opus 48kHz)', 'Completed', '2025-09-30 11:00:00'),
-(2, 'CALL-8820', 'usr_1013', 'Karim Khan', 'mod_2', 'Tania Islam', 'Audio Call (WebRTC)', 312, '05m 12s', 'HD Voice (Opus 48kHz)', 'Completed', '2025-09-29 18:30:00'),
-(3, 'CALL-8819', 'usr_1012', 'Hasan Ali', 'AGENT001', 'Dhaka Central Cash Express', 'Voice Call (P2P)', 105, '01m 45s', 'Standard Voice', 'Completed', '2025-09-29 09:10:00')
-ON DUPLICATE KEY UPDATE `status` = VALUES(`status`);
 
 SET FOREIGN_KEY_CHECKS = 1;

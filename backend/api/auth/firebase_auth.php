@@ -122,7 +122,7 @@ try {
             'country' => $user['country'] ?? 'Bangladesh',
             'city' => $user['city'] ?? 'Dhaka',
             'avatar_url' => $user['avatar_url'] ?? '',
-            'wallet_balance' => (float)($user['wallet_balance'] ?? 500.00),
+            'wallet_balance' => (float)($user['wallet_balance'] ?? 0.00),
             'status' => $user['status'] ?? 'ACTIVE',
             'auth_provider' => 'FIREBASE_LIVE_OTP',
             'backend_synced' => true

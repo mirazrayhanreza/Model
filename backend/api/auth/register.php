@@ -71,7 +71,7 @@ try {
             'email' => $email,
             'phone' => $phone ?: ($existing['phone'] ?? ''),
             'role' => $existing['role'],
-            'wallet_balance' => 500.00
+            'wallet_balance' => 0.00
         ]);
         exit(0);
     }
@@ -84,7 +84,7 @@ try {
 
     $insertStmt = $db->prepare("
         INSERT INTO users (uid, name, email, phone, password, role, avatar_url, wallet_balance, status, is_verified, country, city)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 500.00, 'ACTIVE', 1, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 0.00, 'ACTIVE', 1, ?, ?)
     ");
     $insertStmt->execute([
         $finalUid,
@@ -120,7 +120,7 @@ try {
         'email' => $email,
         'phone' => $phone,
         'role' => $role,
-        'wallet_balance' => 500.00,
+        'wallet_balance' => 0.00,
         'avatar_url' => $avatarUrl
     ], 201);
 

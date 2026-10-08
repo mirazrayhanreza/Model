@@ -1,5 +1,7 @@
 package com.example.ui.screens
 
+import android.app.Activity
+import android.widget.Toast
 import androidx.compose.animation.*
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -920,7 +922,12 @@ fun ModolConnectLogoHeader(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun SocialLoginRow() {
+fun SocialLoginRow(
+    viewModel: AppViewModel? = null,
+    onFacebookClick: (() -> Unit)? = null,
+    onGoogleClick: (() -> Unit)? = null
+) {
+    val activity = LocalContext.current as? Activity
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
@@ -930,7 +937,14 @@ fun SocialLoginRow() {
         Card(
             modifier = Modifier
                 .size(48.dp)
-                .clickable { },
+                .clickable {
+                    if (onGoogleClick != null) {
+                        onGoogleClick()
+                    } else if (viewModel != null) {
+                        viewModel.loginWithGoogle(activity)
+                    }
+                }
+                .testTag("google_login_icon_btn"),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             border = BorderStroke(1.dp, Color(0xFFFF85A6)),
             shape = RoundedCornerShape(12.dp)
@@ -944,13 +958,20 @@ fun SocialLoginRow() {
         Card(
             modifier = Modifier
                 .size(48.dp)
-                .clickable { },
-            colors = CardDefaults.cardColors(containerColor = Color.White),
-            border = BorderStroke(1.dp, Color(0xFFFF85A6)),
+                .clickable {
+                    if (onFacebookClick != null) {
+                        onFacebookClick()
+                    } else if (viewModel != null) {
+                        viewModel.loginWithFacebook(activity)
+                    }
+                }
+                .testTag("facebook_login_icon_btn"),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF1877F2)),
+            border = BorderStroke(1.dp, Color(0xFF1877F2)),
             shape = RoundedCornerShape(12.dp)
         ) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("f", color = Color(0xFF1877F2), fontWeight = FontWeight.ExtraBold, fontSize = 22.sp)
+                Text("f", color = Color.White, fontWeight = FontWeight.ExtraBold, fontSize = 24.sp)
             }
         }
         Spacer(modifier = Modifier.width(16.dp))
@@ -958,7 +979,10 @@ fun SocialLoginRow() {
         Card(
             modifier = Modifier
                 .size(48.dp)
-                .clickable { },
+                .clickable {
+                    Toast.makeText(activity, "Apple Sign-In is supported on iOS devices.", Toast.LENGTH_SHORT).show()
+                }
+                .testTag("apple_login_icon_btn"),
             colors = CardDefaults.cardColors(containerColor = Color.White),
             border = BorderStroke(1.dp, Color(0xFFFF85A6)),
             shape = RoundedCornerShape(12.dp)
@@ -1027,6 +1051,7 @@ fun OtpSixBoxInput(code: String, onCodeChange: (String) -> Unit) {
 // ---------------- 1. LOGIN SCREEN ----------------
 @Composable
 fun LoginScreen(viewModel: AppViewModel) {
+    val context = LocalContext.current
     var passwordVisible by remember { mutableStateOf(false) }
 
     Box(
@@ -1220,10 +1245,38 @@ fun LoginScreen(viewModel: AppViewModel) {
                     Text("Login with OTP", color = PurplePrimary, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                 }
 
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Continue with Facebook Button
+                Button(
+                    onClick = {
+                        val act = context as? Activity
+                        viewModel.loginWithFacebook(act)
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1877F2)),
+                    shape = RoundedCornerShape(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp)
+                        .testTag("facebook_login_wide_button"),
+                    enabled = !viewModel.isAuthLoading
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .background(Color.White, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("f", color = Color(0xFF1877F2), fontWeight = FontWeight.Black, fontSize = 16.sp)
+                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text("Continue with Facebook", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                }
+
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Social Icons Row
-                SocialLoginRow()
+                SocialLoginRow(viewModel = viewModel)
 
                 Spacer(modifier = Modifier.height(20.dp))
             }
